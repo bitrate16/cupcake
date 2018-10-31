@@ -20,13 +20,14 @@ namespace ck_vobject {
 	
 	class vobject : gc_object {
 		// XXX: check for working
-		static const vtype type;
+		static const vtype type = none;
 		
 		vobject();
 		
-		vobject *get(string);
-		vobject *put(string, vobject*);
-		bool contains(string);
-		bool remove(string);
+		vobject *get(vscope*, string);
+		vobject *put(vscope*, string, vobject*);
+		bool contains(vscope*, string);
+		bool remove(vscope*, string);
+		vobject *call(vscope*, std::vector<vobject*> args);
 	};
 };
