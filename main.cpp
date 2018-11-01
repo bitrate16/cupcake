@@ -45,4 +45,26 @@ int main(int argc, char **argv) {
 	// 2. Execute task in multithreaded lock
 	// 3. Collect garbage
 	// 4. Exit multithreaded lock
+	
+	// Three main lockable contexts:
+	// 1. GIL = lock queue.
+	// 2. Object own = lock queue.
+	// 3. IO = simple IO interrupt notification lock.
+	// Use queue for locking:
+	// queue::lock(func1, func2, func3):
+	// 1. lock mutex2
+	// 2. if queue is empty - call func3
+	//      else call func1
+	// 3. put self into queue
+	// 4. unlock mutex2
+	// 5. condition_variable.wait(mutex1, condition = { queue.first = this thread })
+	// 6. if condition passed
+	//      call func2
+	// 7. exit queue::lock, other threads are waiting for this thread to remove itself from queue
+	// queue::unlock(func):
+	// 1. lock mutex2
+	// 2. remove self from queue
+	// 3. unlock mutex2
+	// 4. call func
+	// exit queu::unlock, forces other threads to handle next in the queue 
 };

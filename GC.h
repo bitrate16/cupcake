@@ -2,10 +2,11 @@
 
 #include "GIL"
 
-namespace ck_core {	
+namespace ck_core {		
 	/*
 	 * Garbage collector object, tracked at creation.
 	 */
+	class GC;
 	class gc_object {
 		public:
 		bool gc_record;
@@ -25,6 +26,12 @@ namespace ck_core {
 		
 		// Called when GC destroyes current object
 		virtual void gc_finalize();
+		
+		private:
+		// Allow deleting of the pointers only for GC
+		friend class GC;
+		void operator delete  (void* ptr);
+		void operator delete[](void* ptr);
 	};
 	
 	/*

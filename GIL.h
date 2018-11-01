@@ -37,9 +37,6 @@ namespace ck_core {
 		// sync state thread for locking current input or mutex lock make wait conditional variable at postion local handler thread.
 	};
 	
-	// GIL lock_threads mutex used for preventing multiple threads from making locks at same time.
-	std::mutex GIL_lock_threads_mutex;
-	
 	/*
 	 * Global Interpreter Lock type
 	 * Single for each thread, provides global synchronization, thread control,
@@ -47,7 +44,10 @@ namespace ck_core {
 	 */
 	class GIL {
 		public:
-		std::recursive_mutex GIL_lock;
+		// Locked while one thread tries to request global lock of all ohther threads.
+		std::recursive_mutex sync_lock;
+		// Locked while other thread is waiting for condition.
+		std::recursive_mutex wait_lock;
 		// List of all spawned threads
 		std::vector<ck_thread*> threads;
 		// Garbage collector

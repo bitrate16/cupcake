@@ -7,8 +7,7 @@ using namespace ck_core;
 void GIL::lock_for_notify_condition(std::function<bool ()> condition_lambda) {
 	ck_thread *current = current_ckthread();
 	
-	mutex _m;
-	std::unique_lock<std::mutex> lk(_m);
+	std::unique_lock<std::recursive_mutex> lk(gil->wait_lock);
 	
 	// Wait till condition complete
 	// Example use:
@@ -19,8 +18,7 @@ void GIL::lock_for_notify_condition(std::function<bool ()> condition_lambda) {
 void GIL::lock_for_time_condition(std::function<bool ()> condition_lambda, long wait_delay = -1) {
 	ck_thread *current = current_ckthread();
 	
-	mutex _m;
-	std::unique_lock<std::mutex> lk(_m);
+	std::unique_lock<std::recursive_mutex> lk(gil->wait_lock);
 	
 	wait_delay = wait_delay == -1 ? WAIT_FOR_DEFAULT_PERIOD : wait_delay;
 	
@@ -35,7 +33,8 @@ GIL::lock_threads(int thread_id = -1) {
 		// XXX: why is this argument here?;
 	
 	// Lock operation for any other thread
-	std::lock_guard<std::recursive_mutex> locker(GIL_lock_threads_mutex);
+	// XXX: Need to lock this using GIL::lock_for_condition
+	std::unique_lock<std::recursive_mutex> locker(gil->sync_lock);
 	
 	// Request lock from other threads
 	gil->lock_requested = 1;
