@@ -4,6 +4,33 @@
 #include <vector>
 
 #include "GC"
+#include "lock_queue"
+
+namespace gil_sync {
+	// Default parameter must be passed when some thread is joining GIL sync_lock
+	// Notifies current thread that it is blocked.
+	const std::function<void ()> GIL_SYNC_LOCK = [&]{ 
+		ck_thread *t = gil->current_ckthread_noexcept();
+		if (t) ++t->is_blocked;
+	};
+	
+	// Default parameter must be passed when some thread is joining GIL sync_lock
+	// Notifies current thread that it is blocked.
+	// Also calls GIL::notify_sync_lock() to force waiting operator 
+	// to wake and process when all threads are blocked to next operations.
+	const std::function<void ()> GIL_NOTIFY_SYNC_LOCK = [&]{ 
+		ck_thread *t = gil->current_ckthread_noexcept();
+		if (t) ++t->is_blocked;
+		gil->notify_sync_lock();
+	};
+	
+	// Default parameter must be passed when some thread is joining GIL sync_lock
+	// Notifies current thread that it is unblocked.
+	const std::function<void ()> GIL_SYNC_UNLOCK = [&]{ 
+		ck_thread *t = gil->current_ckthread_noexcept();
+		if (t) --t->is_blocked;
+	};
+};
 
 namespace ck_core {	
 	// Delay time of std::condition_variable::wait_for
@@ -17,6 +44,19 @@ namespace ck_core {
 		public:
 		// Pointer to the assigned thread
 		std::thread *thread = nullptr;
+		// Set to 1 if thread currently is blocked and lock_request is accepted.
+		// If thread is has accepted blocking, that guarantee
+		// that GIL::lock_threads() will be safe and will not be
+		// interrupted. 
+		// This flag can be set by GIL::sync_lock or any other lock_queue
+		// that's blocking also depends on GIL::lock_threads() state.
+		// This flag can be set by thread while it is waiting for system call result.
+		// In this case system call myst be wrapped into std::async and notify thread 
+		// about result at the end of system call. Short-period calls like malloc/calloc/free
+		// can not be wrapped in std::async. 
+		// This flag can be set by thread if it has accepted global block and now waiting
+		// for controller thread to call GIL::sync_condition.notify_all().
+		int is_blocked = 0;
 		// Unique thread number in ck debug
 		int thread_id       = -1;
 		// Set to 1 if thread accepted lock request and waiting for signal
@@ -45,9 +85,10 @@ namespace ck_core {
 	class GIL {
 		public:
 		// Locked while one thread tries to request global lock of all ohther threads.
-		std::recursive_mutex sync_lock;
-		// Locked while other thread is waiting for condition.
-		std::recursive_mutex wait_lock;
+		lock_queue sync_lock;
+		// Used for making all threads pause on lock_threads() made by controller thread
+		std::condtional_variable sync_condition;
+		std::mutex sync_mutex;
 		// List of all spawned threads
 		std::vector<ck_thread*> threads;
 		// Garbage collector
@@ -64,6 +105,14 @@ namespace ck_core {
 		// Waits till all threads will receive lock signal and pause.
 		// Returns 1 if lock has been successfull, 0 else.
 		bool lock_threads(int thread_id = -1);
+		
+		// Tries to perform GIL lock.
+		// Uses to call GIL::sync_lock::try_lock().
+		// If result was 1, lock passes and current thread is made operator.
+		// Else returns 0 and continues execution.
+		// This is only (for now?) way to fully lock GIL and avoid situation 
+		// descrbed in GIL::lock_threads().
+		bool try_lock_threads();
 		
 		// Unlocks all threads.
 		// Calling unpause on all threads but current.
@@ -94,6 +143,17 @@ namespace ck_core {
 		// Returns current ck_thread.
 		// Throws error if function was called from non-registered thread.
 		ck_thread *current_ckthread();
+		
+		// Equals to GIL::current_ckthread() but returns nullptr 
+		// instead of exception
+		ck_thread *current_ckthread_noexcept() noexcept;
+		
+		// Used to notify sync_condition to check it's condition.
+		// Used in gil_sync::GIL_NOTIFY_SYNC_LOCK to avoid situation
+		// whan all threads come blocked at the same moment as 
+		// operator thread in GIL::lock_threads() begin waiting to nothing
+		// and all program hangs.
+		void notify_sync_lock();
 	};
 	
 	// Instance of GIL for each thread.
