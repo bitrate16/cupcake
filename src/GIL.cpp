@@ -1,6 +1,6 @@
 #include <stdexcept>
 
-#include <GIL>
+#include "GIL"
 
 using namespace ck_core;
 
