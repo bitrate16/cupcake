@@ -106,7 +106,7 @@ namespace ck_core {
 		// List of all spawned and registered threads.
 		// Each thread that accesses methods of GIL must be
 		// thacked by it and initialized by GIL::spawn_thread().
-		// Any untracked thread access to GIL WILL CAUSE ERRORS.
+		// Any untracked thread access to GIL WILL CAUSE ERRORS. 
 		std::vector<ck_thread*> threads;
 		// Garbage collector
 		GC gc;
