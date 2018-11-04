@@ -19,6 +19,13 @@ namespace gil_sync {
 	// Also calls GIL::notify_sync_lock() to force waiting operator 
 	// to wake and process when all threads are blocked to next operations.
 	const std::function<void ()> GIL_NOTIFY_SYNC_LOCK = [&]{ 
+		// Locks this mutex by current thread.
+		// That means that when GIL::lock_threads is called,
+		// operator thread will hold the mutex till it will enter waiting. 
+		// (see doc for std::conditional_variable)
+		// This thread will attempt to acquire the mutex, but
+		// operator is owning it now and will block untill call wait.
+		std::unique_lock<std::mutex> lk(gil->sync_lock);
 		ck_thread *t = gil->current_ckthread_noexcept();
 		if (t) ++t->is_blocked;
 		gil->notify_sync_lock();
@@ -84,22 +91,34 @@ namespace ck_core {
 	 */
 	class GIL {
 		public:
-		// Locked while one thread tries to request global lock of all ohther threads.
-		lock_queue sync_lock;
 		// Used for making all threads pause on lock_threads() made by controller thread
 		std::condtional_variable sync_condition;
 		std::mutex sync_mutex;
-		// List of all spawned threads
+		// Locked while one thread tries to request global lock of all ohther threads.
+		// Using shared lock to make all threaads 
+		shared_lock_queue sync_lock(sync_mutex, sync_condition);
+		// Lock signal flag. 
+		// Operated by GIL::lock_threads. Set to 1 when threads
+		// are softly requested to block to allows operator 
+		// perform something in hardly synchronized single-threaded mode.
+		// Usualle when using block, gil_sync::GIL_NOTIFY_SYNC_LOCH has to be called.
+		int lock_requested = 0;
+		// List of all spawned and registered threads.
+		// Each thread that accesses methods of GIL must be
+		// thacked by it and initialized by GIL::spawn_thread().
+		// Any untracked thread access to GIL WILL CAUSE ERRORS.
 		std::vector<ck_thread*> threads;
 		// Garbage collector
 		GC gc;
 		// Signal value. Only one thread at time can access it.
 		std::atomic<int> signal = -1;
-		// Lock signal flag. Equals to 1 if threads expected to pause.
-		int lock_requested = 0;
 		
 		GIL();
 		~GIL();
+		
+		// Spawns new thread and registers it on GIL::threads.
+		// 
+		void spawn_thread();
 		
 		// Locks all threads but current.
 		// Waits till all threads will receive lock signal and pause.
