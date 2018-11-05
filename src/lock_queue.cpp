@@ -34,7 +34,7 @@ void ck_sync::lock_queue::try_lock(std::function<void ()> on_first = lock_queue_
 };
 
 bool ck_sync::lock_queue::unlock() {
-	// Acquire conditional_variable lock
+	// Acquire condition_variable lock
 	std::lock_guard<std::mutex> guard(mutex1);
 	// Remove self from queue
 	std::unique_lock<std::mutex> locker(mutex2);
@@ -94,7 +94,7 @@ void ck_sync::shared_lock_queue::shared_lock() (std::unique_lock<std::mutex> &lo
 	// Equals to:
 	// 
 	// std::mutex myMutex;
-	// std::conditional_variable cv;
+	// std::condition_variable cv;
 	// shared_lock_queue qlock(myMutex, cv);
 	// std::unique_lock<std::mutex> mlock(myMytex);
 	// qlock.shared_lock(lock=mlock);
@@ -117,7 +117,7 @@ void ck_sync::shared_lock_queue::try_lock(std::function<void ()> on_first = lock
 };
 
 bool ck_sync::shared_lock_queue::unlock() {
-	// Acquire conditional_variable lock
+	// Acquire condition_variable lock
 	std::unique_lock<std::mutex> guard(mutex1);
 	// Remove self from queue
 	std::lock_guard<std::mutex> locker(mutex2);

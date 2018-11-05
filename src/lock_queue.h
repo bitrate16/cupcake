@@ -2,6 +2,7 @@
 
 #include <queue>
 #include <thread>
+#include <condition_variable>
 
 namespace ck_sync {
 	// Empty lambda for lock_queue::lock()
@@ -23,7 +24,7 @@ namespace ck_sync {
 		// Protect mutex
 		std::mutex mutex2;
 		// Coditional variable for wait
-		std::conditional_variable cv;
+		std::condition_variable cv;
 		// Threads queue
 		std::queue<int> queue;
 		
@@ -48,7 +49,7 @@ namespace ck_sync {
 	
 	/*
 	 * Shared lock queue is equalient to lock queue but mutex and 
-	 * conditional_variable are passed to it by reference allowing 
+	 * condition_variable are passed to it by reference allowing 
 	 * user to use single muutex and cond var to synchronize the queue.
 	 * 
 	 * Lock queue if used for queiung lock requests in a single nutex.
@@ -65,11 +66,11 @@ namespace ck_sync {
 		// Protect mutex
 		std::mutex mutex2;
 		// Coditional variable for wait
-		std::conditional_variable &cv;
+		std::condition_variable &cv;
 		// Threads queue
 		std::queue<int> queue;
 		
-		shared_lock_queue(std::mutex &_mtx, conditional_variable &_cv) : mutex1(_mtx), cv(_cv) {};
+		shared_lock_queue(std::mutex &_mtx, condition_variable &_cv) : mutex1(_mtx), cv(_cv) {};
 		
 		// Make this thread wait in lock queue
 		// on_blocked is called when thread begin vaiting for onlock

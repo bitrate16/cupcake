@@ -2,6 +2,7 @@
 
 #include <thread>
 #include <vector>
+#include <condition_variable>
 
 #include "GC"
 #include "lock_queue"
@@ -22,7 +23,7 @@ namespace gil_sync {
 		// Locks this mutex by current thread.
 		// That means that when GIL::lock_threads is called,
 		// operator thread will hold the mutex till it will enter waiting. 
-		// (see doc for std::conditional_variable)
+		// (see doc for std::condition_variable)
 		// This thread will attempt to acquire the mutex, but
 		// operator is owning it now and will block untill call wait.
 		std::unique_lock<std::mutex> lk(gil->sync_lock);
@@ -75,12 +76,16 @@ namespace ck_core {
 		// This flag can be set by thread if it has accepted global block and now waiting
 		// for controller thread to call GIL::sync_condition.notify_all().
 		int is_blocked = 0;
+		// Set to 1 if thread is still alive.
+		// Changed to 0 when body function of the thread is finished working 
+		// and thread requests GC to collect it.
+		int is_alive = 1;
 		// Unique thread number in ck debug
-		int thread_id       = -1;
+		int thread_id = -1;
 		// Set to 1 if thread accepted lock request and waiting for signal
-		int accepted_lock   = 0;
+		int accepted_lock = 0;
 		// Interrupt code handling
-		int interrupt       = -1;
+		int interrupt = -1;
 		// Set to 1 while thread is performing blocking operation
 		// (aka read/write, listed to input or sockets)
 		// is_blocked used for safety pausing threads while they are freezed.
@@ -92,7 +97,7 @@ namespace ck_core {
 		std::atomic<bool> is_object_lock = 0;
 		// Condition variable used for something thanslate this text
 		std::condition_variable cv;
-		// sync state thread for locking current input or mutex lock make wait conditional variable at postion local handler thread.
+		// sync state thread for locking current input or mutex lock make wait condition variable at postion local handler thread.
 	};
 	
 	/*
@@ -102,7 +107,8 @@ namespace ck_core {
 	 */
 	class GIL {
 		public:
-		// Used for making all threads pause on lock_threads() made by controller thread
+		// Used for making all threads pause on lock_threads() made by controller thread.
+		// Provides synchronization for multiple threads trying to pause on operator request.
 		std::condtional_variable sync_condition;
 		std::mutex sync_mutex;
 		// Locked while one thread tries to request global lock of all ohther threads.
@@ -112,13 +118,15 @@ namespace ck_core {
 		// Operated by GIL::lock_threads. Set to 1 when threads
 		// are softly requested to block to allows operator 
 		// perform something in hardly synchronized single-threaded mode.
-		// Usualle when using block, gil_sync::GIL_LOCK_NOTIFY_SYNC_LOCK has to be called.
+		// Usually when using block, gil_sync::GIL_LOCK_NOTIFY_SYNC_LOCK has to be called.
 		int lock_requested = 0;
 		// List of all spawned and registered threads.
 		// Each thread that accesses methods of GIL must be
 		// thacked by it and initialized by GIL::spawn_thread().
 		// Any untracked thread access to GIL WILL CAUSE ERRORS. 
 		std::vector<ck_thread*> threads;
+		// Threads vector protector
+		std::mutex threads_lock;
 		// Garbage collector
 		GC gc;
 		// Signal value. Only one thread at time can access it.
@@ -126,10 +134,6 @@ namespace ck_core {
 		
 		GIL();
 		~GIL();
-		
-		// Spawns new thread and registers it on GIL::threads.
-		// 
-		void spawn_thread();
 		
 		// Locks all threads but current.
 		// Waits till all threads will receive lock signal and pause.
@@ -143,6 +147,11 @@ namespace ck_core {
 		// This is only (for now?) way to fully lock GIL and avoid situation 
 		// descrbed in GIL::lock_threads().
 		bool try_lock_threads();
+		
+		// Spawns a new thread and registers it in GIL::threads.
+		// On start, gil global instance is assigned to it and then 
+		// body function is called.
+		void spawn_thread(std::function<void ()> body);
 		
 		// Unlocks all threads.
 		// Calling unpause on all threads but current.

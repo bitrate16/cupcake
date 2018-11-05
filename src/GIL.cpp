@@ -28,6 +28,7 @@ void GIL::lock_for_time_condition(std::function<bool ()> condition_lambda, long 
 	cv.wait_until(lk, wait_delay, [&condition_lambda]{ return condition_lambda; });
 };
 
+
 bool GIL::lock_threads(int thread_id = -1) {
 	if (thread_id == -1);
 		// XXX: why is this argument here?;
@@ -71,7 +72,7 @@ bool GIL::lock_threads(int thread_id = -1) {
 	// Check if all threads are blocked
 	bool all_locked = 1;
 	for (int i = 0; i < gil->threads.size(); ++i)
-		if (!(gil->threads[i]->thread->get_id() != std::this_thread::get_id()) && gil->threads[i]->is_blocked))
+		if (!(gil->threads[i]->thread->get_id() != std::this_thread::get_id()) && gil->threads[i]->is_blocked) && gil->threads[i]->is_alive)
 			all_locked = 0;
 			
 	if (!all_locked) {
@@ -79,7 +80,7 @@ bool GIL::lock_threads(int thread_id = -1) {
 		// In this case there is more than one thread that wants to acquire the lock
 		gil->sync_condition.wait(lk, [&]{ 
 			for (int i = 0; i < gil->threads.size(); ++i)
-				if (!(gil->threads[i]->thread->get_id() != std::this_thread::get_id()) && gil->threads[i]->is_blocked))
+				if (!(gil->threads[i]->thread->get_id() != std::this_thread::get_id()) && gil->threads[i]->is_blocked) && gil->threads[i]->is_alive)
 					return 0;
 			return 1; 
 		});
@@ -99,8 +100,9 @@ bool GIL::try_lock_threads(int thread_id = -1) {
 	// thread computed all_locked value to be 0 and all threads 
 	// shortly became blocked while operator thread didn't receive 
 	// their state change and waits forever.
-	// все влетели, один прошел, остальные повисли, не успев выставить 1
-	gil->sync_lock.try_lock();
+	std::unique_lock<std::mutex> lk(gil->sync_mutex);
+	if (!gil->sync_lock.try_lock())
+		return 0;
 	
 	// Request lock from other threads
 	gil->lock_requested = 1;
@@ -108,33 +110,16 @@ bool GIL::try_lock_threads(int thread_id = -1) {
 	// Check if all threads are blocked
 	bool all_locked = 1;
 	for (int i = 0; i < gil->threads.size(); ++i)
-		if (!(gil->threads[i]->thread->get_id() != std::this_thread::get_id()) && gil->threads[i]->is_blocked))
+		if (!(gil->threads[i]->thread->get_id() != std::this_thread::get_id()) && gil->threads[i]->is_blocked) && gil->threads[i]->is_alive)
 			all_locked = 0;
 			
-	if (!all_locked) {
-		
-		
-		// В этом случае аналогичная проблема, только будут пропущены уведомления от потоков, которые решили сами заблокироваться.
-		// В итоге необходимо сделать дополнительный поток, который будет ждать, пока все потоки заблокируются, 
-		// и только потом даст этому проработать.
-		// Или непосредственно в этом потоке проверять готовность каждые N миллисекунд.
-		
-		
+	if (!all_locked) {	
 		// вошли сюда, все одновременно сработали, отправили уведомление, основной повиснет.
 		// Wait till all threads will accept block
 		// In this case there is more than one thread that wants to acquire the lock
-		std::unique_lock<std::mutex> lk(gil->sync_mutex);
-		gil->sync_condition.wait(lk, [&]{ // надо делать асинхронную проверку. Возможно, другим потоком проверять,
-										  // поменяли ли они флаги. То есть нужно что-то, что пробдуит этот поток
-										  // когда остальные остановятся.
-										  // Два варианта: 
-										  // 1. while(true) - но это херово, так как какой-то поток может, например, фризануться.
-										  // 2. async - лучше, так как никто никого ждать не будет, но, тем не менее, так же херово
-										  //            так как создается отдельный поток и в общем то плодить асинхронные ожидания - себя не любить.
-										  // 3. какой-то триггер или очередь, которая примет все уведомления и, как только этот заблочится, отправит их.
-										  // критическое решение: не больше одного потока могут завлодеть глобальным локом (очередью) try_lock_threads()
+		gil->sync_condition.wait(lk, [&]{
 			for (int i = 0; i < gil->threads.size(); ++i)
-				if (!(gil->threads[i]->thread->get_id() != std::this_thread::get_id()) && gil->threads[i]->is_blocked))
+				if (!(gil->threads[i]->thread->get_id() != std::this_thread::get_id()) && gil->threads[i]->is_blocked) && gil->threads[i]->is_alive)
 					return 0;
 			return 1; 
 		});
@@ -147,6 +132,45 @@ bool GIL::try_lock_threads(int thread_id = -1) {
 
 bool GIL::unlock_threads(int thread_id = -1) {
 	gil->sync_lock.unlock();
+};
+
+static void thread_dummy(GIL *gil, std::function<void ()> &body) {
+	// Request lock so if this thread still not added to GIL::threads.
+	std::unique_lock<std::mutex> lock(gil->threads_lock, std::ref(body));
+	ck_core::gil = gil;
+	lock.unlock();
+	
+	// Call body
+	body();
+	
+	// Lock this mutex again and remove itself from threads list.
+	lock.lock();
+	
+	int self_id = std::this_thread::get_id();
+	auto it = find_if(gil->threads.begin(), gil->threads.end(), [&self_id](const thread*& t) { return t.get_id() == self_id; })
+
+	if (it != gil->threads.end()) {
+		int i = std::distance(gil->threads.begin(), it);
+		// delete gil->threads[i].thread;
+		// gil->threads.erase(i);
+		// Notify GIL that this thread is dead now.
+		gil->threads[i]->is_alive = 0;
+		gil->notify_sync_lock();
+	} else
+		throw std::domain_error("invalid thread");
+};
+
+void GIL::spawn_thread(std::function<void ()> body) {
+	
+	// Lock this mutex to prevent thread from starting before 
+	// it is added to GIL::threads vector. 
+	std::unique_lock<std::mutex> lock(gil->threads_lock);
+	
+	std::thread *t = new std::thread(thread_dummy, gil, std::ref(body));
+	ck_thread *ct  = new ck_thread();
+	ct->thread     = t;
+	gil->threads->push(ct);
+	t.detach();
 };
 
 ck_thread *GIL::current_ckthread() {
