@@ -4,28 +4,71 @@
 
 using namespace ck_core;
 
-void GIL::lock_for_notify_condition(std::function<bool ()> condition_lambda) {
-	ck_thread *current = current_ckthread();
+GIL::GIL() {
+	// Assing self instance
+	gil = this;
 	
+	// No lock needed. First start.
+	ck_thread *ct = new ck_thread();
+	threads->push(ct);
+};
+
+// Ignore for signals
+static void dummy_signal(int signal) {
+	signal(SIGINT,  dummy_signal); // <-- user interrupt
+	signal(SIGTERM, dummy_signal); // <-- Terminate request
+	signal(SIGABRT, dummy_signal); // <-- abortion is murder
+};
+
+GIL::~GIL() {
+	// Program termination.
+	// Waiting till everything is completely dead
+	std::unique_lock<std::mutex> lock(threads_lock);
+	
+	// At this moment ignoring all signals from OS.
+	signal(SIGINT,  dummy_signal); // <-- user interrupt
+	signal(SIGTERM, dummy_signal); // <-- Terminate request
+	signal(SIGABRT, dummy_signal); // <-- abortion is murder
+	
+	// Derstroy all ck_threads (delete instances)
+	for (int i = 0; i < threads.size(); ++i) {
+		delete threads[i]->thread;
+		delete threads[i];
+	}
+	
+	// Call last garbage collection
+	GC.dispose();
+	
+	// Finally commit suicide
+	delete this;
+};
+
+void GIL::lock_for_condition(std::function<bool ()> condition_lambda) {
 	std::unique_lock<std::recursive_mutex> lk(gil->wait_lock);
 	
-	// Wait till condition complete
-	// Example use:
-	// Wait for loop of nothing, lel.
-	cv.wait(lk, [&condition_lambda]{ return condition_lambda; });
+	// Mark this thread as blocked.
+	ck_sync::GIL_NOTIFY_SYNC_LOCK();
+	
+	// Waits for condition on GIL lock.
+	cv.wait(lk, [&]{ return condition_lambda; });
+	
+	// Mark this thread as unblocked.
+	ck_sync::GIL_SYNC_UNLOCK();
 };
 
 void GIL::lock_for_time_condition(std::function<bool ()> condition_lambda, long wait_delay = -1) {
-	ck_thread *current = current_ckthread();
+	wait_delay = wait_delay == -1 ? WAIT_FOR_DEFAULT_PERIOD : wait_delay;
 	
 	std::unique_lock<std::recursive_mutex> lk(gil->wait_lock);
 	
-	wait_delay = wait_delay == -1 ? WAIT_FOR_DEFAULT_PERIOD : wait_delay;
+	// Mark this thread as blocked.
+	ck_sync::GIL_NOTIFY_SYNC_LOCK();
 	
-	// Wait till condition complete
-	// Example use:
-	// Wait for loop of nothing, lel.
-	cv.wait_until(lk, wait_delay, [&condition_lambda]{ return condition_lambda; });
+	// Waits for condition on GIL lock.
+	cv.wait(lk, wait_delay, [&]{ return condition_lambda; });
+	
+	// Mark this thread as unblocked.
+	ck_sync::GIL_SYNC_UNLOCK();
 };
 
 
@@ -136,7 +179,7 @@ bool GIL::unlock_threads(int thread_id = -1) {
 
 static void thread_dummy(GIL *gil, std::function<void ()> &body) {
 	// Request lock so if this thread still not added to GIL::threads.
-	std::unique_lock<std::mutex> lock(gil->threads_lock, std::ref(body));
+	std::unique_lock<std::mutex> lock(gil->threads_lock);
 	ck_core::gil = gil;
 	lock.unlock();
 	
@@ -167,15 +210,14 @@ void GIL::spawn_thread(std::function<void ()> body) {
 	std::unique_lock<std::mutex> lock(gil->threads_lock);
 	
 	std::thread *t = new std::thread(thread_dummy, gil, std::ref(body));
-	ck_thread *ct  = new ck_thread();
-	ct->thread     = t;
+	ck_thread *ct  = new ck_thread(t);
 	gil->threads->push(ct);
 	t.detach();
 };
 
 ck_thread *GIL::current_ckthread() {
 	int self_id = std::this_thread::get_id();
-	auto it = find_if(gil->threads.begin(), gil->threads.end(), [&self_id](const thread*& t) { return t.get_id() == self_id; })
+	auto it = find_if(gil->threads.begin(), gil->threads.end(), [&self_id](const ck_thread*& t) { return t.std_thread_id == self_id; });
 
 	if (it != gil->threads.end()) 
 	  return gil->threads[std::distance(gil->threads.begin(), it)];
@@ -185,7 +227,7 @@ ck_thread *GIL::current_ckthread() {
 
 ck_thread *GIL::current_ckthread_noexcept() noexcept {
 	int self_id = std::this_thread::get_id();
-	auto it = find_if(gil->threads.begin(), gil->threads.end(), [&self_id](const thread*& t) { return t.get_id() == self_id; })
+	auto it = find_if(gil->threads.begin(), gil->threads.end(), [&self_id](const ck_thread*& t) { return t.std_thread_id == self_id; });
 
 	if (it != gil->threads.end()) 
 	  return gil->threads[std::distance(gil->threads.begin(), it)];

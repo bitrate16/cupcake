@@ -1,7 +1,13 @@
-
 #include <iostream>
 #include <cstdio>
 #include <cstdlib>
+
+#include "GIL"
+
+void handle_signal(int signal) {
+	// Handling signals and process in separate thread.
+	
+};
 
 int main(int argc, char **argv) {
 	// 1. Initialize GIL:
@@ -67,4 +73,34 @@ int main(int argc, char **argv) {
 	// 3. unlock mutex2
 	// 4. call func
 	// exit queu::unlock, forces other threads to handle next in the queue 
+	
+	gil = new ck_core::GIL();
+	
+	// Do some shit
+	
+	
+	
+	// Terminate
+	std::unique_lock<std::mutex> threads_lock(gil->threads_lock);
+	ck_core::ck_thread *self = gil->current_ckthread_noexcept();
+	if (self == nullptr) {
+		cout << "ARE YOU AHUEL TAM?" << endl;
+		cout << "UNRESOLVED CORE ERROR" << endl;
+		exit(1);
+	}
+	self->is_alive = 0;
+	threads_lock.unlock();
+	
+	// Wait for all threads to terminate.
+	std::unique_lock<std::mutex> term_lock(gil->sync_mutex);
+	gil->sync_condition.wait(term_lock, [&] {
+		std::unique_lock<std::mutex> threads_lock(gil->threads_lock);
+		for (int i = 0; i < gil->threads.size(); ++i)
+			if (gil->threads[i]->is_alive)
+				return 0;
+		return 1;
+	});
+	
+	// Dispose GIL and 42.
+	delete GIL;
 };

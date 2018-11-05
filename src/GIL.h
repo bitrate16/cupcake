@@ -61,6 +61,14 @@ namespace ck_core {
 	 */
 	class ck_thread {
 		public:
+		// Default constructor that assigns std::this_thared::get_id() to std_thread_id.
+		ck_thread() : std_thread_id(std::this_thread::get_id()) {};
+		
+		// Constructor that takes pointer to created thread and assigns it to 
+		// thread and it's id to std_thread_id.
+		// Warning: no nullptr check
+		ck_thread(std::thread *t) : std_thread_id(t->get_id()), thread(t) {};
+		
 		// Pointer to the assigned thread
 		std::thread *thread = nullptr;
 		// Set to 1 if thread currently is blocked and lock_request is accepted.
@@ -80,6 +88,10 @@ namespace ck_core {
 		// Changed to 0 when body function of the thread is finished working 
 		// and thread requests GC to collect it.
 		int is_alive = 1;
+		// Id of std::this_thread::get_id() value for current thread.
+		// Used for quicksearch and define threads that is not created by constructor.
+		int std_thread_id = -1;
+		
 		// Unique thread number in ck debug
 		int thread_id = -1;
 		// Set to 1 if thread accepted lock request and waiting for signal
@@ -132,6 +144,22 @@ namespace ck_core {
 		// Signal value. Only one thread at time can access it.
 		std::atomic<int> signal = -1;
 		
+		// GIL instance is created in main thread.
+		// On create it adds main thread as first in GIL::threads.
+		// Main thread do not destroy GIL instance on exit.
+		// GIL instance is destroyed by latest survived thread.
+		// In fact main thread do not need the destruction.
+		// It is destructed on program exit. in cases:
+		// 1. Main finished and there is no child threads.
+		// .... Main calls GIL::destruct();
+		// .... GIL::destruct() calls GC::dispose(), disposes all ck_threads
+		// .... And finally program safety terminates.
+		// 2. Main finished and there is child threads.
+		// .... The last thread safety terminates it's work.
+		// .... After main finished, it's been put on waiting for 
+		// .... other threads to die themselves. 
+		// .... Once last thread called GIL::notify_sync_lock()
+		// .... main thread will unblock and clear all data and finish execution.
 		GIL();
 		~GIL();
 		
@@ -171,13 +199,13 @@ namespace ck_core {
 		// with given lambda-condition untill controlling thread 
 		// releases lock with notify_all().
 		// Not safe for mutex in value access or i/o
-		void lock_for_notify_condition(std::function<bool ()>);
+		void lock_for_condition(std::function<bool ()> condition_lambda);
 		
 		// Locks current thread (current = current_ckthread())
 		// with given lambda-condition untill controlling thread 
 		// releases lock with notify_all() or timeout of WAIT_FOR_PERIOD period.
 		// Not safe for mutex in value access or i/o
-		void lock_for_time_condition(std::function<bool ()>, );
+		void lock_for_time_condition(std::function<bool ()> condition_lambda, long wait_delay = -1);
 		
 		// Returns current ck_thread.
 		// Throws error if function was called from non-registered thread.
