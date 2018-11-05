@@ -9,14 +9,20 @@ namespace ck_vobject {
 		int id;
 		
 		public:
-		vtype();
-		vtype(vtype *);
+		vtype(int);
+		vtype(vtype *, int);
 		
 		bool is_typeof(int id);
 		int get_id();
 	};
 	
-	extern const vtype none;
+	// Default constants to define standard root types.
+	const int NONE_TYPE     = -1;
+	const int VOBJECT_TYPE  = 0;
+	const int VSOBJECT_TYPE = 1;
+	
+	// Following constant represents none type.
+	extern const vtype none(nullptr, NONE_TYPE);
 	
 	// Virtual object representation. Core object type in ck interpreter.
 	// Basically not thread safe. Allows any thread call 
@@ -34,7 +40,9 @@ namespace ck_vobject {
 	//                         basically they lock() if object is sync()
 	class vobject : gc_object {
 		// XXX: check for working
-		static const vtype type = none;
+		// Each object must implement type ierarchy to provide
+		// correct functionality and type recognition.
+		static const vtype type(nullptr, VOBJECT_TYPE);
 		
 		vobject();
 		
@@ -42,6 +50,56 @@ namespace ck_vobject {
 		vobject *put(vscope*, string, vobject*);
 		bool contains(vscope*, string);
 		bool remove(vscope*, string);
+		vobject *call(vscope*, std::vector<vobject*> args);
+	};
+	
+	// Virtual synchronized object.
+	// Wrapper for vobject but allows unique access to the fields.
+	// First, object must be synchronized with vsobject::sync().
+	// Then caller invokes sync_<func> to access object fields in singlethreaded mode.
+	//
+	// Locking on an object is GIL-safe operation, so it doesn't need to lock
+	// GIL::sync_lock or notify GIL::sync_sondition.
+	//
+	// Operation of an object lock is dome in the middle section:
+	// "A thread GIL-free window between it started working with object
+	//  and checked GIL::lock_requested to block itself"
+	// That means that this operation by definition MUST unblock before 
+	// thread responds to the GIL::lock_requested.
+	class vsobject : vobject {
+		// XXX: check for working too
+		// Each object must implement type ierarchy to provide
+		// correct functionality and type recognition.
+		static const vtype type(&ck_vobject::vobject::type, VCOBJECT_TYPE);
+		
+		// Locks access to the object while doing something with it's values.
+		std::mutex sync_lock;
+		// Flas that determines whenever object is being protected access.
+		std::atomic<bool> sync = 0;
+		
+		vsobject();
+		
+		bool is_sync();
+		void sync();
+		void unsync();
+		
+		// Returns 1 if object can be locked (i.e. sync is 1)
+		bool lock();
+		bool unlock();
+		
+		// Overloaded by developer same as for vobject.
+		vobject *get(vscope*, string);
+		vobject *put(vscope*, string, vobject*);
+		bool contains(vscope*, string);
+		bool remove(vscope*, string);
+		
+		// May be called by user side:
+		// myObj.sync_get(nullptr, "myVar");
+		vobject *sync_get(vscope*, string);
+		vobject *sync_put(vscope*, string, vobject*);
+		bool sync_contains(vscope*, string);
+		bool sync_remove(vscope*, string);
+		
 		vobject *call(vscope*, std::vector<vobject*> args);
 	};
 };

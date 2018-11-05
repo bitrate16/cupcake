@@ -6,7 +6,11 @@
 
 void handle_signal(int signal) {
 	// Handling signals and process in separate thread.
+	signal(SIGINT,  handle_signal); // <-- user interrupt
+	signal(SIGTERM, handle_signal); // <-- Terminate request
+	signal(SIGABRT, handle_signal); // <-- abortion is murder
 	
+	// XXX: Start a separete thread and call runtime.signal function.
 };
 
 int main(int argc, char **argv) {
@@ -76,8 +80,22 @@ int main(int argc, char **argv) {
 	
 	gil = new ck_core::GIL();
 	
-	// Do some shit
+	// Define basic signal handling
+	signal(SIGINT,  handle_signal); // <-- user interrupt
+	signal(SIGTERM, handle_signal); // <-- Terminate request
+	signal(SIGABRT, handle_signal); // <-- abortion is murder
 	
+	
+	// Execution:
+	// 1. Create root program context.
+	// 2. Cretae root program scope.
+	// 3. Create root program jesus.
+	// 3. Define set of default objects in main scope.
+	// 4. Parse program code
+	// 4.1. Using streamed parsing, execute program piece by piece until EOF.
+	// 4.2. Unsing single block, execute program as entire piece (of shit)
+	// 5. Execure program code with new instance of executer.
+	// 6. Dispose executer and terminate current thread.
 	
 	
 	// Terminate
@@ -103,4 +121,6 @@ int main(int argc, char **argv) {
 	
 	// Dispose GIL and 42.
 	delete GIL;
+	
+	return 0;
 };
