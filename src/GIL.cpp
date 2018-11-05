@@ -177,6 +177,9 @@ bool GIL::unlock_threads(int thread_id = -1) {
 	gil->sync_lock.unlock();
 };
 
+// Dummy function of new thread.
+// Defines global GIL instance and calls body function.
+// At the end marks thread as dead and notifies GIL about exit.
 static void thread_dummy(GIL *gil, std::function<void ()> &body) {
 	// Request lock so if this thread still not added to GIL::threads.
 	std::unique_lock<std::mutex> lock(gil->threads_lock);
