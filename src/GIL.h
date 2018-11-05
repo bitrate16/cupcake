@@ -18,7 +18,7 @@ namespace gil_sync {
 	// Notifies current thread that it is blocked.
 	// Also calls GIL::notify_sync_lock() to force waiting operator 
 	// to wake and process when all threads are blocked to next operations.
-	const std::function<void ()> GIL_NOTIFY_SYNC_LOCK = [&]{ 
+	const std::function<void ()> GIL_LOCK_NOTIFY_SYNC_LOCK = [&]{ 
 		// Locks this mutex by current thread.
 		// That means that when GIL::lock_threads is called,
 		// operator thread will hold the mutex till it will enter waiting. 
@@ -26,6 +26,17 @@ namespace gil_sync {
 		// This thread will attempt to acquire the mutex, but
 		// operator is owning it now and will block untill call wait.
 		std::unique_lock<std::mutex> lk(gil->sync_lock);
+		ck_thread *t = gil->current_ckthread_noexcept();
+		if (t) ++t->is_blocked;
+		gil->notify_sync_lock();
+	};
+	
+	// Default parameter must be passed when some thread is joining GIL sync_lock
+	// Notifies current thread that it is blocked.
+	// Also calls GIL::notify_sync_lock() to force waiting operator 
+	// to wake and process when all threads are blocked to next operations.
+	// Doesn't not lock global mutex. Unsafe while operator thread might loose notifications.
+	const std::function<void ()> GIL_NOTIFY_SYNC_LOCK = [&]{ 
 		ck_thread *t = gil->current_ckthread_noexcept();
 		if (t) ++t->is_blocked;
 		gil->notify_sync_lock();
@@ -101,7 +112,7 @@ namespace ck_core {
 		// Operated by GIL::lock_threads. Set to 1 when threads
 		// are softly requested to block to allows operator 
 		// perform something in hardly synchronized single-threaded mode.
-		// Usualle when using block, gil_sync::GIL_NOTIFY_SYNC_LOCH has to be called.
+		// Usualle when using block, gil_sync::GIL_LOCK_NOTIFY_SYNC_LOCK has to be called.
 		int lock_requested = 0;
 		// List of all spawned and registered threads.
 		// Each thread that accesses methods of GIL must be
