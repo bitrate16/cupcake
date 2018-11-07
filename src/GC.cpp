@@ -44,7 +44,8 @@ GC::GC() :
 		locks_size(0),
 		roots(nullptr),
 		locks(nullptr),
-		objects(nullptr) {};
+		objects(nullptr), 
+		created_interval(0) {};
 
 ~GC() {
 	dispose();
@@ -68,6 +69,8 @@ GC::GC() :
 	}
 };
 
+int GC::MIN_CREATED_INTERVAL = 16;
+
 // Called on object creation.
 void attach(vobject *o) {
 	if (o == nullptr)
@@ -81,6 +84,7 @@ void attach(vobject *o) {
 	if (!c)
 		throw std::runtime_exception("GC error");
 	
+	++created_interval;
 	o->gc_record    = 1;
 	o->gc_reachable = 0;
 	o->gc_chain     = c;
@@ -177,6 +181,10 @@ void collect() {
 	if (collecting)
 		return;
 	
+	if (created_interval <= GC.MIN_CREATED_INTERVAL)
+		return;
+	
+	created_interval = 0;
 	collecting = 1;
 	
 	if (objects == nullptr) {

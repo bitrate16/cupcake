@@ -64,6 +64,11 @@ namespace ck_core {
 		gc_chain *roots;
 		gc_chain *locks;
 		
+		// Number of objects created since last gc_collect pass
+		atd::atomic<int> created_interval;
+		// Number of minimum objects to be created before next GC
+		const int MIN_CREATED_INTERVAL;
+		
 		GC();
 		~GC();
 		
