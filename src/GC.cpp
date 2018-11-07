@@ -184,6 +184,10 @@ void collect() {
 	if (created_interval <= GC.MIN_CREATED_INTERVAL)
 		return;
 	
+	// Call lock on GIL to prevent interruption
+	if (!gil->try_lock_threads())
+		return;
+	
 	created_interval = 0;
 	collecting = 1;
 	
@@ -277,9 +281,13 @@ void collect() {
 	objects = list;
 
 	collecting = 0;	
+	
+	gil->unlock_threads();
 };
 
 void dispose() {	
+	// Called on GIL dispose, so no GIL.lock needed.
+
 	std::unique_lock<std::mutex> guard(protect_lock);
 	if (collecting)
 		return;
@@ -317,3 +325,4 @@ void dispose() {
 	
 	collecting = 0;
 };
+

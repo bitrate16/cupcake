@@ -185,15 +185,6 @@ namespace ck_core {
 		// Calling unpause on all threads but current.
 		// Returns 1 if current thread was blocking and could unblock.
 		bool unlock_threads(int thread_id = -1);
-	
-		// Called to notify GIL about thread performing blocking operation
-		bool notify_block(int thread_id = -1);
-		bool notify_unblock(int thread_id = -1);
-		
-		// Called when thread is locking on some object to prevent it's 
-		// pause/interrupt on lock_threads().
-		bool notify_object_lock(int thread_id = -1);
-		bool notify_object_unlock(int thread_id = -1);
 		
 		// Locks current thread (current = current_ckthread())
 		// with given lambda-condition untill controlling thread 
@@ -221,8 +212,21 @@ namespace ck_core {
 		// operator thread in GIL::lock_threads() begin waiting to nothing
 		// and all program hangs.
 		void notify_sync_lock();
+	
+	//
+	// idk
+	//
+	
+		// Called to notify GIL about thread performing blocking operation
+		bool notify_block(int thread_id = -1);
+		bool notify_unblock(int thread_id = -1);
+		
+		// Called when thread is locking on some object to prevent it's 
+		// pause/interrupt on lock_threads().
+		bool notify_object_lock(int thread_id = -1);
+		bool notify_object_unlock(int thread_id = -1);
 	};
 	
 	// Instance of GIL for each thread.
-	static GIL *gil;
+	GIL *gil = nullptr;
 };

@@ -157,7 +157,6 @@ bool GIL::try_lock_threads(int thread_id = -1) {
 			all_locked = 0;
 			
 	if (!all_locked) {	
-		// вошли сюда, все одновременно сработали, отправили уведомление, основной повиснет.
 		// Wait till all threads will accept block
 		// In this case there is more than one thread that wants to acquire the lock
 		gil->sync_condition.wait(lk, [&]{
@@ -167,8 +166,6 @@ bool GIL::try_lock_threads(int thread_id = -1) {
 			return 1; 
 		});
 	}
-	
-	gil->sync_lock.unlock();
 	
 	return 1;
 };
