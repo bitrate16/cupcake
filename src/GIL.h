@@ -212,6 +212,11 @@ namespace ck_core {
 		// operator thread in GIL::lock_threads() begin waiting to nothing
 		// and all program hangs.
 		void notify_sync_lock();
+		
+		// Thread checks if lock_requested flag set to 1.
+		// If lock was requested, thread will block till 
+		// the operator thread will notify for unblock.
+		int lock_if_requested();
 	
 	//
 	// idk

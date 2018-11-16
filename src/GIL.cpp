@@ -99,6 +99,8 @@ bool GIL::lock_threads(int thread_id = -1) {
 	// While other threads will join wait wueue on GIL::sync_mutex
 	// and GIL::sync_condition, this thread will safety
 	// pass to the wait and release the mutex, allowing other threads to join.
+	// After this operations this mutex again unlocked and other threads can use it to
+	// synchronize access to the lock_requested flag.
 	std::unique_lock<std::mutex> lk(gil->sync_mutex);
 	
 	// Lock operation for any other thread
@@ -171,6 +173,10 @@ bool GIL::try_lock_threads(int thread_id = -1) {
 };
 
 bool GIL::unlock_threads(int thread_id = -1) {
+	std::unique_lock<std::mutex> lk(gil->sync_mutex);	
+	gil->lock_requested = 0;
+	lk.unlock();
+	
 	gil->sync_lock.unlock();
 };
 
@@ -238,3 +244,12 @@ ck_thread *GIL::current_ckthread_noexcept() noexcept {
 void GIL::notify_sync_lock() {
 	gil->sync_condition.notify_all();
 };
+
+int GIL::lock_if_requested() {
+	std::unique_lock<std::mutex> lk(gil->sync_mutex);	
+	if (gil->lock_requested == 0)
+		return 0;
+	
+	
+}; 
+
