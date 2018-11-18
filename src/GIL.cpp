@@ -250,6 +250,7 @@ int GIL::lock_if_requested() {
 	if (gil->lock_requested == 0)
 		return 0;
 	
-	
+	while (gil->lock_requested)
+		gil->sync_condition.wait(lk);
 }; 
 
