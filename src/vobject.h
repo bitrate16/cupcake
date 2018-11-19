@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GIL"
+#include <wstring>
 
 namespace ck_vobject {
 	// Describes type of an object
@@ -46,10 +47,10 @@ namespace ck_vobject {
 		
 		vobject();
 		
-		vobject *get(vscope*, string);
-		vobject *put(vscope*, string, vobject*);
-		bool contains(vscope*, string);
-		bool remove(vscope*, string);
+		vobject *get(vscope*, std::wstring);
+		vobject *put(vscope*, std::wstring, vobject*);
+		bool contains(vscope*, std::wstring);
+		bool remove(vscope*, std::wstring);
 		vobject *call(vscope*, std::vector<vobject*> args);
 	};
 	
@@ -88,17 +89,17 @@ namespace ck_vobject {
 		bool unlock();
 		
 		// Overloaded by developer same as for vobject.
-		vobject *get(vscope*, string);
-		vobject *put(vscope*, string, vobject*);
-		bool contains(vscope*, string);
-		bool remove(vscope*, string);
+		vobject *get(vscope*, std::wstring);
+		vobject *put(vscope*, std::wstring, vobject*);
+		bool contains(vscope*, std::wstring);
+		bool remove(vscope*, std::wstring);
 		
 		// May be called by user side:
 		// myObj.sync_get(nullptr, "myVar");
-		vobject *sync_get(vscope*, string);
-		vobject *sync_put(vscope*, string, vobject*);
-		bool sync_contains(vscope*, string);
-		bool sync_remove(vscope*, string);
+		vobject *sync_get(vscope*, std::wstring);
+		vobject *sync_put(vscope*, std::wstring, vobject*);
+		bool sync_contains(vscope*, std::wstring);
+		bool sync_remove(vscope*, std::wstring);
 		
 		vobject *call(vscope*, std::vector<vobject*> args);
 	};

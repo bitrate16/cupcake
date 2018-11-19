@@ -1,3 +1,4 @@
+#include <wstring>
 
 namespace ck_token {
 	// Pre-defined type codes
@@ -150,7 +151,7 @@ namespace ck_parse {
 		int bytev;
 		bool booleanv;
 		double doublev;
-		std::string stringv
+		std::wstring stringv
 		int lineno;
 		
 		~raw_token();
@@ -158,8 +159,115 @@ namespace ck_parse {
 		raw_token *copy();
 	};
 	
-	class tokenizer {
+	// Container for single message produced during parsing.
+	class parse_message {
+	public:
+		const int MSG_WARNING = 0;
+		const int MSG_ERROR   = 1;
+		int type;
+		int lineno;
+		std::wstring message;
 		
+		// Returns new error instance
+		static parse_message error(std::wstring m, int lineno = -1);
+		// Returns new warning instance
+		static parse_message warning(std::wstring m, int lineno = -1);
+	};
+	
+	// Class containing messages produed during parsing.
+	// Also marks if errors during parsing occurred or shit hapenned.
+	class parse_massages {
+		int contains_error = 0;
+		std::vector<parse_message> messages;
+		
+	public:
+		// Creates and adds new error instance to the container
+		void error(std::wstring m, int lineno = -1);
+		// Creates and adds new warning instance to the container
+		void warning(std::wstring m, int lineno = -1);
+		
+		// Returns contains_error
+		bool is_error();
+		
+		// Returns messages
+		std::vector<parse_message> &get_messages();
+	};
+	
+	// Wrapped for data input.
+	// Allows passing input source from STDIN, 
+	// FILE or even source string.
+	// Provides basic methods of getting next character,
+	// checking for eof or 
+	class stream_wrapper {
+		// Source type:
+		// Reading code line by line from standard input
+		const int IN_STDIN  = 1;
+		// Reading code from passed file
+		const int IN_FILE   = 2;
+		// Reading code from passed string
+		const int IN_STRING = 3;
+		
+		FILE           *file;
+		std::wstring &string;
+		
+		int source_type = 0;
+		
+	public:
+		
+		stream_wrapper(FILE *f) : source_type(IN_FILE) { file = f; };
+		stread_wrapper() : source_type(IN_STDIN) {};
+		stream_wrapper(&std::wstring s) : source_type(IN_STRING) { string = s; };
+		
+		~stread_wrapper();
+		
+		// Returns next redden character.
+		int getc();
+		// Returns true whatewer EOF is reached.
+		bool eof();
+	}
+	
+	class tokenizer {
+		// Wrapper for input stream. Created by parser, passed here.
+		stream_wrapper &sw;
+		
+		// Container for all messages. Created by Parser, passed here.
+		parse_massages &messages;
+		
+		// Temporary token to be returned.
+		RawToken    *token;
+		
+		// Buffer for redden codes
+		int      buffer[9] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+		
+		int   eof_ = 0;
+		int error_ = 0;
+		int lineno = 0;
+		
+	public:
+	
+		TokenStream(stream_wrapper&);
+		
+		~TokenStream();
+		
+		int get(int off);
+		
+		int next();
+		
+		void clear();
+		
+		int put(int token);
+		
+		int match(int charcode0);
+		
+		int match(int charcode0, int charcode1);
+		
+		int match(int charcode0, int charcode1, int charcode2);
+		
+		int match(int charcode0, int charcode1, int charcode2, int charcode3);
+		
+		int eof();
+		
+		int nextToken();
 	};
 	
 	class parser {
