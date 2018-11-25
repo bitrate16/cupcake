@@ -143,20 +143,38 @@ namespace ck_token {
 	const int FUNCTIONROOT    213;
 };
 
-namespace ck_parse {
+namespace ck_parser {
 	class raw_token {
-		int token;
-		int integerv;
-		long longv;
-		int bytev;
-		bool booleanv;
-		double doublev;
-		std::wstring stringv
-		int lineno;
+	public:
+		int token      = -1;
+		int integerv   = -1;
+		long longv     = -1;
+		int bytev      = -1;
+		bool booleanv  = 0;
+		double doublev = 0;
+		std::wstring stringv;
+		int lineno     = -1;
 		
-		~raw_token();
+		raw_token() {};
 		
-		raw_token *copy();
+		~raw_token() : {};
+		
+		raw_token *copy() {
+			raw_token *t = new raw_token();
+			t->token     = this->token;
+			t->integerv  = this->integerv;
+			t->longv     = this->longv;
+			t->bytev     = this->bytev;
+			t->booleanv  = this->booleanv;
+			// // GCC < 5 https://shaharmike.com/cpp/std-string/
+			// // Copy on Write not working on less versions so adding support of "copy".
+			// Copying in context of token stream.
+			// After copy is done, old value is replaced by ""
+			t->stringv   = this->stringv;
+			t->lineno    = this->lineno;
+			
+			return t;
+		};
 	};
 	
 	// Container for single message produced during parsing.
@@ -174,7 +192,7 @@ namespace ck_parse {
 		static parse_message warning(std::wstring m, int lineno = -1);
 	};
 	
-	// Class containing messages produed during parsing.
+	// Class containing messages produced during parsing.
 	// Also marks if errors during parsing occurred or shit hapenned.
 	class parse_massages {
 		int contains_error = 0;
@@ -226,6 +244,7 @@ namespace ck_parse {
 		bool eof();
 	}
 	
+	class parser;
 	class tokenizer {
 		// Wrapper for input stream. Created by parser, passed here.
 		stream_wrapper &sw;
@@ -243,10 +262,11 @@ namespace ck_parse {
 		int error_ = 0;
 		int lineno = 0;
 		
-	public:
-	
+		friend class parser;
+		
 		TokenStream(stream_wrapper&);
 		
+	public:
 		~TokenStream();
 		
 		int get(int off);
@@ -271,6 +291,79 @@ namespace ck_parse {
 	};
 	
 	class parser {
+		// Container for all messages produced on parsing.
+		parse_massages messages;
 		
+		// Input token stream.
+		TokenStream source(messages);
+		
+		int           eof_ = 0;
+		int         error_ = 0;
+		
+		RawToken *buffer[7] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+		
+	public:
+		Parser(std::wstring);
+		Parser(FILE*);
+		Parser();
+	
+	private:
+		~Parser();
+		
+		RawToken *get(int off);
+		
+		RawToken *next();
+		
+		bool match(int token);
+		
+		ASTNode *primaryexp();
+		
+		ASTNode *member_expression();
+		
+		ASTNode *unary_expression();
+		
+		ASTNode *multiplication_expression();
+		
+		ASTNode *addiction_expression();
+		
+		ASTNode *bitwise_shift_expression();
+		
+		ASTNode *comparison_expression();
+		
+		ASTNode *equality_expression();
+		
+		ASTNode *bitwise_and_expression();
+		
+		ASTNode *bitwise_xor_exppression();
+		
+		ASTNode *bitwise_or_expression();
+		
+		ASTNode *and_expression();
+		
+		ASTNode *or_expression();
+		
+		ASTNode *condition_expression();
+		
+		ASTNode *assign_expression();
+		
+		ASTNode *expression();
+		
+		ASTNode *checkNotNullExpression();
+		
+		bool checkNullExpression(ASTNode *exp);
+		
+		ASTNode *initializerstatement();
+		
+		bool peekStatementWithoutSemicolon();
+		
+		ASTNode *statement();
+		
+		ASTNode *statement_with_semicolons();
+		
+		ASTNode *parse();
+		
+		int lineno();
+		
+		int eof();
 	};
 };
