@@ -1,4 +1,7 @@
+#pragma once
+
 #include <wstring>
+#include <cstdio>
 
 namespace ck_token {
 	// Pre-defined type codes
@@ -146,7 +149,7 @@ namespace ck_token {
 namespace ck_parser {
 	class raw_token {
 	public:
-		int token      = -1;
+		int token      = ck_token::NONE;
 		int integerv   = -1;
 		long longv     = -1;
 		int bytev      = -1;
@@ -178,7 +181,10 @@ namespace ck_parser {
 	};
 	
 	// Container for single message produced during parsing.
-	class parse_message {
+	class parser_message {
+		parser_message(int type, int lineno, std::wstring message) 
+						: type(type), lineno(lineno), message(message) {};
+		
 	public:
 		const int MSG_WARNING = 0;
 		const int MSG_ERROR   = 1;
@@ -187,28 +193,39 @@ namespace ck_parser {
 		std::wstring message;
 		
 		// Returns new error instance
-		static parse_message error(std::wstring m, int lineno = -1);
+		static inline parser_message error(std::wstring m, int lineno = -1) {
+			return parser_message(MSG_ERROR, lineno, m);
+		};
+		
 		// Returns new warning instance
-		static parse_message warning(std::wstring m, int lineno = -1);
+		static inline parser_message warning(std::wstring m, int lineno = -1) {
+			return parser_message(MSG_WARNING, lineno, m);
+		};
 	};
 	
 	// Class containing messages produced during parsing.
 	// Also marks if errors during parsing occurred or shit hapenned.
-	class parse_massages {
+	class parser_massages {
 		int contains_error = 0;
-		std::vector<parse_message> messages;
+		std::vector<parser_message> messages;
 		
 	public:
 		// Creates and adds new error instance to the container
-		void error(std::wstring m, int lineno = -1);
+		void error(std::wstring m, int lineno = -1) {
+			messages.push(parser_message.error(m, lineno));
+			++contains_error;
+		};
+		
 		// Creates and adds new warning instance to the container
-		void warning(std::wstring m, int lineno = -1);
+		void warning(std::wstring m, int lineno = -1) {
+			messages.push(parser_message.warning(m, lineno));
+		};
 		
 		// Returns contains_error
-		bool is_error();
+		bool is_error() { return contains_error; };
 		
 		// Returns messages
-		std::vector<parse_message> &get_messages();
+		std::vector<parser_message> &get_messages() { return messages };
 	};
 	
 	// Wrapped for data input.
@@ -225,21 +242,35 @@ namespace ck_parser {
 		// Reading code from passed string
 		const int IN_STRING = 3;
 		
-		FILE           *file;
+		FILE *file;
+		
 		std::wstring &string;
+		int cursor = 0;
 		
 		int source_type = 0;
+		
+		int eof = 0;
 		
 	public:
 		
 		stream_wrapper(FILE *f) : source_type(IN_FILE) { file = f; };
-		stread_wrapper() : source_type(IN_STDIN) {};
-		stream_wrapper(&std::wstring s) : source_type(IN_STRING) { string = s; };
+		stream_wrapper() : source_type(IN_STDIN) {};
+		stream_wrapper(std::wstring &s) : source_type(IN_STRING) { string = s; };
 		
-		~stread_wrapper();
+		~stream_wrapper() {
+			switch(source_type) {
+				case IN_STDIN:
+				case IN_STRING:
+				default:
+					break;
+				case IN_FILE:
+					fclose(file);
+			};
+		};
 		
 		// Returns next redden character.
 		int getc();
+		
 		// Returns true whatewer EOF is reached.
 		bool eof();
 	}
@@ -250,13 +281,13 @@ namespace ck_parser {
 		stream_wrapper &sw;
 		
 		// Container for all messages. Created by Parser, passed here.
-		parse_massages &messages;
+		parser_massages &messages;
 		
 		// Temporary token to be returned.
-		RawToken    *token;
+		raw_token    *token;
 		
 		// Buffer for redden codes
-		int      buffer[9] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+		int      buffer[9] = { 0,0,0,0,0,0,0,0,0 };
 		
 		int   eof_ = 0;
 		int error_ = 0;
@@ -264,10 +295,18 @@ namespace ck_parser {
 		
 		friend class parser;
 		
-		TokenStream(stream_wrapper&);
+		tokenizer(stream_wrapper &sw, parser_massages &pm) 
+					: sw(sw), messages(pm) { 
+						this->token = new raw_token();
+						
+						this->token->lineno = 1;
+						this->lineno = 1;
+						
+						next(); next(); next(); next(); next(); 
+					};
 		
 	public:
-		~TokenStream();
+		~tokenizer() { delete token; };
 		
 		int get(int off);
 		
@@ -285,14 +324,14 @@ namespace ck_parser {
 		
 		int match(int charcode0, int charcode1, int charcode2, int charcode3);
 		
-		int eof();
+		int eof() { return eof = sw.eof() || eof; };
 		
 		int nextToken();
 	};
 	
 	class parser {
 		// Container for all messages produced on parsing.
-		parse_massages messages;
+		parser_massages messages;
 		
 		// Input token stream.
 		TokenStream source(messages);
