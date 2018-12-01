@@ -89,7 +89,7 @@ static int white(int c) {
 };
 
 static int alpha(int c) {
-	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= 'а' && c <= 'я') || (c >= 'А' && c <= 'Я') || c == '_';
 };
 
 static int digit(int c) {
