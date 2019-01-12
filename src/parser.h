@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ast"
+
 #include <wstring>
 #include <cstdio>
 
@@ -244,7 +246,7 @@ namespace ck_parser {
 		
 		FILE *file;
 		
-		std::wstring &string;
+		const std::wstring &string;
 		int cursor = 0;
 		
 		int source_type = 0;
@@ -255,7 +257,7 @@ namespace ck_parser {
 		
 		stream_wrapper(FILE *f) : source_type(IN_FILE) { file = f; };
 		stream_wrapper() : source_type(IN_STDIN) {};
-		stream_wrapper(std::wstring &s) : source_type(IN_STRING) { string = s; };
+		stream_wrapper(const std::wstring &s) : source_type(IN_STRING) { string = s; };
 		
 		~stream_wrapper() {
 			switch(source_type) {
@@ -284,7 +286,7 @@ namespace ck_parser {
 		parser_massages &messages;
 		
 		// Temporary token to be returned.
-		raw_token    *token;
+		raw_token    *token = nullptr;
 		
 		// Buffer for redden codes
 		int      buffer[9] = { 0,0,0,0,0,0,0,0,0 };
@@ -295,15 +297,21 @@ namespace ck_parser {
 		
 		friend class parser;
 		
-		tokenizer(stream_wrapper &sw, parser_massages &pm) 
-					: sw(sw), messages(pm) { 
-						this->token = new raw_token();
-						
-						this->token->lineno = 1;
-						this->lineno = 1;
-						
-						next(); next(); next(); next(); next(); 
-					};
+		tokenizer(parser_massages &pm) : messages(pm) {};
+		
+		void set_stream(stream_wrapper &sw_) {
+			this->sw = sw_;
+			
+			if (this->token)
+				delete this->token;
+			
+			this->token = new raw_token();
+			
+			this->token->lineno = 1;
+			this->lineno = 1;
+			
+			next(); next(); next(); next(); next(); 
+		};
 		
 	public:
 		~tokenizer() { delete token; };
@@ -334,72 +342,85 @@ namespace ck_parser {
 		parser_massages messages;
 		
 		// Input token stream.
-		TokenStream source(messages);
+		tokenizer source(messages);
+		
+		// Wrapper for an input stream
+		stream_wrapper swrapper;
 		
 		int           eof_ = 0;
 		int         error_ = 0;
 		
-		RawToken *buffer[7] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+		raw_token *buffer[7] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL };
 		
 	public:
-		Parser(std::wstring);
-		Parser(FILE*);
-		Parser();
+		Parser(const std::wstring &str) { // <-- input from string
+			swrapper = stream_wrapper(str);
+			this->source.set_stream(swrapper);
+		};
+		
+		Parser(FILE *file) {              // <-- input from file
+			swrapper = stream_wrapper(file);
+			this->source.set_stream(swrapper);
+		};
+		
+		Parser() {                        // <-- input from stdin
+			this->source.set_stream(swrapper);
+		};
 	
 	private:
 		~Parser();
 		
-		RawToken *get(int off);
+		raw_token *get(int off);
 		
-		RawToken *next();
+		raw_token *next();
 		
 		bool match(int token);
 		
-		ASTNode *primaryexp();
+		ck_ast::ASTNode *primaryexp();
 		
-		ASTNode *member_expression();
+		ck_ast::ASTNode *member_expression();
 		
-		ASTNode *unary_expression();
+		ck_ast::ASTNode *unary_expression();
 		
-		ASTNode *multiplication_expression();
+		ck_ast::ASTNode *multiplication_expression();
 		
-		ASTNode *addiction_expression();
+		ck_ast::ASTNode *addiction_expression();
 		
-		ASTNode *bitwise_shift_expression();
+		ck_ast::ASTNode *bitwise_shift_expression();
 		
-		ASTNode *comparison_expression();
+		ck_ast::ASTNode *comparison_expression();
 		
-		ASTNode *equality_expression();
+		ck_ast::ASTNode *equality_expression();
 		
-		ASTNode *bitwise_and_expression();
+		ck_ast::ASTNode *bitwise_and_expression();
 		
-		ASTNode *bitwise_xor_exppression();
+		ck_ast::ASTNode *bitwise_xor_exppression();
 		
-		ASTNode *bitwise_or_expression();
+		ck_ast::ASTNode *bitwise_or_expression();
 		
-		ASTNode *and_expression();
+		ck_ast::ASTNode *and_expression();
 		
-		ASTNode *or_expression();
+		ck_ast::ASTNode *or_expression();
 		
-		ASTNode *condition_expression();
+		ck_ast::ASTNode *condition_expression();
 		
-		ASTNode *assign_expression();
+		ck_ast::ASTNode *assign_expression();
 		
-		ASTNode *expression();
+		ck_ast::ASTNode *expression();
 		
-		ASTNode *checkNotNullExpression();
+		ck_ast::ASTNode *checkNotNullExpression();
 		
 		bool checkNullExpression(ASTNode *exp);
 		
-		ASTNode *initializerstatement();
+		ck_ast::ASTNode *initializerstatement();
 		
 		bool peekStatementWithoutSemicolon();
 		
-		ASTNode *statement();
+		ck_ast::ASTNode *statement();
 		
-		ASTNode *statement_with_semicolons();
+		ck_ast::ASTNode *statement_with_semicolons();
 		
-		ASTNode *parse();
+		ck_ast::ASTNode *parse();
 		
 		int lineno();
 		
