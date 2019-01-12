@@ -12,6 +12,7 @@
 
 using namespace ck_token;
 using namespace ck_parser;
+using namespace ck_ast;
 
 
 // S T R E A M _ W R A P P E R
