@@ -61,6 +61,9 @@ namespace ck_core {
 	 */
 	class ck_thread {
 		public:
+		// Points to the current ck thread instance
+		static ck_thread* current_thread;
+		
 		// Default constructor that assigns std::this_thared::get_id() to std_thread_id.
 		ck_thread() : std_thread_id(std::this_thread::get_id()) {};
 		
@@ -119,30 +122,35 @@ namespace ck_core {
 	 */
 	class GIL {
 		public:
-		// Used for making all threads pause on lock_threads() made by controller thread.
-		// Provides synchronization for multiple threads trying to pause on operator request.
+		// Used for making all threads pause on require_lock() made by controller thread.
+		// Provides synchronization for multiple threads trying to pause on an operator request.
 		std::condtional_variable sync_condition;
 		std::mutex sync_mutex;
+		
 		// Locked while one thread tries to request global lock of all ohther threads.
-		// Using shared lock to make all threaads 
 		shared_lock_queue sync_lock(sync_mutex, sync_condition);
+		
 		// Lock signal flag. 
-		// Operated by GIL::lock_threads. Set to 1 when threads
+		// Operated by GIL::require_lock. Set to 1 when threads
 		// are softly requested to block to allows operator 
 		// perform something in hardly synchronized single-threaded mode.
 		// Usually when using block, gil_sync::GIL_LOCK_NOTIFY_SYNC_LOCK has to be called.
 		int lock_requested = 0;
+		
 		// List of all spawned and registered threads.
 		// Each thread that accesses methods of GIL must be
 		// thacked by it and initialized by GIL::spawn_thread().
 		// Any untracked thread access to GIL WILL CAUSE ERRORS. 
 		std::vector<ck_thread*> threads;
+		
 		// Threads vector protector
-		std::mutex threads_lock;
+		std::mutex vector_threads_lock;
+		
 		// Garbage collector
 		GC gc;
+		
 		// Signal value. Only one thread at time can access it.
-		std::atomic<int> signal = -1;
+		// std::atomic<int> signal = -1;
 		
 		// GIL instance is created in main thread.
 		// On create it adds main thread as first in GIL::threads.
@@ -163,10 +171,12 @@ namespace ck_core {
 		GIL();
 		~GIL();
 		
+		// Locks all threads.
+		// Set lock_requested to 1 and waits for all threads to 
 		// Locks all threads but current.
 		// Waits till all threads will receive lock signal and pause.
 		// Returns 1 if lock has been successfull, 0 else.
-		bool lock_threads(int thread_id = -1);
+		bool require_lock();
 		
 		// Tries to perform GIL lock.
 		// Uses to call GIL::sync_lock::try_lock().
@@ -174,17 +184,17 @@ namespace ck_core {
 		// Else returns 0 and continues execution.
 		// This is only (for now?) way to fully lock GIL and avoid situation 
 		// descrbed in GIL::lock_threads().
-		bool try_lock_threads();
+		bool try_require_lock();
+		
+		// Unlocks all threads.
+		// Calling unpause on all threads but current.
+		// Returns 1 if current thread was blocking and could unblock.
+		bool free_lock();
 		
 		// Spawns a new thread and registers it in GIL::threads.
 		// On start, gil global instance is assigned to it and then 
 		// body function is called.
 		void spawn_thread(std::function<void ()> body);
-		
-		// Unlocks all threads.
-		// Calling unpause on all threads but current.
-		// Returns 1 if current thread was blocking and could unblock.
-		bool unlock_threads(int thread_id = -1);
 		
 		// Locks current thread (current = current_ckthread())
 		// with given lambda-condition untill controlling thread 
@@ -196,15 +206,15 @@ namespace ck_core {
 		// with given lambda-condition untill controlling thread 
 		// releases lock with notify_all() or timeout of WAIT_FOR_PERIOD period.
 		// Not safe for mutex in value access or i/o
-		void lock_for_time_condition(std::function<bool ()> condition_lambda, long wait_delay = -1);
+		void lock_for_time_condition(std::function<bool ()> condition_lambda, long wait_delay = 0);
 		
 		// Returns current ck_thread.
 		// Throws error if function was called from non-registered thread.
-		ck_thread *current_ckthread();
+		// ck_thread *current_ckthread();
 		
 		// Equals to GIL::current_ckthread() but returns nullptr 
 		// instead of exception
-		ck_thread *current_ckthread_noexcept() noexcept;
+		// ck_thread *current_ckthread_noexcept() noexcept;
 		
 		// Used to notify sync_condition to check it's condition.
 		// Used in gil_sync::GIL_NOTIFY_SYNC_LOCK to avoid situation

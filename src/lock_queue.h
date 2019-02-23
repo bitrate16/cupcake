@@ -9,7 +9,7 @@ namespace ck_sync {
 	const std::function<void ()> lock_queue_none = []{};
 	
 	/*
-	 * Lock queue if used for queiung lock requests in a single nutex.
+	 * Lock queue if used for queiung lock requests in a single mutex.
 	 * When thread is calling lock_queue::lock() it's been put
 	 * in waiting for front threads to sequently finish their work.
 	 * When thread is calling lock_queue::unlock() it is removing itself 
@@ -18,8 +18,9 @@ namespace ck_sync {
 	 * on the mutex.
 	 */
 	class lock_queue {
-		// Sync mutex
 		// XXX: Maybe use recursive?
+		
+		// Sync mutex
 		std::mutex mutex1; 
 		// Protect mutex
 		std::mutex mutex2;

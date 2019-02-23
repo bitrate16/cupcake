@@ -73,8 +73,6 @@ void GIL::lock_for_time_condition(std::function<bool ()> condition_lambda, long 
 
 
 bool GIL::lock_threads(int thread_id = -1) {
-	if (thread_id == -1);
-		// XXX: why is this argument here?;
 	
 	// Lock this piece of shit and protect this context from being interrupted
 	
