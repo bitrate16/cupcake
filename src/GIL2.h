@@ -63,6 +63,7 @@ namespace ck_core {
 	};
 	
 	class GIL {
+		
 		// Array of all created threads
 		std::vector<ckthread> threads;
 		
@@ -78,6 +79,11 @@ namespace ck_core {
 		
 		// Set to 1 if lock is requested by somebody
 		bool lock_requested = 0;
+	
+	public:
+	
+		// Pointer to itself'
+		static GIL *instance;
 		
 		GIL();
 		~GIL();
