@@ -13,29 +13,6 @@ namespace ck_token {
 	const int STRING                     15;
 	const int NAME                       16;
 	const int FLAG                       17;
-	const int LONG                       18;
-	const int BYTE                       19;
-	const int ARRAY                      20;
-	const int OBJECT                     21;
-	const int SCOPE                      22;
-	const int STRING_PROTOTYPE           23;
-	const int DOUBLE_PROTOTYPE           24;
-	const int NULL_PROTOTYPE             25;
-	const int OBJECT_PROTOTYPE           26;
-	const int SCOPE_PROTOTYPE            27;
-	const int PROXY_SCOPE                28;
-	const int CODE_FUNCTION_PROTOTYPE    29;
-	const int CODE_FUNCTION              30;
-	const int NATIVE_FUNCTION_PROTOTYPE  31;
-	const int NATIVE_FUNCTION            32;
-	const int INTEGER_PROTOTYPE          33;
-	const int BOOLEAN_PROTOTYPE          34;
-	const int UNDEFINED_PROTOTYPE        35;
-	const int TNULL                      36;
-	const int UNDEFINED                  37;
-	const int ARRAY_PROTOTYPE            38;
-	const int ERROR                      39;
-	const int ERROR_PROTOTYPE            40;
 
 	// Cupcake keywords
 	const int IF               47;
@@ -151,26 +128,28 @@ namespace ck_token {
 namespace ck_parser {
 	class raw_token {
 	public:
-		int token      = ck_token::NONE;
-		int integerv   = -1;
-		long longv     = -1;
-		int bytev      = -1;
-		bool booleanv  = 0;
-		double doublev = 0;
-		std::wstring stringv;
-		int lineno     = -1;
+		int token = ck_token::NONE;
+		int lineno = -1;
+		
+		// integer value
+		long long iv = 0;
+		// byte value
+		bool bv = 0;
+		// double value
+		double dv = 0;
+		// string value
+		std::wstring sv;
 		
 		raw_token() {};
 		
 		~raw_token() : {};
 		
+		/*
 		raw_token *copy() {
 			raw_token *t = new raw_token();
-			t->token     = this->token;
-			t->integerv  = this->integerv;
-			t->longv     = this->longv;
-			t->bytev     = this->bytev;
-			t->booleanv  = this->booleanv;
+			t->token = this->token;
+			t->iv = this->iv;
+			t->bv = this->bv;
 			// // GCC < 5 https://shaharmike.com/cpp/std-string/
 			// // Copy on Write not working on less versions so adding support of "copy".
 			// Copying in context of token stream.
@@ -179,7 +158,7 @@ namespace ck_parser {
 			t->lineno    = this->lineno;
 			
 			return t;
-		};
+		};*/
 	};
 	
 	// Container for single message produced during parsing.
@@ -225,8 +204,8 @@ namespace ck_parser {
 			messages.push(parser_message.warning(m, lineno));
 		};
 		
-		// Returns contains_error
-		bool is_error() { return contains_error; };
+		// Returns number of errors
+		int errors() { return contains_error; };
 		
 		// Returns messages
 		std::vector<parser_message> &get_messages() { return messages };
@@ -437,3 +416,4 @@ namespace ck_parser {
 		void set_repl(bool _repl) { repl = _repl; source.set_repl(1); );
 	};
 };
+

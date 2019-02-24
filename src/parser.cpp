@@ -107,7 +107,7 @@ static char strtlc(char c) {
 	return (c >= 'a' && c <= 'z') ? c + 'A' - 'a' : c;
 };
 
-int tokenizer::get(int off) {
+static int get(int off) {
 	if (off > 4 || off < -4) {
 		printf("PAJOJDA OTDEBAJJE MENYA\n");
 		return -1;
@@ -115,7 +115,7 @@ int tokenizer::get(int off) {
 	return buffer[4 + off];
 };
 
-int tokenizer::next() {
+static int next() {
 	for (int i = 1; i < 9; i++)
 		buffer[i - 1] = buffer[i];
 	
@@ -147,12 +147,10 @@ int tokenizer::next() {
 
 void tokenizer::clear() {
 	token->token    = NONE;
-	token->integerv = 0;
-	token->longv    = 0;
-	token->bytev    = 0;
-	token->doublev  = 0.0;
-	token->booleanv = false;
-	token->stringv  = "";
+	token->iv = 0;
+	token->dv = 0.0;
+	token->bv = false;
+	token->sv = "";
 };
 
 int tokenizer::put(int token) {
