@@ -299,22 +299,6 @@ namespace ck_parser {
 	public:
 		~tokenizer() { delete token; };
 		
-		int get(int off);
-		
-		int next();
-		
-		void clear();
-		
-		int put(int token);
-		
-		int match(int charcode0);
-		
-		int match(int charcode0, int charcode1);
-		
-		int match(int charcode0, int charcode1, int charcode2);
-		
-		int match(int charcode0, int charcode1, int charcode2, int charcode3);
-		
 		int eof() { return eof = sw.eof() || eof; };
 		
 		int nextToken();

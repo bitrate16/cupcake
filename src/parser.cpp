@@ -145,15 +145,7 @@ static int next() {
 	return buffer[4];
 };
 
-void tokenizer::clear() {
-	token->token    = NONE;
-	token->iv = 0;
-	token->dv = 0.0;
-	token->bv = false;
-	token->sv = "";
-};
-
-int tokenizer::put(int token) {
+static int put(int token) {
 	this->token->token = token;
 	
 	// Modify subtype to final
@@ -168,32 +160,41 @@ int tokenizer::put(int token) {
 	return 1;
 };
 
-int tokenizer::match(int charcode0) {
+static int match(int charcode0) {
 	if (get(0) != charcode0)
 		return false;
 	next();
 	return true;
 };
 
-int tokenizer::match(int charcode0, int charcode1) {
+static int match(int charcode0, int charcode1) {
 	if (get(0) != charcode0 || get(1) != charcode1)
 		return false;
 	next(); next();
 	return true;
 };
 
-int tokenizer::match(int charcode0, int charcode1, int charcode2) {
+static int match(int charcode0, int charcode1, int charcode2) {
 	if (get(0) != charcode0 || get(1) != charcode1 || get(2) != charcode2)
 		return false;
 	next(); next(); next();
 	return true;
 };
 
-int tokenizer::match(int charcode0, int charcode1, int charcode2, int charcode3) {
+static int match(int charcode0, int charcode1, int charcode2, int charcode3) {
 	if (get(0) != charcode0 || get(1) != charcode1 || get(2) != charcode2 || get(3) != charcode3)
 		return false;
 	next(); next(); next(); next();
 	return true;
+};
+
+void tokenizer::clear() {
+	token->token = NONE;
+	token->iv = 0;
+	token->dv = 0.0;
+	token->bv = false;
+	delete token->sv;
+	token->sv = new string("");
 };
 
 int tokenizer::nextToken() {
