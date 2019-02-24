@@ -188,11 +188,13 @@ namespace ck_parser {
 						: type(type), lineno(lineno), message(message) {};
 		
 	public:
-		const int MSG_WARNING = 0;
-		const int MSG_ERROR   = 1;
+		static const int MSG_WARNING = 0;
+		static const int MSG_ERROR   = 1;
 		int type;
 		int lineno;
 		std::wstring message;
+		
+		parser_message() {};
 		
 		// Returns new error instance
 		static inline parser_message error(std::wstring m, int lineno = -1) {
@@ -295,9 +297,11 @@ namespace ck_parser {
 		int error_ = 0;
 		int lineno = 0;
 		
+		bool repl = 0;
+		
 		friend class parser;
 		
-		tokenizer(parser_massages &pm) : messages(pm) {};
+		tokenizer(parser_massages &pm) : messages(pm), repl(0) {};
 		
 		void set_stream(stream_wrapper &sw_) {
 			this->sw = sw_;
@@ -335,6 +339,8 @@ namespace ck_parser {
 		int eof() { return eof = sw.eof() || eof; };
 		
 		int nextToken();
+		
+		void set_repl(bool _repl) { repl = _repl; );
 	};
 	
 	class parser {
@@ -350,20 +356,22 @@ namespace ck_parser {
 		int           eof_ = 0;
 		int         error_ = 0;
 		
+		bool repl = 0;
+		
 		raw_token *buffer[7] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL };
 		
 	public:
-		Parser(const std::wstring &str) { // <-- input from string
+		Parser(const std::wstring &str) : repl(0) { // <-- input from string
 			swrapper = stream_wrapper(str);
 			this->source.set_stream(swrapper);
 		};
 		
-		Parser(FILE *file) {              // <-- input from file
+		Parser(FILE *file) : repl(0) {              // <-- input from file
 			swrapper = stream_wrapper(file);
 			this->source.set_stream(swrapper);
 		};
 		
-		Parser() {                        // <-- input from stdin
+		Parser() : repl(0) {                        // <-- input from stdin
 			this->source.set_stream(swrapper);
 		};
 	
@@ -425,5 +433,7 @@ namespace ck_parser {
 		int lineno();
 		
 		int eof();
+		
+		void set_repl(bool _repl) { repl = _repl; source.set_repl(1); );
 	};
 };

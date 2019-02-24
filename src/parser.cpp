@@ -2312,13 +2312,14 @@ ASTNode *Parser::statement_with_semicolons() {
 };
 
 ASTNode *Parser::parse() {
-	ASTNode *root = new ASTNode(0, ASTROOT);
+	ASTNode *root = NULL;
 	
+	if (!repl)
+		root = new ASTNode(0, ASTROOT);
 	
-	//while (this->source->nextToken())
-	//	printf("line: %d, token: %d\n", source->token.lineno, source->token.token);
+	if (error_ || !_global_exec_state || eof_)
+		return NULL;
 	
-	//if (false)
 	while (!eof()) {
 		ASTNode *node = statement();
 		
@@ -2328,12 +2329,12 @@ ASTNode *Parser::parse() {
 		if (node != NULL)
 			root->addChild(node);
 		else {
-			// printf("NULL node");
 			eof_ = 1;
 		}
+		
+		if (repl)
+			return node;
 	}
-	
-	// printf("after: %d %d %d %d\n", eof(), eof_, error_, get(0)->token);
 	
 	if (error_) {
 		delete root;
