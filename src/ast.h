@@ -1,6 +1,6 @@
 #pragma once
 
-#include <std::wstring>
+#include <string>
 
 namespace ck_ast {
 	class ASTObjectList {
@@ -81,110 +81,7 @@ namespace ck_ast {
 			this->objectlist = NULL;
 		};
 		
-		~ASTNode() {
-			if (left == NULL);
-			else if (left == right)
-				delete left;
-			else while (left) {
-				ASTNode *nxt = left->next;
-				delete left;
-				left = nxt;
-			};
-			
-			// Proper delete objects for each type of ASTNode
-			switch (type) {
-				default:
-					break;
-					
-				case INTEGER:
-					if (objectlist)
-						delete (int*) (objectlist->object);
-					break;
-					
-				case LONG:
-					if (objectlist)
-						delete (long*) (objectlist->object);
-					break;
-					
-				case BYTE:
-					if (objectlist)
-						delete (char*) (objectlist->object);
-					break;
-					
-				case BOOLEAN:
-					if (objectlist)
-						delete (bool*) (objectlist->object);
-					break;
-					
-				case DOUBLE:
-					if (objectlist)
-						delete (double*) (objectlist->object);
-					break;
-					
-				case NAME:
-				case STRING:
-					if (objectlist)
-						delete (std::wstring*) (objectlist->object);
-					break;
-					
-				case ARRAY:
-					if (objectlist)
-						delete (int*) (objectlist->object);
-					break;
-					
-				case FIELD:
-					if (objectlist)
-						delete (std::wstring*) (objectlist->object);
-					break;
-					
-				case DEFINE: {
-					ASTObjectList *list = objectlist;
-					
-					while (objectlist) {
-						delete (int*) (objectlist->object);
-						list = objectlist->next;
-						delete objectlist;
-						objectlist = list;
-						
-						delete (std::wstring*) (objectlist->object);
-						list = objectlist->next;
-						delete objectlist;
-						objectlist = list;
-					}
-					break;
-				}
-					
-				case OBJECT: {
-					ASTObjectList *list = objectlist;
-					
-					while (objectlist) {					
-						delete (std::wstring*) (objectlist->object);
-						list = objectlist->next;
-						delete objectlist;
-						objectlist = list;
-					}
-					break;
-				}
-					
-				case FUNCTION: {
-					ASTObjectList *list = objectlist;
-					
-					while (objectlist) {					
-						delete (std::wstring*) (objectlist->object);
-						list = objectlist->next;
-						delete objectlist;
-						objectlist = list;
-					}
-					break;
-				}
-				
-				case TRY:				
-					if (objectlist)
-						delete (std::wstring*) (objectlist->object);
-					break;
-			}
-			delete objectlist;
-		};
+		~ASTNode();
 		
 		ASTNode *addChild(ASTNode *child) {
 			if (right == NULL)

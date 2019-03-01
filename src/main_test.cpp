@@ -1,7 +1,9 @@
 #include "parser.h"
+#include "ast.h"
 
 using namespace ck_token;
 using namespace ck_parser;
+using namespace ck_ast;
 using namespace std;
 
 int main() {
@@ -10,6 +12,15 @@ int main() {
 	if (!f)
 		return 1;
 	
+	
+	parser_massages pm(L"test.ck");
+	parser p(pm, f);
+	
+	ASTNode* n = p.parse();
+	
+	
+	
+	/*
 	parser_massages pm(L"test.ck");
 	stream_wrapper sw(f);
 	tokenizer tok(pm, sw);
@@ -27,6 +38,6 @@ int main() {
 		wcout << *tok.token << ' ';
 	}
 	wcout << endl;
-	
+	*/
 	pm.print();
 };

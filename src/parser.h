@@ -5,6 +5,8 @@
 #include <vector>
 #include <cstdio>
 
+#include "ast.h"
+
 namespace ck_token {
 	// Pre-defined type codes
 	const int INTEGER	     = 12; // int
@@ -12,8 +14,10 @@ namespace ck_token {
 	const int BOOLEAN        = 14; // bool
 	const int STRING         = 15; // string
 	const int NAME           = 16; // name/key
-	const int TNULL          = 17; // name/key
-	const int UNDEFINED      = 18; // name/key
+	const int TNULL          = 17; // null
+	const int UNDEFINED      = 18; // undefined
+	const int ARRAY          = 19; // array
+	const int OBJECT         = 20; // object
 
 	// Cupcake keywords
 	const int IF             = 47;
@@ -113,19 +117,20 @@ namespace ck_token {
 	const int NONE          = 140;
 
 	// Additional statements & expressions
-	const int EMPTY           = 201;
+	const int FIELD           = 209; // a.field
+	const int MEMBER          = 208; // a['member']
+	const int CALL            = 210; // func(...)
+	const int NATIVE_CALL     = 211; // native_func(...)
+	const int EMPTY           = 201; // ...
+	const int BLOCK           = 203; // { ... }
+	const int DEFINE          = 205; // var a = ...
+	const int ASSIGN_DEFINE   = 204; // var
+	const int FUNCTIONROOT    = 213; // root of the function sub-three
+	
 	const int EXPRESSION      = 202;
-	const int BLOCK           = 203;
-	const int ASSIGN_DEFINE   = 204;
-	const int DEFINE          = 205;
 	const int ASTROOT         = 206;
 	const int CONDITION       = 207;
-	const int MEMBER          = 208;
-	const int FIELD           = 209;
-	const int CALL            = 210;
-	const int NATIVE_CALL     = 211;
 	const int IMPORTED_SCRIPT = 212;
-	const int FUNCTIONROOT    = 213;
 };
 
 namespace ck_parser {
@@ -365,7 +370,6 @@ namespace ck_parser {
 		// Wrapper for input stream. Created by parser, passed here.
 		stream_wrapper& sw;
 		
-		// Container for all messages. Created by Parser, passed here.
 		parser_massages& messages;
 		
 		// Temporary token to be returned.
@@ -503,13 +507,13 @@ namespace ck_parser {
 			repl = _repl; 
 		};
 	};
-	/*
+	
 	class parser {
 		// Container for all messages produced on parsing.
-		parser_massages messages;
+		parser_massages& messages;
 		
 		// Input token stream.
-		tokenizer source(messages);
+		tokenizer source;
 		
 		// Wrapper for an input stream
 		stream_wrapper swrapper;
@@ -522,22 +526,21 @@ namespace ck_parser {
 		raw_token *buffer[7] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL };
 		
 	public:
-		Parser(const std::wstring &str) : repl(0) { // <-- input from string
-			swrapper = stream_wrapper(str);
-			this->source.set_stream(swrapper);
+		parser(parser_massages& msg, const std::wstring &str) : repl(0), messages(msg), swrapper(str), source(msg, swrapper) { // <-- input from string
+			//swrapper = stream_wrapper(str);
+			//source = tokenizer(messages, swrapper);
 		};
 		
-		Parser(FILE *file) : repl(0) {              // <-- input from file
-			swrapper = stream_wrapper(file);
-			this->source.set_stream(swrapper);
+		parser(parser_massages& msg, FILE *file) : repl(0), messages(msg), swrapper(file), source(msg, swrapper) {              // <-- input from file
+			//swrapper = stream_wrapper(file);
+			//source = tokenizer(msg, swrapper);
 		};
 		
-		Parser() : repl(0) {                        // <-- input from stdin
-			this->source.set_stream(swrapper);
+		parser(parser_massages& msg) : repl(0), messages(msg), source(msg, swrapper) {                        // <-- input from stdin
+		//	source = tokenizer(messages, swrapper);
 		};
 	
-	private:
-		~Parser();
+		~parser();
 		
 		raw_token *get(int off);
 		
@@ -579,7 +582,7 @@ namespace ck_parser {
 		
 		ck_ast::ASTNode *checkNotNullExpression();
 		
-		bool checkNullExpression(ASTNode *exp);
+		bool checkNullExpression(ck_ast::ASTNode *exp);
 		
 		ck_ast::ASTNode *initializerstatement();
 		
@@ -595,7 +598,7 @@ namespace ck_parser {
 		
 		int eof();
 		
-		void set_repl(bool _repl) { repl = _repl; source.set_repl(1); );
-	};*/
+		void set_repl(bool _repl) { repl = _repl; source.set_repl(1); };
+	};
 };
 
