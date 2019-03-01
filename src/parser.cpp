@@ -1,9 +1,9 @@
-#include "parser"
-#include "exec_state"
+#include <cwchar>
+#include <sstream>
 
-#include <wchar>
+#include "parser.h"
 
-#define TOKENIZER_ERROR(...) { messages.error(__VA_ARGS__); error_ = 1; return put(TERR); }
+#define TOKENIZER_ERROR(...) { messages.error(__VA_ARGS__); has_error = 1; return put(TERR); }
 #define TOKENIZER_WARNING(...) messages.warning(__VA_ARGS__);
 
 #define PARSER_ERROR_RETURN(...) { messages.error(__VA_ARGS__); error_ = 1; return NULL; }
@@ -12,77 +12,79 @@
 
 using namespace ck_token;
 using namespace ck_parser;
-using namespace ck_ast;
+//using namespace ck_ast;
 
 
 // S T R E A M _ W R A P P E R
 
 // Returns next redden character.
 int stream_wrapper::getc() {
-	if (eof)
+	if (_eof)
 		return WEOF;
 	
+	int c;
 	switch(source_type) {
 		case IN_STRING:
 			if (cursor >= string.size()) {
-				eof = 1;
-				return weof;
+				_eof = 1;
+				return WEOF;
 			}
 			return string[cursor++];
 		
 		case IN_STDIN:
-			int c = getwc(stdin);
+			c = fgetwc(stdin);
 			if (c == WEOF)
-				eof = 1;
+				_eof = 1;
 			
 			return c;
 			
 		case IN_FILE:
-			int c = getwc(file);
+			c = fgetwc(file);
 			if (c == WEOF)
-				eof = 1;
+				_eof = 1;
 			
 			return c;
 			
 		default:
-			eof = 1;
+			_eof = 1;
 			return WEOF;
 	};
 };
 
 // Returns true whatewer EOF is reached.
 bool stream_wrapper::eof() {
-	if (eof == 1)
+	if (_eof == 1)
 		return 1;
 	
+	int c;
 	switch(source_type) {
 		case IN_STRING:
 			if (cursor >= string.size()) {
-				eof = 1;
+				_eof = 1;
 				return 1;
 			}
 			return 0;
 		
 		case IN_STDIN:
-			int c = getwc(stdin);
+			c = fgetwc(stdin);
 			ungetwc(c, stdin);
 			
 			if (c == WEOF)
-				eof = 1;
+				_eof = 1;
 			
-			return eof;
+			return _eof;
 			
 		case IN_FILE:
-			int c = getwc(file);
-			ungetwc(c, stdin);
+			c = fgetwc(file);
+			ungetwc(c, file);
 			
 			if (c == WEOF)
-				eof = 1;
+				_eof = 1;
 			
-			return eof;
+			return _eof;
 			
 		default:
-			eof = 1;
+			_eof = 1;
 			return 1;
 	};
 };
@@ -91,123 +93,22 @@ bool stream_wrapper::eof() {
 // T O K E N I Z E R
 // (It was written when i was drunk but it works unlike my liver..)
 
-static int white(int c) {
-	return c == '\n' || c == '\r' || c == '\t' || c == ' ' || c == 0x0A || c == 0x0D;
+int to_upper(int c) {
+	if ('a' <= c && c <= 'z')
+		return c - 'a' + 'A';
+	if (U'А' <= c && c <= U'я')
+		return c - U'а' + U'А';
+	return c;
 };
 
-static int alpha(int c) {
-	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= 'а' && c <= 'я') || (c >= 'А' && c <= 'Я') || c == '_';
-};
-
-static int digit(int c) {
-	return c >= '0' && c <= '9';
-};
-
-static char strtlc(char c) {
-	return (c >= 'a' && c <= 'z') ? c + 'A' - 'a' : c;
-};
-
-static int get(int off) {
-	if (off > 4 || off < -4) {
-		printf("PAJOJDA OTDEBAJJE MENYA\n");
-		return -1;
-	}
-	return buffer[4 + off];
-};
-
-static int next() {
-	for (int i = 1; i < 9; i++)
-		buffer[i - 1] = buffer[i];
-	
-	if (buffer[7] == TEOF)
-		buffer[8] = TEOF;
-	else {
-		int c = source->getc();
-		
-		if (c == WEOF)
-			buffer[8] = TEOF;
-		else
-			buffer[8] = c;
-	}
-	
-#ifdef PRINT_FILE
-	if (buffer[8] != TEOF) {			
-		putchar((char) buffer[8]);
-	} else if (eof())
-		putchar(10);
-#endif
-	
-	if (buffer[4] == '\n') {
-		++lineno;
-		return TEOL;
-	}
-	
-	return buffer[4];
-};
-
-static int put(int token) {
-	this->token->token = token;
-	
-	// Modify subtype to final
-	if (token == TRUE || token == FALSE) {
-		this->token->booleanv = token == TRUE;
-		this->token->token = BOOLEAN;
-	}
-	
-	if (token == TEOF)
-		return 0;
-	
-	return 1;
-};
-
-static int match(int charcode0) {
-	if (get(0) != charcode0)
-		return false;
-	next();
-	return true;
-};
-
-static int match(int charcode0, int charcode1) {
-	if (get(0) != charcode0 || get(1) != charcode1)
-		return false;
-	next(); next();
-	return true;
-};
-
-static int match(int charcode0, int charcode1, int charcode2) {
-	if (get(0) != charcode0 || get(1) != charcode1 || get(2) != charcode2)
-		return false;
-	next(); next(); next();
-	return true;
-};
-
-static int match(int charcode0, int charcode1, int charcode2, int charcode3) {
-	if (get(0) != charcode0 || get(1) != charcode1 || get(2) != charcode2 || get(3) != charcode3)
-		return false;
-	next(); next(); next(); next();
-	return true;
-};
-
-void tokenizer::clear() {
-	token->token = NONE;
-	token->iv = 0;
-	token->dv = 0.0;
-	token->bv = false;
-	delete token->sv;
-	token->sv = new string("");
-};
-
-int tokenizer::nextToken() {
-	if (eof() || !_global_exec_state)
+int tokenizer::next_token() {
+	token->lineno = lineno;
+	if (has_error) 
+		return put(TERR);
+	if (eof()) 
 		return put(TEOF);
 	
 	clear();
-	
-	if (get(0) == TEOF) {
-		token->lineno = lineno;
-		this->eof_ = 1;
-		return put(TEOF);
-	}
 
 	int c  = get(0);
 	int c1 = get(1);
@@ -225,8 +126,6 @@ int tokenizer::nextToken() {
 				c = next();
 				c1 = get(1);
 			}
-			//if(c0 == TEOL)
-			//	token->lineno++;
 		} else if (c == '/' && c1 == '*') {
 			// Skip all code till '*' '/' sequence
 			// Warning: '*/' may be hidden in string. That must be ignored
@@ -251,428 +150,403 @@ int tokenizer::nextToken() {
 				}
 			}
 
-			if (!closed) TOKENIZER_ERROR("block comment expected to be closed", lineno)
+			if (!closed) TOKENIZER_ERROR(L"block comment expected to be closed", lineno)
 		}
 	}
 
 	if (get(0) == TEOF) {
 		token->lineno = lineno;
-		this->eof_ = 1;
 		return put(TEOF);
 	}
 
 	token->lineno = lineno;
 	
-	/* K E Y W O R D S */ {
-		// Parse keywords|names
-		if (alpha(c)) {
-			string &stringvref = *token->stringv;
-			do {
-				stringvref += (char) c;
-				c = next();
-			} while((alpha(c) || digit(c)) && c != TEOF);
-
-			if (stringvref == "true")
-				return put(TRUE);
-			if (stringvref == "false")
-				return put(FALSE);
-			if (stringvref == "null")
-				return put(TNULL);
-			if (stringvref == "undefined")
-				return put(UNDEFINED);
-
-			if (stringvref == "this")
-				return put(THIS);
-			if (stringvref == "self")
-				return put(SELF);
-			if (stringvref == "try")
-				return put(TRY);
-			if (stringvref == "expect")
-				return put(EXPECT);
-			if (stringvref == "raise")
-				return put(RAISE);
-			if (stringvref == "if")
-				return put(IF);
-			if (stringvref == "else")
-				return put(ELSE);
-			if (stringvref == "for")
-				return put(FOR);
-			if (stringvref == "switch")
-				return put(SWITCH);
-			if (stringvref == "case")
-				return put(CASE);
-			if (stringvref == "default")
-				return put(DEFAULT);
-			if (stringvref == "while")
-				return put(WHILE);
-			if (stringvref == "do")
-				return put(DO);
-			if (stringvref == "break")
-				return put(BREAK);
-			if (stringvref == "continue")
-				return put(CONTINUE);
-			if (stringvref == "return")
-				return put(RETURN);
-			if (stringvref == "function")
-				return put(FUNCTION);
-			if (stringvref == "prototype")
-				return put(PROTOTYPE);
-			if (stringvref == "var")
-				return put(VAR);
-			if (stringvref == "const")
-				return put(CONST);
-			if (stringvref == "safe")
-				return put(SAFE);
-			if (stringvref == "local")
-				return put(LOCAL);
-			if (stringvref == "new")
-				return put(NEW);
-
-			return put(NAME);
-		}
-	}
-	
-	/* S T R I N G S */ {
-		// Parse string ("|')
-		if (c == '\'' || c == '\"') {
-			int quote = c;
-			string &stringvref = *token->stringv;
-
+	/* K E Y W O R D S */ 
+	if (alpha(c)) {
+		std::wstring& stringvref = token->sv;
+		do {
+			stringvref += (wchar_t) c;
 			c = next();
-			while (c != TEOF) {
-				if (c == TEOL || c == TEOF) TOKENIZER_ERROR("string expected to be closed", lineno)
-				if (c == quote)
-					break;
-				if (c == '\\') {
+		} while((alpha(c) || digit(c)) && c != TEOF);
+
+		if (stringvref == L"true")
+			return put(TRUE);
+		if (stringvref == L"false")
+			return put(FALSE);
+		if (stringvref == L"null")
+			return put(TNULL);
+		if (stringvref == L"undefined")
+			return put(UNDEFINED);
+
+		if (stringvref == L"this")
+			return put(THIS);
+		if (stringvref == L"self")
+			return put(SELF);
+		if (stringvref == L"try")
+			return put(TRY);
+		if (stringvref == L"expect")
+			return put(EXPECT);
+		if (stringvref == L"raise")
+			return put(RAISE);
+		if (stringvref == L"if")
+			return put(IF);
+		if (stringvref == L"else")
+			return put(ELSE);
+		if (stringvref == L"for")
+			return put(FOR);
+		if (stringvref == L"switch")
+			return put(SWITCH);
+		if (stringvref == L"case")
+			return put(CASE);
+		if (stringvref == L"default")
+			return put(DEFAULT);
+		if (stringvref == L"while")
+			return put(WHILE);
+		if (stringvref == L"do")
+			return put(DO);
+		if (stringvref == L"break")
+			return put(BREAK);
+		if (stringvref == L"continue")
+			return put(CONTINUE);
+		if (stringvref == L"return")
+			return put(RETURN);
+		if (stringvref == L"function")
+			return put(FUNCTION);
+		if (stringvref == L"var")
+			return put(VAR);
+		if (stringvref == L"const")
+			return put(CONST);
+		if (stringvref == L"safe")
+			return put(SAFE);
+		if (stringvref == L"local")
+			return put(LOCAL);
+		if (stringvref == L"with")
+			return put(WITH);
+
+		return put(NAME);
+	}
+
+	/* S T R I N G S */ 
+	if (c == '\'' || c == '\"') {
+		int quote = c;
+		std::wstring& stringvref = token->sv;
+
+		c = next();
+		while (c != TEOF) {
+			if (c == TEOL || c == TEOF) TOKENIZER_ERROR(L"string expected to be closed", lineno)
+			if (c == quote)
+				break;
+			if (c == '\\') {
+				c1 = next();
+				if (c1 == 't')
+					stringvref += '\t';
+				else if (c1 == 'b')
+					stringvref += '\b';
+				else if (c1 == 'n')
+					stringvref += '\n';
+				else if (c1 == 'r')
+					stringvref += '\r';
+				else if (c1 == 'f')
+					stringvref += '\f';
+				else if (c1 == '\\')
+					stringvref += '\\';
+				else if (c1 == '\'')
+					stringvref += '\'';
+				else if (c1 == '\"')
+					stringvref += '\"';
+				else if (c1 == '0')
+					stringvref += '\0';
+				else if (c1 == 'u') {
 					c1 = next();
-					if (c1 == 't')
-						stringvref += '\t';
-					else if (c1 == 'b')
-						stringvref += '\b';
-					else if (c1 == 'n')
-						stringvref += '\n';
-					else if (c1 == 'r')
-						stringvref += '\r';
-					else if (c1 == 'f')
-						stringvref += '\f';
-					else if (c1 == '\\')
-						stringvref += '\\';
-					else if (c1 == '\'')
-						stringvref += '\'';
-					else if (c1 == '\"')
-						stringvref += '\"';
-					else if (c1 == '0')
-						stringvref += '\0';
-					else if (c1 == 'u') {
+					// Expect 8-digit hex number
+					int chpoint = 0;
+					int point   = 0;
+					for (int i = 0; i < 8; i++) {
+						c1 = strtlc(c1);
+						int cp = -1;
+						if (c1 >= 'a' && c1 <= 'f')
+							cp = 10 + c1 - 'a';
+						if (c1 >= '0' && c1 <= '9')
+							cp = c1 - '0';
+						if (cp == -1 && !point) 
+							TOKENIZER_ERROR(std::wstring(L"expected hexadecimal character code point ") + (wchar_t) cp + std::wstring(L" [") + (wchar_t) cp + std::wstring(L"]"), lineno)
+						if (cp == -1)
+							break;
+						++point;
+						chpoint = chpoint * 16 + cp;
 						c1 = next();
-						// Expect 8-digit hex number
-						int chpoint = 0;
-						int point   = 0;
-						for (int i = 0; i < 8; i++) {
-							c1 = strtlc(c1);
-							int cp = -1;
-							if (c1 >= 'a' && c1 <= 'f')
-								cp = 10 + c1 - 'a';
-							if (c1 >= '0' && c1 <= '9')
-								cp = c1 - '0';
-							if (cp == -1 && !point) 
-								TOKENIZER_ERROR(std::wstring("expected hexadecimal character code point ") + cp + std::wstring(" [") + (wchar_t) cp + std::wstring("]"), lineno)
-							if (cp == -1)
-								break;
-							++point;
-							chpoint = chpoint * 16 + cp;
-							c1 = next();
-						}
-					} else if (c1 == 'x') {
+					}
+				} else if (c1 == 'x') {
+					c1 = next();
+					// Expect 4-digit hex number
+					int chpoint = 0;
+					int point   = 0;
+					for (int i = 0; i < 4; i++) {
+						c1 = strtlc(c1);
+						int cp = -1;
+						if (c1 >= 'a' && c1 <= 'f')
+							cp = 10 + c1 - 'a';
+						if (c1 >= '0' && c1 <= '9')
+							cp = c1 - '0';
+						if (cp == -1 && !point) 
+							TOKENIZER_ERROR(std::wstring(L"expected hexadecimal character code point ") + (wchar_t) cp + std::wstring(L" [") + (wchar_t) cp + std::wstring(L"]"), lineno)
+						if (cp == -1)
+							break;
+						++point;
+						chpoint = chpoint * 16 + cp;
 						c1 = next();
-						// Expect 4-digit hex number
-						int chpoint = 0;
-						int point   = 0;
-						for (int i = 0; i < 4; i++) {
-							c1 = strtlc(c1);
-							int cp = -1;
-							if (c1 >= 'a' && c1 <= 'f')
-								cp = 10 + c1 - 'a';
-							if (c1 >= '0' && c1 <= '9')
-								cp = c1 - '0';
-							if (cp == -1 && !point) 
-								TOKENIZER_ERROR(std::wstring("expected hexadecimal character code point ") + cp + std::wstring(" [") + (wchar_t) cp + std::wstring("]"), lineno)
-							if (cp == -1)
-								break;
-							++point;
-							chpoint = chpoint * 16 + cp;
-							c1 = next();
-						}
-					} else
-						TOKENIZER_ERROR(std::wstring("unexpected character after escape point ") + cp + std::wstring(" [") + (wchar_t) cp + std::wstring("]"), lineno)
+					}
 				} else
-					stringvref += (wchar_t) c;
-				c = next();
-			}
-			next();
-			return put(STRING);
+					TOKENIZER_ERROR(std::wstring(L"unexpected character after escape point ") + (wchar_t) c1 + std::wstring(L" [") + (wchar_t) c1 + std::wstring(L"]"), lineno)
+			} else
+				stringvref += (wchar_t) c;
+			c = next();
 		}
+		next();
+		return put(STRING);
 	}
 	
-	/* N U M B E R S */ {
-		if (digit(c) || (c == '.' && digit(c1))) {
-			
-			
-			// XXX: Rewrite this code part to optimize/fix parser bugs
-			
-			
-			int type = INTEGER;
-			int hasPoint = false;
-			int scientific = false;
-			int base = 10;
+	/* N U M B E R S */ 
+	if (digit(c) || (c == '.' && digit(c1))) {
+		
+		
+		// XXX: Rewrite this code part to optimize/fix parser bugs
+		
+		
+		int type = INTEGER;
+		int hasPoint = false;
+		int scientific = false;
+		int base = 10;
 
-			string &stringvref = token->stringv;
-			
-			if (c == '.') {
+		std::wstring& stringvref = token->sv;
+		
+		if (c == '.') {
+			type = DOUBLE;
+			hasPoint = true;
+		}
+
+		stringvref += (wchar_t) c;
+
+		c = next();
+		c1 = get(1);
+		while (c != TEOF) {
+			if (scientific)
+				TOKENIZER_ERROR(L"double can't be parsed after scientific notation", lineno)
+			else if (c == '.') {
+				if (hasPoint)
+					TOKENIZER_ERROR(L"double can't have more than one point", lineno)
+				// if (base != 10)
+				//	return tokenizer_error(lineno, "double can't be not decimal");
+				if (!digit(c1))
+					TOKENIZER_ERROR(L"unexpected fraction of double nomber", lineno)
 				type = DOUBLE;
 				hasPoint = true;
-			}
-
-			stringvref += (char) c;
+				stringvref += '.';
+			} else if ((c == 'x' || c == 'X') && base == 10) {
+				if (type == DOUBLE)
+					TOKENIZER_ERROR(L"double can't be not decimal", lineno)
+				// if (base != 10)
+				//	return tokenizer_error(lineno, "one token.integerv can't have multiple numerical bases");
+				if (stringvref != L"0")
+					TOKENIZER_ERROR(L"base notation starts with 0", lineno)
+				stringvref = L"";
+				base = 16;
+			} else if ((c == 'o' || c == 'O') && base == 10) {
+				if (type == DOUBLE)
+					TOKENIZER_ERROR(L"double can't be not decimal", lineno)
+				// if (base != 10)
+				//	return tokenizer_error(lineno, "one token.integerv can't have multiple numerical bases");
+				if (stringvref != L"0")
+					TOKENIZER_ERROR(L"base notation starts with 0", lineno)
+				stringvref = L"";
+				base = 8;
+			} else if ((c == 'b' || c == 'B') && base == 10) {
+				if (type == DOUBLE)
+					TOKENIZER_ERROR(L"double can't be not decimal", lineno)
+				// if (base != 10)
+				//	return tokenizer_error(lineno, "integer can't have multiple numerical bases");
+				if (stringvref != L"0")
+					TOKENIZER_ERROR(L"base notation starts with 0", lineno)
+				stringvref = L"";
+				base = 2;
+			} else if ((c == 'e' || c == 'E') && base != 16) {
+				if (base != 10)
+					TOKENIZER_ERROR(L"double can't be not decimal", lineno)
+				type = DOUBLE;
+				// Start reading scientific notation
+				// double + E + (+ or -) + integer
+				stringvref += 'e';
+				c = next();
+				if ((c == '-' || c == '+')) {
+					// 12.34E26 is the same as 12.34E+26
+					stringvref += (wchar_t) c;
+					c = next();
+				}
+				std::wstring integer;
+				while (digit(c)) {
+					integer += (wchar_t) c;
+					c = next();
+				}
+				if (integer == L"")
+					TOKENIZER_ERROR(L"expected exponent in scientific notation", lineno)
+				if (alpha(c))
+					TOKENIZER_ERROR(L"unexpected character in scientific notation", lineno)
+				stringvref += integer;
+				scientific = true;
+				break;
+			} /*else if ((c == 'l' || c == 'L' || (c == 'b' || c == 'B') && base != 16) && !digit(c1)) {
+				if (c == 'l' || c == 'L')
+					type = LONG;
+				else
+					type = BYTE;
+				c = next();
+				break;
+			} */ else if (base == 16 && (('A' <= c && c <= 'F') || ('a' <= c && 'f' <= c) || digit(c)))
+				stringvref += (wchar_t) c;
+			else if (base == 8 && '0' <= c && c <= '7')
+				stringvref += (wchar_t) c;
+			else if (base == 2 && (c == '0' || c == '1'))
+				stringvref += (wchar_t) c;
+			else if (base == 10 && digit(c))
+				stringvref += (wchar_t) c;
+			else if (alpha(c) || (base == 8 && '8' <= c && c <= '9')
+							  || (base == 2 && '3' <= c && c <= '9'))
+				TOKENIZER_ERROR(std::wstring(L"unexpected character in number ") + (wchar_t) c + std::wstring(L" [") + (wchar_t) c + std::wstring(L"]"), lineno)
+			else
+				break;
 
 			c = next();
 			c1 = get(1);
-			while (c != TEOF) {
-				if (scientific)
-					TOKENIZER_ERROR("double can't be parsed after scientific notation", lineno)
-				else if (c == '.') {
-					if (hasPoint)
-						TOKENIZER_ERROR("double can't have more than one point", lineno)
-					// if (base != 10)
-					//	return tokenizer_error(lineno, "double can't be not decimal");
-					if (!digit(c1))
-						TOKENIZER_ERROR("unexpected fraction of double nomber", lineno)
-					type = DOUBLE;
-					hasPoint = true;
-					stringvref += '.';
-				} else if ((c == 'x' || c == 'X') && base == 10) {
-					if (type == DOUBLE)
-						TOKENIZER_ERROR("double can't be not decimal", lineno)
-					// if (base != 10)
-					//	return tokenizer_error(lineno, "one token.integerv can't have multiple numerical bases");
-					if (stringvref != "0")
-						TOKENIZER_ERROR("base notation starts with 0", lineno)
-					stringvref = "";
-					base = 16;
-				} else if ((c == 'o' || c == 'O') && base == 10) {
-					if (type == DOUBLE)
-						TOKENIZER_ERROR("double can't be not decimal", lineno)
-					// if (base != 10)
-					//	return tokenizer_error(lineno, "one token.integerv can't have multiple numerical bases");
-					if (stringvref != "0")
-						TOKENIZER_ERROR("base notation starts with 0", lineno)
-					stringvref = "";
-					base = 8;
-				} else if ((c == 'b' || c == 'B') && base == 10) {
-					if (type == DOUBLE)
-						TOKENIZER_ERROR("double can't be not decimal", lineno)
-					// if (base != 10)
-					//	return tokenizer_error(lineno, "integer can't have multiple numerical bases");
-					if (stringvref != "0")
-						TOKENIZER_ERROR("base notation starts with 0", lineno)
-					stringvref = "";
-					base = 2;
-				} else if ((c == 'e' || c == 'E') && base != 16) {
-					if (base != 10)
-						TOKENIZER_ERROR("double can't be not decimal", lineno)
-					type = DOUBLE;
-					// Start reading scientific notation
-					// double + E + (+ or -) + integer
-					stringvref += 'e';
-					c = next();
-					if ((c == '-' || c == '+')) {
-						// 12.34E26 is the same as 12.34E+26
-						stringvref += (wchar_t) c;
-						c = next();
-					}
-					string *integer = new string();
-					while (digit(c)) {
-						*integer += (wchar_t) c;
-						c = next();
-					}
-					if (*integer == "")
-						TOKENIZER_ERROR("expected exponent in scientific notation", lineno)
-					if (alpha(c))
-						TOKENIZER_ERROR("unexpected character in scientific notation", lineno)
-					stringvref += *integer;
-					delete integer;
-					scientific = true;
-					break;
-				} else if ((c == 'l' || c == 'L' || (c == 'b' || c == 'B') && base != 16) && !digit(c1)) {
-					if (c == 'l' || c == 'L')
-						type = LONG;
-					else
-						type = BYTE;
-					c = next();
-					break;
-				} else if (base == 16 && (('A' <= c && c <= 'F') || ('a' <= c && 'f' <= c) || digit(c)))
-					stringvref += (wchar_t) c;
-				else if (base == 8 && '0' <= c && c <= '7')
-					stringvref += (wchar_t) c;
-				else if (base == 2 && (c == '0' || c == '1'))
-					stringvref += (wchar_t) c;
-				else if (base == 10 && digit(c))
-					stringvref += (wchar_t) c;
-				else if (alpha(c) || (base == 8 && '8' <= c && c <= '9')
-							      || (base == 2 && '3' <= c && c <= '9'))
-					TOKENIZER_ERROR(std::wstring("unexpected character in number ") + c + std::wstring(" [") + (wchar_t) c + std::wstring("]"), lineno)
-				else
-					break;
-
-				c = next();
-				c1 = get(1);
+		}
+		
+		if (type == DOUBLE) {
+			std::wstringstream ss(stringvref);
+			ss >> token->dv;
+			return put(DOUBLE);
+		} else if (type == INTEGER) {
+			long long mult = 1;
+			for (int i = stringvref.size() - 1; i >= 0; --i) {
+				token->iv += mult * ('A' <= to_upper(stringvref[i]) && to_upper(stringvref[i]) <= 'Z' ? to_upper(stringvref[i]) - 'A' + 10 : to_upper(stringvref[i]) - '0');
+				mult *= base;
 			}
-			
-			if (type == DOUBLE) {
-				token->doublev = stringvref.toDouble(0);
-				return put(DOUBLE);
-			}
-			if (type == INTEGER) {
-				token->integerv = (int) stringvref.toInt(base, 0);
-				return put(INTEGER);
-			}
-			if (type == BYTE) {
-				token->longv = (unsigned char) stringvref.toInt(base, 0);
-				return put(BYTE);
-			}
-			if (type == LONG) {
-				token->longv =  (long) stringvref.toInt(base, 0);
-				return put(LONG);
-			}
+			return put(INTEGER);
 		}
 	}
 	
-	/* D E L I M I T E R S */ {
-		// Parse delimiters
-		if (match('>', '>', '>', '='))
-			return put(ASSIGN_BITURSH);
-		if (match('>', '>', '>'))
-			return put(BITURSH);
-		if (match('>', '>', '='))
-			return put(ASSIGN_BITRSH);
-		if (match('<', '<', '='))
-			return put(ASSIGN_BITLSH);
-		if (match('>', '>'))
-			return put(BITRSH);
-		if (match('<', '<'))
-			return put(BITLSH);
-		if (match('>', '='))
-			return put(GE);
-		if (match('<', '='))
-			return put(LE);
-		if (match('&', '&'))
-			return put(AND);
-		if (match('|', '|'))
-			return put(OR);
-		if (match('=', '='))
-			return put(EQ);
-		if (match('!', '='))
-			return put(NEQ);
-		if (match('-', '>'))
-			return put(PUSH);
-		if (match('=', '>'))
-			return put(LAMBDA);
-		if (match('/', '/'))
-			return put(MDIV);
-		if (match('+', '+'))
-			return put(INC);
-		if (match('-', '-'))
-			return put(DEC);
-		if (match('+', '='))
-			return put(ASSIGN_ADD);
-		if (match('-', '='))
-			return put(ASSIGN_SUB);
-		if (match('*', '='))
-			return put(ASSIGN_MUL);
-		if (match('/', '='))
-			return put(ASSIGN_DIV);
-		if (match('%', '='))
-			return put(ASSIGN_MOD);
-		if (match('|', '='))
-			return put(ASSIGN_BITOR);
-		if (match('&', '='))
-			return put(ASSIGN_BITAND);
-		if (match('^', '='))
-			return put(ASSIGN_BITXOR);
-		if (match('~', '='))
-			return put(ASSIGN_BITNOT);
-		if (match('='))
-			return put(ASSIGN);
-		if (match('>'))
-			return put(GT);
-		if (match('<'))
-			return put(LT);
-		if (match('+'))
-			return put(PLUS);
-		if (match('-'))
-			return put(MINUS);
-		if (match('*'))
-			return put(MUL);
-		if (match('/'))
-			return put(DIV);
-		if (match('%'))
-			return put(MOD);
-		if (match('~'))
-			return put(BITNOT);
-		if (match('|'))
-			return put(BITOR);
-		if (match('&'))
-			return put(BITAND);
-		if (match('^'))
-			return put(BITXOR);
-		if (match('!'))
-			return put(NOT);
-		if (match('.'))
-			return put(DOT);
-		if (match('?'))
-			return put(HOOK);
-		if (match(':'))
-			return put(COLON);
-		if (match('\\'))
-			return put(PATH);
-		if (match('['))
-			return put(LB);
-		if (match(']'))
-			return put(RB);
-		if (match('{'))
-			return put(LC);
-		if (match('}'))
-			return put(RC);
-		if (match('('))
-			return put(LP);
-		if (match(')'))
-			return put(RP);
-		if (match(','))
-			return put(COMMA);
-		if (match(';'))
-			return put(SEMICOLON);
-		if (match('$'))
-			return put(SELF);
-
-		if (c == '@' && alpha(c1)) {
-			// Read flag token
-			c = next();
-			while (alpha(c) || digit(c) || c == '_') {
-				token->stringv += (char) c;
-				c = next();
-			}
-			return put(NAME);
-		}
-	}
+	/* D E L I M I T E R S */ 
+	if (match('>', '>', '>', '='))
+		return put(ASSIGN_BITURSH);
+	if (match('>', '>', '>'))
+		return put(BITURSH);
+	if (match('>', '>', '='))
+		return put(ASSIGN_BITRSH);
+	if (match('<', '<', '='))
+		return put(ASSIGN_BITLSH);
+	if (match('>', '>'))
+		return put(BITRSH);
+	if (match('<', '<'))
+		return put(BITLSH);
+	if (match('>', '='))
+		return put(GE);
+	if (match('<', '='))
+		return put(LE);
+	if (match('&', '&'))
+		return put(AND);
+	if (match('|', '|'))
+		return put(OR);
+	if (match('=', '='))
+		return put(EQ);
+	if (match('!', '='))
+		return put(NEQ);
+	if (match('-', '>'))
+		return put(PUSH);
+	if (match('=', '>'))
+		return put(ARROW);
+	if (match('/', '/'))
+		return put(PATH);
+	if (match('+', '+'))
+		return put(INC);
+	if (match('-', '-'))
+		return put(DEC);
+	if (match('+', '='))
+		return put(ASSIGN_ADD);
+	if (match('-', '='))
+		return put(ASSIGN_SUB);
+	if (match('*', '='))
+		return put(ASSIGN_MUL);
+	if (match('/', '='))
+		return put(ASSIGN_DIV);
+	if (match('%', '='))
+		return put(ASSIGN_MOD);
+	if (match('|', '='))
+		return put(ASSIGN_BITOR);
+	if (match('&', '='))
+		return put(ASSIGN_BITAND);
+	if (match('^', '='))
+		return put(ASSIGN_BITXOR);
+	if (match('~', '='))
+		return put(ASSIGN_BITNOT);
+	if (match('='))
+		return put(ASSIGN);
+	if (match('>'))
+		return put(GT);
+	if (match('<'))
+		return put(LT);
+	if (match('+'))
+		return put(PLUS);
+	if (match('-'))
+		return put(MINUS);
+	if (match('*'))
+		return put(MUL);
+	if (match('/'))
+		return put(DIV);
+	if (match('%'))
+		return put(MOD);
+	if (match('~'))
+		return put(BITNOT);
+	if (match('|'))
+		return put(BITOR);
+	if (match('&'))
+		return put(BITAND);
+	if (match('^'))
+		return put(BITXOR);
+	if (match('!'))
+		return put(NOT);
+	if (match('.'))
+		return put(DOT);
+	if (match('?'))
+		return put(HOOK);
+	if (match(':'))
+		return put(COLON);
+	if (match('\\'))
+		return put(PATH);
+	if (match('['))
+		return put(LB);
+	if (match(']'))
+		return put(RB);
+	if (match('{'))
+		return put(LC);
+	if (match('}'))
+		return put(RC);
+	if (match('('))
+		return put(LP);
+	if (match(')'))
+		return put(RP);
+	if (match(','))
+		return put(COMMA);
+	if (match(';'))
+		return put(SEMICOLON);
+	if (match('#'))
+		return put(HASH);
+	if (match('@'))
+		return put(DOG);
+	if (match('#', '='))
+		return put(ASSIGN_HASH);
 	
-	this->error_ = 1;
-	
-	// printf("%c %c %c %c %c\n", c, get(-2), get(-1), get(0), get(1));
-	
-	TOKENIZER_ERROR(std::wstring("unexpected character ") + c + std::wstring(" [") + (wchar_t) c + std::wstring("]"), lineno)
+	TOKENIZER_ERROR(std::wstring(L"unexpected character '") + (wchar_t) c + std::wstring(L"' [") + std::to_wstring(c) + std::wstring(L"]"), lineno)
 };
 
-
+/*
 // P A R S E R
 Parser::~Parser() {
 	for (int i = 0; i < 7; i++)
@@ -716,24 +590,6 @@ bool Parser::match(int token) {
 	next();
 	return 1;	
 };
-
-/*ASTNode *Parser::noline_parser_error(const char *msg) {
-	chighred;
-	printf("Parser error : %s\n", msg);
-	cwhite;
-	
-	error_ = true;
-	return NULL;
-};
-
-ASTNode *Parser::parser_error(const char *msg) {
-	chighred;
-	printf("Parser error at %d : %s\n", get(0)->lineno, msg);
-	creset;
-	
-	error_ = true;
-	return NULL;
-};*/
 
 ASTNode *Parser::primaryexp() {
 	if (match(TEOF)) 
@@ -2025,19 +1881,6 @@ ASTNode *Parser::statement_with_semicolons() {
 			}
 		}
 		
-		/*
-		// Insert default after condition
-		if (defaultnode == NULL) {
-			defaultnode = new ASTNode(-1, EMPTY);
-		
-			// Add visitor function for this node
-			defaultnode->node_visit = NULL; // TODO: NODE_VISITOR
-		}
-		ASTNode *tmp = switchcase->left->next;
-		switchcase->left = defaultnode;
-		defaultnode->next = tmp;
-		*/
-		
 		return switchcase;
 	}
 	
@@ -2353,4 +2196,4 @@ int Parser::eof() {
 		eof_ || error_;
 };
 
-
+*/
