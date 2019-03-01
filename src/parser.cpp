@@ -2080,7 +2080,10 @@ ASTNode *parser::parse() {
 			break;
 		
 		if (node != NULL)
-			root->addChild(node);
+			if (repl)
+				return node;
+			else
+				root->addChild(node);
 		else {
 			eof_ = 1;
 		}
