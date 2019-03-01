@@ -523,7 +523,7 @@ namespace ck_parser {
 		
 		bool repl = 0;
 		
-		raw_token *buffer[7] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+		raw_token* buffer[7] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL };
 		
 	public:
 		parser(parser_massages& msg, const std::wstring &str) : repl(0), messages(msg), swrapper(str), source(msg, swrapper) { // <-- input from string

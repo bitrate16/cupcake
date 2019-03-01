@@ -573,7 +573,7 @@ raw_token *parser::next() {
 	//if (this->source->token->token == TERR)
 	//	noline_parser_error("TS error");
 	
-	this->buffer[6] = this->source.token;
+	this->buffer[6] = new raw_token(*this->source.token);
 	
 	if (buffer[3] != NULL && buffer[3]->token == TEOF)
 		eof_ = 1;
