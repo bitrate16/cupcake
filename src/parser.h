@@ -341,9 +341,9 @@ namespace ck_parser {
 		
 	public:
 		
-		stream_wrapper()                      : source_type(IN_STDIN)             {};
-		stream_wrapper(FILE *f)               : source_type(IN_FILE),   file(f)   {};
-		stream_wrapper(const std::wstring &s) : source_type(IN_STRING), string(s) {};
+		stream_wrapper()                      : source_type(IN_STDIN)             { _eof = 0; };
+		stream_wrapper(FILE *f)               : source_type(IN_FILE),   file(f)   { _eof = 0; };
+		stream_wrapper(const std::wstring &s) : source_type(IN_STRING), string(s) { _eof = 0; };
 		
 		~stream_wrapper() {
 			switch(source_type) {
@@ -518,8 +518,8 @@ namespace ck_parser {
 		// Wrapper for an input stream
 		stream_wrapper swrapper;
 		
-		int           eof_ = 0;
-		int         error_ = 0;
+		int   eof_ = 0;
+		int error_ = 0;
 		
 		bool repl = 0;
 		
@@ -529,15 +529,18 @@ namespace ck_parser {
 		parser(parser_massages& msg, const std::wstring &str) : repl(0), messages(msg), swrapper(str), source(msg, swrapper) { // <-- input from string
 			//swrapper = stream_wrapper(str);
 			//source = tokenizer(messages, swrapper);
+			next(); next(); next(); next();
 		};
 		
 		parser(parser_massages& msg, FILE *file) : repl(0), messages(msg), swrapper(file), source(msg, swrapper) {              // <-- input from file
 			//swrapper = stream_wrapper(file);
 			//source = tokenizer(msg, swrapper);
+			next(); next(); next(); next();
 		};
 		
 		parser(parser_massages& msg) : repl(0), messages(msg), source(msg, swrapper) {                        // <-- input from stdin
 		//	source = tokenizer(messages, swrapper);
+			next(); next(); next(); next();
 		};
 	
 		~parser();
