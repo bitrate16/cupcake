@@ -1,1 +1,1 @@
-g++ -std=c++11 -w -g parser.cpp ast.cpp main_test.cpp -o test && valgrind --leak-check=full ./test
+g++ -std=c++11 -w -g parser.cpp ast.cpp main_test.cpp -o test && valgrind --leak-check=full --track-origins=yes ./test

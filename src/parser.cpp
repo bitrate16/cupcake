@@ -1019,7 +1019,7 @@ ASTNode *parser::multiplication_expression() {
 		return NULL;
 	
 	while (1) {
-		if (match(MUL) || match(DIV) || match(HASH) || match(MOD) || match(HASH)) {
+		if (match(MUL) || match(DIV) || match(HASH) || match(DIR) || match(PATH) || match(MOD) || match(HASH)) {
 			ASTNode *exp   = new ASTNode(get(-1)->lineno, get(-1)->token);
 			exp->addChild(left);
 			ASTNode *right = unary_expression();
@@ -1397,6 +1397,10 @@ ASTNode *parser::assign_expression() {
 		match(ASSIGN_BITNOT)
 		||
 		match(ASSIGN_HASH)
+		||
+		match(ASSIGN_PATH)
+		||
+		match(ASSIGN_DIR)
 		||
 		match(ASSIGN_MOD)
 		||
@@ -2087,7 +2091,7 @@ ASTNode *parser::parse() {
 	
 	if (error_) {
 		delete root;
-		PARSER_ERROR_RETURN(L"parser error", get(0)->lineno);
+		PARSER_ERROR_RETURN(L"parsing error", get(0)->lineno);
 		return NULL;
 	}
 	

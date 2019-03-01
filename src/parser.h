@@ -93,6 +93,7 @@ namespace ck_token {
 	const int ASSIGN_BITURSH = 123; // <<<=
 	const int ASSIGN_BITNOT  = 124; // ~=
 	const int ASSIGN_DIR     = 125; // \\=
+	const int ASSIGN_PATH    = 160; // \=
 	const int ASSIGN_MOD     = 126; // %=
 	const int ASSIGN_BITOR   = 127; // |=
 	const int ASSIGN_BITAND  = 128; // &=
@@ -150,7 +151,8 @@ namespace ck_parser {
 		
 		raw_token() {};
 		
-		raw_token(raw_token& t) {			
+		raw_token(raw_token& t) {	
+			token = t.token;
 			iv = t.iv;
 			bv = t.bv;
 			dv = t.dv;
@@ -232,6 +234,8 @@ namespace ck_parser {
 				case ck_token::ASSIGN_BITURSH : os << "<<<="; break;
 				case ck_token::ASSIGN_BITNOT : os << "~="; break;
 				case ck_token::ASSIGN_DIR : os << "\\\\="; break;
+				case ck_token::ASSIGN_PATH : os << "\\="; break;
+				case ck_token::ASSIGN_HASH : os << "#="; break;
 				case ck_token::ASSIGN_MOD : os << "%="; break;
 				case ck_token::ASSIGN_BITOR : os << "|=" ; break;
 				case ck_token::ASSIGN_BITAND : os << "&=" ; break;
@@ -240,7 +244,6 @@ namespace ck_parser {
 				case ck_token::PUSH : os << "->" ; break;
 				case ck_token::ARROW : os << "=>" ; break;
 				case ck_token::DOG : os << "@x"; break;
-				case ck_token::ASSIGN_HASH : os << "#="; break;
 				case ck_token::INTEGER: os << t.iv; break;
 				case ck_token::DOUBLE: os << t.dv; break;
 				case ck_token::BOOLEAN: os << t.bv; break;
@@ -386,7 +389,7 @@ namespace ck_parser {
 		
 		friend class parser;
 		
-		tokenizer(parser_massages& pm, stream_wrapper& _sw) : messages(pm), sw(_sw), repl(0) {
+		explicit tokenizer(parser_massages& pm, stream_wrapper& _sw) : messages(pm), sw(_sw), repl(0) {
 			this->token = new raw_token();
 			
 			this->token->lineno = 1;
@@ -516,7 +519,7 @@ namespace ck_parser {
 		tokenizer source;
 		
 		// Wrapper for an input stream
-		stream_wrapper swrapper;
+		stream_wrapper& swrapper;
 		
 		int   eof_ = 0;
 		int error_ = 0;
@@ -526,20 +529,13 @@ namespace ck_parser {
 		raw_token* buffer[7] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL };
 		
 	public:
-		parser(parser_massages& msg, const std::wstring &str) : repl(0), messages(msg), swrapper(str), source(msg, swrapper) { // <-- input from string
+		/*parser(parser_massages& msg, const std::wstring &str) : repl(0), messages(msg), source(msg, swrapper = stream_wrapper(str)) { // <-- input from string
 			//swrapper = stream_wrapper(str);
 			//source = tokenizer(messages, swrapper);
 			next(); next(); next(); next();
 		};
-		
-		parser(parser_massages& msg, FILE *file) : repl(0), messages(msg), swrapper(file), source(msg, swrapper) {              // <-- input from file
-			//swrapper = stream_wrapper(file);
-			//source = tokenizer(msg, swrapper);
-			next(); next(); next(); next();
-		};
-		
-		parser(parser_massages& msg) : repl(0), messages(msg), source(msg, swrapper) {                        // <-- input from stdin
-		//	source = tokenizer(messages, swrapper);
+		*/
+		parser(parser_massages& msg, stream_wrapper& sw) : repl(0), messages(msg), swrapper(sw), source(msg, sw) {
 			next(); next(); next(); next();
 		};
 	

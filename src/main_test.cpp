@@ -1,5 +1,6 @@
 #include "parser.h"
 #include "ast.h"
+#include "ASTPrinter.h"
 
 using namespace ck_token;
 using namespace ck_parser;
@@ -13,12 +14,15 @@ int main() {
 		return 1;
 	
 	
+	stream_wrapper sw(f);
 	parser_massages pm(L"test.ck");
-	parser p(pm, f);
+	parser p(pm, sw);
 	
 	ASTNode* n = p.parse();
 	
+	printAST(n);
 	
+	delete n;
 	
 	/*
 	parser_massages pm(L"test.ck");
