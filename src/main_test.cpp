@@ -31,6 +31,9 @@ int main() {
 		wcout << (int) bytemap[i] << ' ';
 	wcout << endl;
 	
+	wcout << "Lineno Table:" << endl;
+	print_lineno_table(lineno_table);
+	wcout << "Bytecodes Dump:" << endl;
 	print(bytemap);
 	
 	delete n;

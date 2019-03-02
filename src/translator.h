@@ -48,5 +48,7 @@ namespace ck_bytecodes {
 namespace ck_translator {
 	void translate(std::vector<unsigned char>& lineno_table, std::vector<unsigned char>& bytemap, ck_ast::ASTNode* n);
 	
-	void print(std::vector<unsigned char> bytmap);
+	void print(std::vector<unsigned char>& bytmap);
+	
+	void print_lineno_table(std::vector<unsigned char>& lineno_table);
 };

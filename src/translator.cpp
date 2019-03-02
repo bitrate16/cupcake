@@ -30,12 +30,13 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 	// XXX: Use Line Number Table
 	if (n->lineno != last_lineno) {
 		last_lineno = n->lineno;
+		
+		push(lineno_table, sizeof(int), &last_lineno);        // Record: [lineno|start]
+		push(lineno_table, sizeof(int), &last_lineno_addr);
+		last_lineno_addr = bytemap.size();
+		
 		push_byte(bytemap, ck_bytecodes::LINENO);
 		push(bytemap, sizeof(int), &last_lineno);
-		
-		lineno_table.push_back(last_lineno);        // Record: [lineno|start]
-		lineno_table.push_back(last_lineno_addr);
-		last_lineno_addr = bytemap.size();
 	}
 	
 	switch(n->type) {
@@ -383,6 +384,11 @@ void ck_translator::translate(vector<unsigned char>& bytemap, vector<unsigned ch
 	
 	if (n && n->type != TERR)
 		visit(bytemap, lineno_table, n);
+	
+	last_lineno = -1;
+	push(lineno_table, sizeof(int), &last_lineno);
+	last_lineno_addr = bytemap.size();
+	push(lineno_table, sizeof(int), &last_lineno_addr);
 };
 
 bool read(vector<unsigned char>& bytemap, int& index, int size, void* p) {
@@ -397,7 +403,7 @@ bool read(vector<unsigned char>& bytemap, int& index, int size, void* p) {
 	return 1;
 };
 
-void ck_translator::print(vector<unsigned char> bytemap) {
+void ck_translator::print(vector<unsigned char>& bytemap) {
 	for (int k = 0; k < bytemap.size();) {
 		switch(bytemap[k++]) {
 			case ck_bytecodes::LINENO: {
@@ -586,5 +592,12 @@ void ck_translator::print(vector<unsigned char> bytemap) {
 	}
 };
 
-
-
+void ck_translator::print_lineno_table(vector<unsigned char>& lineno_table) {
+	for (int i = 0; i < lineno_table.size();) {
+		int lineno, start;
+		read(lineno_table, i, sizeof(int), &lineno);
+		read(lineno_table, i, sizeof(int), &start);
+		
+		wcout << "lineno [" << lineno << "], start [" << start << ']' << endl;
+	}
+};
