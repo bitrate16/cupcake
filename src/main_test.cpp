@@ -30,6 +30,8 @@ int main() {
 		wcout << (int) bytemap[i] << ' ';
 	wcout << endl;
 	
+	print(bytemap);
+	
 	delete n;
 	
 	/*
