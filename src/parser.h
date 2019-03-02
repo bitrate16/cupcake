@@ -153,6 +153,7 @@ namespace ck_parser {
 		
 		raw_token(raw_token& t) {	
 			token = t.token;
+			lineno = t.lineno;
 			iv = t.iv;
 			bv = t.bv;
 			dv = t.dv;

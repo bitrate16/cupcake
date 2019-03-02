@@ -2,7 +2,7 @@
 
 #include "parser.h"
 
-void printAST(ck_ast::ASTNode *localroot) {
+void printAST(ck_ast::ASTNode *localroot) { // XXX: how to save line numbers?
 	if (localroot == NULL)
 		return;
 	

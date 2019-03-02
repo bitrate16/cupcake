@@ -1,11 +1,13 @@
 #include "parser.h"
 #include "ast.h"
 #include "ASTPrinter.h"
+#include "translator.h"
 
 using namespace ck_token;
 using namespace ck_parser;
 using namespace ck_ast;
 using namespace std;
+using namespace ck_translator;
 
 int main() {
 	FILE *f = fopen("test.ck", "r");
@@ -21,6 +23,12 @@ int main() {
 	ASTNode* n = p.parse();
 	
 	printAST(n);
+	
+	vector<unsigned char> bytemap = translate(n);
+	
+	for (int i = 0; i < bytemap.size(); ++i)
+		wcout << (int) bytemap[i] << ' ';
+	wcout << endl;
 	
 	delete n;
 	
