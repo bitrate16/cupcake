@@ -280,7 +280,97 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 			break;
 		}
 		
-		
+		case ASSIGN_ADD    :
+		case ASSIGN_SUB    :
+		case ASSIGN_MUL    :
+		case ASSIGN_DIV    :
+		case ASSIGN_BITRSH :
+		case ASSIGN_BITLSH :
+		case ASSIGN_BITURSH:
+		case ASSIGN_BITNOT :
+		case ASSIGN_DIR    :
+		case ASSIGN_PATH   :
+		case ASSIGN_MOD    :
+		case ASSIGN_BITOR  :
+		case ASSIGN_BITAND :
+		case ASSIGN_BITXOR :
+		case ASSIGN_HASH   :
+		case ASSIGN: {
+			if (n->type != ASSIGN) {
+				visit(bytemap, lineno_table, n->left);
+				visit(bytemap, lineno_table, n->right);
+				push_byte(bytemap, ck_bytecodes::OPERATOR);
+				switch (n->type) {
+					case ASSIGN_ADD:     push_byte(bytemap, ck_bytecodes::OPT_ADD    ); break;
+					case ASSIGN_SUB:     push_byte(bytemap, ck_bytecodes::OPT_SUB    ); break;
+					case ASSIGN_MUL:     push_byte(bytemap, ck_bytecodes::OPT_MUL    ); break;
+					case ASSIGN_DIV:     push_byte(bytemap, ck_bytecodes::OPT_DIV    ); break;
+					case ASSIGN_BITRSH:  push_byte(bytemap, ck_bytecodes::OPT_BITRSH ); break;
+					case ASSIGN_BITLSH:  push_byte(bytemap, ck_bytecodes::OPT_BITLSH ); break;
+					case ASSIGN_BITURSH: push_byte(bytemap, ck_bytecodes::OPT_BITURSH); break;
+					case ASSIGN_BITNOT:  push_byte(bytemap, ck_bytecodes::OPT_BITNOT ); break;
+					case ASSIGN_DIR:     push_byte(bytemap, ck_bytecodes::OPT_DIR    ); break;
+					case ASSIGN_PATH:    push_byte(bytemap, ck_bytecodes::OPT_PATH   ); break;
+					case ASSIGN_MOD:     push_byte(bytemap, ck_bytecodes::OPT_MOD    ); break;
+					case ASSIGN_BITOR:   push_byte(bytemap, ck_bytecodes::OPT_BITOR  ); break;
+					case ASSIGN_BITAND:  push_byte(bytemap, ck_bytecodes::OPT_BITAND ); break;
+					case ASSIGN_BITXOR:  push_byte(bytemap, ck_bytecodes::OPT_BITXOR ); break;
+					case ASSIGN_HASH:    push_byte(bytemap, ck_bytecodes::OPT_HASH   ); break;
+				}
+			} else visit(bytemap, lineno_table, n->right);
+			
+			if (n->left->type == FIELD) { // STORE_FIELD [name]
+				// ...             --> VSTACK += ref
+				// STORE_FIELD [name]
+			
+				visit(bytemap, lineno_table, n->left->left);
+				
+				push_byte(bytemap, ck_bytecodes::STORE_FIELD);
+				
+				wstring& s = *(wstring*) n->left->objectlist->object;
+				int size = s.size();
+				
+				push(bytemap, sizeof(int), &size);
+				
+				for (int i = 0; i < size; ++i) {
+					wchar_t c = s[i];
+					push(bytemap, sizeof(wchar_t), &c);
+				}
+			} else if (n->left->type == MEMBER) { // STORE_MEMBER [name]
+				// ...             --> VSTACK += ref
+				// STORE_FIELD [name]
+			
+				visit(bytemap, lineno_table, n->left->left);
+				
+				push_byte(bytemap, ck_bytecodes::STORE_MEMBER);
+				
+				wstring& s = *(wstring*) n->left->objectlist->object;
+				int size = s.size();
+				
+				push(bytemap, sizeof(int), &size);
+				
+				for (int i = 0; i < size; ++i) {
+					wchar_t c = s[i];
+					push(bytemap, sizeof(wchar_t), &c);
+				}
+			} else if (n->left->type == NAME) { // STORE_VAR [name]
+				// STORE_VAR
+				
+				push_byte(bytemap, ck_bytecodes::STORE_VAR);
+				
+				wstring& s = *(wstring*) n->left->objectlist->object;
+				int size = s.size();
+				
+				push(bytemap, sizeof(int), &size);
+				
+				for (int i = 0; i < size; ++i) {
+					wchar_t c = s[i];
+					push(bytemap, sizeof(wchar_t), &c);
+				}
+			}
+			
+			break;
+		}
 	};
 };
 
@@ -450,6 +540,46 @@ void ck_translator::print(vector<unsigned char> bytemap) {
 				int i; 
 				read(bytemap, k, sizeof(int), &i);
 				wcout << "> CALL [" << i << ']' << endl;
+				break;
+			}
+			
+			case ck_bytecodes::OPERATOR: {
+				unsigned char i; 
+				read(bytemap, k, sizeof(unsigned char), &i);
+				wcout << "> OPERATOR [" << (int) i << ']' << endl;
+				break;
+			}
+			
+			case ck_bytecodes::STORE_VAR: {
+				int size;
+				read(bytemap, k, sizeof(int), &size);
+				wchar_t cstr[size+1];
+				read(bytemap, k, sizeof(wchar_t) * size, cstr);
+				cstr[size] = 0;
+				
+				wcout << "> STORE_VAR: " << cstr << endl;
+				break;
+			}
+			
+			case ck_bytecodes::STORE_FIELD: {
+				int size;
+				read(bytemap, k, sizeof(int), &size);
+				wchar_t cstr[size+1];
+				read(bytemap, k, sizeof(wchar_t) * size, cstr);
+				cstr[size] = 0;
+				
+				wcout << "> STORE_FIELD: " << cstr << endl;
+				break;
+			}
+			
+			case ck_bytecodes::STORE_MEMBER: {
+				int size;
+				read(bytemap, k, sizeof(int), &size);
+				wchar_t cstr[size+1];
+				read(bytemap, k, sizeof(wchar_t) * size, cstr);
+				cstr[size] = 0;
+				
+				wcout << "> STORE_MEMBER: " << cstr << endl;
 				break;
 			}
 		}

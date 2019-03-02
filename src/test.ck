@@ -36,3 +36,5 @@ stdio.println('File content: ' + s.readLine());
 s.close();
 
 c = d
+
+f += 12
