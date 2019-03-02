@@ -18,8 +18,6 @@ namespace ck_bytecodes {
 	const int PUSH_CONST_ARRAY     = 19;
 	const int PUSH_CONST_OBJECT    = 20;
 	const int DEFINE_VAR           = 21;
-	const int START_OFFSET         = 22;
-	const int LINENO_TABLE         = 23;
 	const int REF_CALL             = 24; // a.b() or a['b']()
 	const int VSTACK_DUP           = 25; // Duplicate top of the stack
 	const int LOAD_MEMBER          = 26; // stack.pop().get_member(name)

@@ -273,12 +273,14 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 				// CALL
 				
 				visit(bytemap, lineno_table, n->left);
-				push_byte(bytemap, CALL);
+				push_byte(bytemap, ck_bytecodes::CALL);
 			}
 			
 			push(bytemap, sizeof(int), &argc);
 			break;
 		}
+		
+		
 	};
 };
 
@@ -429,6 +431,25 @@ void ck_translator::print(vector<unsigned char> bytemap) {
 				}
 				
 				wcout << endl;
+				break;
+			}
+		
+			case ck_bytecodes::VSTACK_DUP: {
+				wcout << "> VSTACK_DUP" << endl;
+				break;
+			}
+			
+			case ck_bytecodes::REF_CALL: {
+				int i; 
+				read(bytemap, k, sizeof(int), &i);
+				wcout << "> REF_CALL [" << i << ']' << endl;
+				break;
+			}
+			
+			case ck_bytecodes::CALL: {
+				int i; 
+				read(bytemap, k, sizeof(int), &i);
+				wcout << "> CALL [" << i << ']' << endl;
 				break;
 			}
 		}

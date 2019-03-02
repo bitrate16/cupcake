@@ -16,6 +16,8 @@ namasd;
 
 var a, b = 10;
 
+owo();
+
 stdio.println('StreamApi load response: ' + NativeLoader.load('../bin/StreamApi.so'));
 stdio.println('Files load response: '     + NativeLoader.load('../bin/Files.so'));
 
@@ -32,3 +34,5 @@ p.close();
 var s = Scanner(f);
 stdio.println('File content: ' + s.readLine());
 s.close();
+
+c = d
