@@ -24,7 +24,8 @@ int main() {
 	
 	printAST(n);
 	
-	vector<unsigned char> bytemap = translate(n);
+	vector<unsigned char> bytemap, lineno_table;
+	translate(bytemap, lineno_table, n);
 	
 	for (int i = 0; i < bytemap.size(); ++i)
 		wcout << (int) bytemap[i] << ' ';

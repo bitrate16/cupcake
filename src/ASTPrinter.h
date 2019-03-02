@@ -54,7 +54,7 @@ void printAST(ck_ast::ASTNode *localroot) { // XXX: how to save line numbers?
 			break;
 		}
 			
-		case ck_token::OBJECT: {
+		case ck_token::OBJECT: { // Incorrect due the wrong direction
 			ck_ast::ASTNode *p       = localroot->left;
 			ck_ast::ASTObjectList *o = localroot->objectlist;
 			
@@ -428,7 +428,7 @@ void printAST(ck_ast::ASTNode *localroot) { // XXX: how to save line numbers?
 			putwchar(';');
 			break;
 			
-		case ck_token::DEFINE: {
+		case ck_token::DEFINE: { // Incorrect due the wrong direction
 			tmp = localroot->left;
 			ck_ast::ASTObjectList *list = localroot->objectlist;
 			

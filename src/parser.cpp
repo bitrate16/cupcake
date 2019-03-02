@@ -747,9 +747,9 @@ ASTNode *parser::primaryexp() {
 		// ...
 		// objectN
 		// OBJECTS:
-		// nameN
-		// ...
 		// name0
+		// ...
+		// nameN
 		
 		
 		ASTNode *object = new ASTNode(get(-1)->lineno, OBJECT);
@@ -778,7 +778,7 @@ ASTNode *parser::primaryexp() {
 				return NULL;
 			}
 			
-			object->addLastObject(name);
+			object->addFirstObject(name);
 			object->addChild(elem);
 			
 			if (match(TEOF)) {
@@ -1545,8 +1545,8 @@ ASTNode *parser::initializerstatement() {
 				
 			int *type = new int;
 			*type = (_var << 3) | (_safe << 2) | (_local << 1) | _const;
-			definenode->addFirstObject(name);
-			definenode->addFirstObject(type);
+			definenode->addLastObject(type);
+			definenode->addLastObject(name);
 			
 			if (!match(COMMA))
 				break;

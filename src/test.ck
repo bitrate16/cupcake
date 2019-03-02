@@ -10,6 +10,12 @@
 // Run this file with:
 // ck -f res/FileDemo.ck
 
+12;
+"sas";
+namasd;
+
+var a, b = 10;
+
 stdio.println('StreamApi load response: ' + NativeLoader.load('../bin/StreamApi.so'));
 stdio.println('Files load response: '     + NativeLoader.load('../bin/Files.so'));
 
