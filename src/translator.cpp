@@ -1688,7 +1688,8 @@ void ck_translator::print(vector<unsigned char>& bytemap, int off, int offset, i
 				
 				wcout << ") [" << sizeof_block << "]:" << endl;
 				
-				print(bytemap, off + 1, bytemap.size(), sizeof_block);
+				//print(bytemap, off + 1, bytemap.size(), sizeof_block);
+				//k += sizeof_block;
 			}
 		}
 	}
