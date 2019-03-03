@@ -70,6 +70,7 @@ const int BREAK_PLACEMENT_NONE     = -1; // Nothing
 const int BREAK_PLACEMENT_LOOP     =  2; // Loops: while, for
 const int BREAK_PLACEMENT_SWCASE   =  3; // Switch/case
 const int BREAK_PLACEMENT_FUNCTION =  4; // Function return statements
+const int BREAK_PLACEMENT_BLOCK    =  5; // Indicate that current step is inside of the block to properly clear scopes
 
 #define VISIT(x) visit (bytemap, lineno_table, x)
 
@@ -93,7 +94,10 @@ address_template& lookup_address(int placement_type) {
 		return none_placement;
 	
 	for (int i = placement_address.size() - 1; i >= 0; --i)
-		if (placement_address[i].placement_type == placement_type)
+		// return > break, continue
+		if ((placement_type == BREAK_PLACEMENT_LOOP || placement_type == BREAK_PLACEMENT_SWCASE) && placement_address[i].placement_type == BREAK_PLACEMENT_FUNCTION)
+			return none_placement;
+		else if (placement_address[i].placement_type == placement_type)
 			return placement_address[i];
 	
 	return none_placement;
@@ -118,7 +122,7 @@ void pop_address(vector<unsigned char>& bytemap, int jmp_1, int jmp_2) {
 		return;
 	
 	address_template at = placement_address.back();
-	wcout << "jmp_1 = " << jmp_1 << ", jmp_2 = " << jmp_2 << endl;
+	
 	if (at.jmp_1) {
 		vector<int>& j1 = *at.jmp_1;
 		
@@ -273,13 +277,13 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 			ASTObjectList* list = n->objectlist;
 			while (list) {
 				wstring* str = (wstring*) list->object;
+				list = list->next;
 				size = str->size();
 				push(bytemap, sizeof(int), &size);
 				
 				for (int i = 0; i < size; ++i) {
 					wchar_t c = (*str)[i];
 					push(bytemap, sizeof(wchar_t), &c);
-					list = list->next;
 				}	
 			}
 			break;
@@ -311,6 +315,7 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 				int* ops = (int*) list->object;
 				list = list->next;
 				wstring& str = *(wstring*) list->object;
+				list = list->next;
 				int size = str.size();
 				
 				push(bytemap, sizeof(int), &size);
@@ -318,7 +323,6 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 				for (int i = 0; i < size; ++i) {
 					wchar_t c = str[i];
 					push(bytemap, sizeof(wchar_t), &c);
-					list = list->next;
 				}
 				
 				push_byte(bytemap, (unsigned char) (*ops) & 0b1111);
@@ -1119,6 +1123,7 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 		
 		case BLOCK: {
 			push_byte(bytemap, ck_bytecodes::VSTATE_PUSH_SCOPE);
+			push_address(BREAK_PLACEMENT_BLOCK, 0, nullptr, nullptr);
 			
 			ASTNode* t = n->left;
 			while (t) {
@@ -1126,6 +1131,7 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 				t = t->next;
 			}
 			
+			pop_address(bytemap, 0, 0);
 			push_byte(bytemap, ck_bytecodes::VSTATE_POP_SCOPE);
 			
 			break;
@@ -1140,7 +1146,7 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 			vector<int> jmp_1; // <-- loop start replacement (do nothing, use loop_start)
 			vector<int> jmp_2; // <-- loop end replacement
 			
-			int loop_start = bytemap.size();wcout << "pointing to = " << loop_start << endl;
+			int loop_start = bytemap.size();
 			
 			VISIT(n->left);
 			push_byte(bytemap, ck_bytecodes::JMP_IF_ZERO);
@@ -1182,6 +1188,22 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 			if (at.placement_type == BREAK_PLACEMENT_NONE) 
 				push_raise(bytemap, L"break outside of the loop or case");
 			else {
+				// Clear all block's scopes
+				int num_blocks = 0;
+				for (int i = placement_address.size() - 1; i >= 0; --i)
+					if (placement_address[i].placement_type == BREAK_PLACEMENT_BLOCK)
+						++num_blocks;
+					else
+						break;
+				
+				if (num_blocks) 
+					if (num_blocks == 1) 
+						push_byte(bytemap, ck_bytecodes::VSTATE_POP_SCOPE);
+					else {
+						push_byte(bytemap, ck_bytecodes::VSTATE_POP_SCOPES);
+						push(bytemap, sizeof(int), &num_blocks);
+					}
+			
 				// Preserve address for jump to the end
 				push_byte(bytemap, ck_bytecodes::JMP);
 				at.jmp_2->push_back(bytemap.size());
@@ -1200,6 +1222,22 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 			if (at.placement_type == BREAK_PLACEMENT_NONE) 
 				push_raise(bytemap, L"continue outside of the loop or case");
 			else {
+				// Clear all block's scopes
+				int num_blocks = 0;
+				for (int i = placement_address.size() - 1; i >= 0; --i)
+					if (placement_address[i].placement_type == BREAK_PLACEMENT_BLOCK)
+						++num_blocks;
+					else
+						break;
+				
+				if (num_blocks) 
+					if (num_blocks == 1) 
+						push_byte(bytemap, ck_bytecodes::VSTATE_POP_SCOPE);
+					else {
+						push_byte(bytemap, ck_bytecodes::VSTATE_POP_SCOPES);
+						push(bytemap, sizeof(int), &num_blocks);
+					}
+					
 				// Preserve address for jump to the end
 				push_byte(bytemap, ck_bytecodes::JMP);
 				at.jmp_1->push_back(bytemap.size());
@@ -1214,16 +1252,90 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 			// jmp_1 --> start
 			// jmp_2 --> end
 			
-			address_template& at = lookup_address(BREAK_PLACEMENT_LOOP);
+			address_template& at = lookup_address(BREAK_PLACEMENT_FUNCTION);
 			if (at.placement_type == BREAK_PLACEMENT_NONE) 
-				push_raise(bytemap, L"continue outside of the loop or case");
+				push_raise(bytemap, L"return outside of the function");
 			else {
-				// Preserve address for jump to the end
-				push_byte(bytemap, ck_bytecodes::JMP);
-				at.jmp_1->push_back(bytemap.size());
-				int dummy = 13;
-				push(bytemap, sizeof(int), &dummy);
+				if (n->left != nullptr)
+					VISIT(n->left);
+				else
+					push_byte(bytemap, ck_bytecodes::PUSH_CONST_UNDEFINED);
+				
+				// Clear all block's scopes
+				int num_blocks = 0;
+				for (int i = placement_address.size() - 1; i >= 0; --i)
+					if (placement_address[i].placement_type == BREAK_PLACEMENT_BLOCK)
+						++num_blocks;
+					else
+						break;
+				
+				if (num_blocks) 
+					if (num_blocks == 1) 
+						push_byte(bytemap, ck_bytecodes::VSTATE_POP_SCOPE);
+					else {
+						push_byte(bytemap, ck_bytecodes::VSTATE_POP_SCOPES);
+						push(bytemap, sizeof(int), &num_blocks);
+					}
+				
+				push_byte(bytemap, ck_bytecodes::RETURN_VALUE);
 			}
+			
+			break;
+		}
+		
+		case FUNCTION: {
+			// Push all arguments
+			int argc = 0;
+			ASTObjectList* list = n->objectlist;
+			while (list) {
+				list = list->next;
+				++argc;
+			}
+			
+			// BYTECODE:
+			// PUSH_CONST_FUNCTION
+			// [argc]
+			// [arg names]
+			// [size of block]
+			// [block
+			// PUSH_UNDEFINED
+			// RETURN_VALUE]
+			
+			push_byte(bytemap, ck_bytecodes::PUSH_CONST_FUNCTION);
+			push(bytemap, sizeof(int), &argc);
+			
+			list = n->objectlist;
+			while (list) {
+				wstring* str = (wstring*) list->object;
+				list = list->next;
+				int size = str->size();
+				push(bytemap, sizeof(int), &size);
+				
+				for (int i = 0; i < size; ++i) {
+					wchar_t c = (*str)[i];
+					push(bytemap, sizeof(wchar_t), &c);
+				}	
+			}
+			
+			int size_of_block = 0;
+			int start_of_size = bytemap.size();
+			push(bytemap, sizeof(int), &size_of_block);
+			int start_of_block = bytemap.size();
+			
+			push_address(BREAK_PLACEMENT_FUNCTION, 0, nullptr, nullptr);
+			
+			VISIT(n->left);
+			
+			push_byte(bytemap, ck_bytecodes::PUSH_CONST_UNDEFINED);
+			push_byte(bytemap, ck_bytecodes::RETURN_VALUE);
+			
+			pop_address(bytemap, 0, 0);
+			
+			int end_of_block = bytemap.size();
+			size_of_block = end_of_block - start_of_block;
+			
+			for (int i = 0; i < sizeof(int); ++i) 
+				bytemap[i + start_of_size] = ((unsigned char*) &size_of_block)[i];
 			
 			break;
 		}
@@ -1260,17 +1372,20 @@ bool read(vector<unsigned char>& bytemap, int& index, int size, void* p) {
 	return 1;
 };
 
-void ck_translator::print(vector<unsigned char>& bytemap) {
-	int offset = bytemap.size() == 0 ? 1 : 0;
+void ck_translator::print(vector<unsigned char>& bytemap, int off, int offset, int length) {
+	int int_offset = bytemap.size() == 0 ? 1 : 0;
 	int num = bytemap.size();
 	
 	while (num) {
-		++offset;
+		++int_offset;
 		num /= 10;
 	}
 	
-	for (int k = 0; k < bytemap.size();) {
-		wcout << '[' << setw(offset) << k << setw(-1) << "] ";
+	for (int k = (offset == -1) ? 0 : offset; k < ((length == -1) ? bytemap.size() : offset + length);) {
+		wcout << '[' << setw(int_offset) << k << setw(-1) << "] ";
+		
+		for (int i = 0; i < off; ++i)
+			wcout << U'>';
 		
 		switch(bytemap[k++]) {
 			case ck_bytecodes::LINENO: {
@@ -1536,6 +1651,44 @@ void ck_translator::print(vector<unsigned char>& bytemap) {
 				
 				wcout << "> RAISE_STRING: \"" << cstr << '"' << endl;
 				break;
+			}
+			
+			case ck_bytecodes::VSTATE_POP_SCOPES: {
+				int i; 
+				read(bytemap, k, sizeof(int), &i);
+				wcout << "> VSTATE_POP_SCOPES [" << i << ']' << endl;
+				break;
+			}
+			
+			case ck_bytecodes::RETURN_VALUE: {
+				wcout << "> RETURN_VALUE" << endl;
+				break;
+			}
+			
+			case ck_bytecodes::PUSH_CONST_FUNCTION: {
+				int argc; 
+				read(bytemap, k, sizeof(int), &argc);
+				wcout << "> PUSH_CONST_FUNCTION (" << argc << ") (";
+				
+				for (int i = 0; i < argc; ++i) {
+					int ssize = 0;
+					read(bytemap, k, sizeof(int), &ssize);
+					
+					wchar_t cstr[ssize+1];
+					read(bytemap, k, sizeof(wchar_t) * ssize, cstr);
+					cstr[ssize] = 0;
+					wcout << cstr;
+					
+					if (i != argc-1)
+						wcout << ", ";
+				}
+				
+				int sizeof_block; 
+				read(bytemap, k, sizeof(int), &sizeof_block);
+				
+				wcout << ") [" << sizeof_block << "]:" << endl;
+				
+				print(bytemap, off + 1, bytemap.size(), sizeof_block);
 			}
 		}
 	}

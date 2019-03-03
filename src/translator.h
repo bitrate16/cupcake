@@ -39,6 +39,9 @@ namespace ck_bytecodes {
 	const int RAISE_NOARG          = 42; // raise;
 	const int RAISE                = 43; // raise <expression>;
 	const int RAISE_STRING         = 44; // raise from translator. ~Eof
+	const int VSTATE_POP_SCOPES    = 45; // Pop N scopes from scope list
+	const int RETURN_VALUE         = 46; // Return value
+	const int PUSH_CONST_FUNCTION  = 47;
 	
 	const int OPT_ADD     = 1;
 	const int OPT_SUB     = 2;
@@ -95,7 +98,7 @@ namespace ck_bytecodes {
 namespace ck_translator {
 	void translate(std::vector<unsigned char>& lineno_table, std::vector<unsigned char>& bytemap, ck_ast::ASTNode* n);
 	
-	void print(std::vector<unsigned char>& bytmap);
+	void print(std::vector<unsigned char>& bytmap, int off = 0, int offset = -1, int limit = -1);
 	
 	void print_lineno_table(std::vector<unsigned char>& lineno_table);
 };

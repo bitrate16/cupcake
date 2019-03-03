@@ -1981,7 +1981,7 @@ ASTNode *parser::statement_with_semicolons() {
 	else if (match(RETURN)) {
 		
 		// FREAME:
-		// value / EMPTY
+		// value / NULL
 		
 		ASTNode *returnnode = new ASTNode(get(-1)->lineno, RETURN);
 		
