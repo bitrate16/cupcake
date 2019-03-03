@@ -20,14 +20,16 @@ namespace ck_bytecodes {
 	const int DEFINE_VAR           = 21;
 	const int REF_CALL             = 24; // a.b() or a['b']()
 	const int VSTACK_DUP           = 25; // Duplicate top of the stack
-	const int LOAD_MEMBER          = 26; // stack.next_to_top().get_member(stack.peek())
+	const int LOAD_MEMBER          = 26; // stack.next_to_top().get_member(stack.pop())
 	const int LOAD_FIELD           = 27; // stack.pop().get_field(name)
 	const int CALL                 = 28; // var() or (<expression>)()
 	const int OPERATOR             = 29; // operate with b = stack.top and a = stack.next_to_top as a <opt> b
 	const int STORE_VAR            = 30; // scope.store(name)
-	const int STORE_FIELD          = 31; // stack.peek().store_field(name)
-	const int STORE_MEMBER         = 32; // stack.next_to_top().store_member(stack.peek())
-	const int PRE_UNARY_FIELD      = 33;
+	const int STORE_FIELD          = 31; // top:[value, ref]
+	const int STORE_MEMBER         = 32; // top:[value, key, ref]
+	const int UNARY_OPERATOR       = 33;
+	const int VSTACK_SWAP          = 34; // swap stack top and top-1
+	const int VSTACK_SWAP1         = 35; // swap stack top-1 and top-2
 	
 	const int OPT_ADD     = 1;
 	const int OPT_SUB     = 2;
