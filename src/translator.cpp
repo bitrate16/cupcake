@@ -992,6 +992,14 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 		case LE     : { visit(bytemap, lineno_table, n->left); visit(bytemap, lineno_table, n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_LE     ); break; }
 		case PUSH   : { visit(bytemap, lineno_table, n->left); visit(bytemap, lineno_table, n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_PUSH   ); break; }
 		case ARROW  : { visit(bytemap, lineno_table, n->left); visit(bytemap, lineno_table, n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_ARROW  ); break; }
+	
+		case DOG   : { visit(bytemap, lineno_table, n->left); push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_DOG   ); break; }
+		case NOT   : { visit(bytemap, lineno_table, n->left); push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_NOT   ); break; }
+		case BITXOR: { visit(bytemap, lineno_table, n->left); push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_BITXOR); break; }
+		case POS   : { visit(bytemap, lineno_table, n->left); push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_POS   ); break; }
+		case NEG   : { visit(bytemap, lineno_table, n->left); push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_NEG   ); break; }
+		
+		
 	};
 };
 
@@ -1240,7 +1248,6 @@ void ck_translator::print(vector<unsigned char>& bytemap) {
 				wcout << "> VSTACK_SWAP2" << endl;
 				break;
 			}
-			
 			
 		}
 	}
