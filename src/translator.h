@@ -30,6 +30,7 @@ namespace ck_bytecodes {
 	const int UNARY_OPERATOR       = 33;
 	const int VSTACK_SWAP          = 34; // swap stack top and top-1
 	const int VSTACK_SWAP1         = 35; // swap stack top-1 and top-2
+	const int VSTACK_SWAP2         = 36; // swap stack top-2 and top-3
 	
 	const int OPT_ADD     = 1;
 	const int OPT_SUB     = 2;
@@ -44,10 +45,43 @@ namespace ck_bytecodes {
 	const int OPT_MOD     = 11;
 	const int OPT_BITOR   = 12;
 	const int OPT_BITAND  = 13;
-	const int OPT_BITXOR  = 14;
 	const int OPT_HASH    = 15;	
+	const int OPT_EQ      = 18;
+	const int OPT_NEQ     = 19;
+	const int OPT_OR      = 20;
+	const int OPT_AND     = 21;
+	const int OPT_GT      = 22;
+	const int OPT_GE      = 23;
+	const int OPT_LT      = 24;
+	const int OPT_LE      = 25;
+	const int OPT_PUSH    = 29;
+	const int OPT_ARROW   = 30;
+	
+	const int OPT_DOG     = 31;
+	const int OPT_NOT     = 28;
+	const int OPT_BITXOR  = 14;
+	const int OPT_POS     = 15;
+	const int OPT_NEG     = 16;
+	
 	const int OPT_INC     = 16;	
 	const int OPT_DEC     = 17;
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 };
 
 namespace ck_translator {

@@ -19,7 +19,7 @@ void push(vector<unsigned char>& bytemap, int n, const void* p) {
 };
 
 // Tracking line numbers change
-int last_lineno = -1;
+int last_lineno = 0;
 int last_lineno_addr = 0;
 
 void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, ASTNode* n) {
@@ -226,26 +226,61 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 			}
 			
 			if (n->left->type == FIELD) { // REF_CALL_FIELD [name]
-				// ...      --> VSTACK += ref
-				// ...      --> VSTACK += obj
-				// REF_CALL
 			
-				visit(bytemap, lineno_table, n->left->left); // -> ref
-				visit(bytemap, lineno_table, n->left);       // -> obj
+				visit(bytemap, lineno_table, n->left->left);  // -> ref
+				push_byte(bytemap, ck_bytecodes::VSTACK_DUP);
+				
+				// STACK:
+				// ref
+				// ref
+				
+				push_byte(bytemap, ck_bytecodes::LOAD_FIELD);
+				
+				wstring& s = *(wstring*) n->left->objectlist->object;
+				int size = s.size();
+				
+				push(bytemap, sizeof(int), &size);
+				
+				for (int i = 0; i < size; ++i) {
+					wchar_t c = s[i];
+					push(bytemap, sizeof(wchar_t), &c);
+				}
+				
+				// STACK:
+				// ref
+				// val
 				
 				push_byte(bytemap, ck_bytecodes::REF_CALL);
+				
+				// STACK:
+				// return
 			} else if (n->left->type == MEMBER) { // REF_CALL_MEMBER [name]
-				// ...      --> VSTACK += ref
-				// ...      --> VSTACK += obj  
-				// REF_CALL
 				
 				visit(bytemap, lineno_table, n->left->left); // -> ref
-				visit(bytemap, lineno_table, n->left);       // -> obj
+				push_byte(bytemap, ck_bytecodes::VSTACK_DUP);
+				
+				// STACK:
+				// ref
+				// ref
+				
+				visit(bytemap, lineno_table, n->left->right);       // -> obj
+				
+				// STACK:
+				// ref
+				// ref
+				// key
+				
+				push_byte(bytemap, ck_bytecodes::LOAD_MEMBER);
+				
+				// STACK:
+				// ref
+				// val
 				
 				push_byte(bytemap, ck_bytecodes::REF_CALL);
+				
+				// STACK:
+				// return
 			} else {
-				// ...  --> VSTACK += val
-				// CALL
 				
 				visit(bytemap, lineno_table, n->left);
 				push_byte(bytemap, ck_bytecodes::CALL);
@@ -263,11 +298,19 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 				// STACK:
 				// ref
 				
-				visit(bytemap, lineno_table, n->left->right);
+				visit(bytemap, lineno_table, n->right);
 				
 				// STACK:
 				// ref
-				// op2 (ref.member += op2)
+				// op2 (ref.member = op2)
+				
+				push_byte(bytemap, ck_bytecodes::VSTACK_DUP);
+				push_byte(bytemap, ck_bytecodes::VSTACK_SWAP1);
+				
+				// STACK:
+				// op2 (ref.member = op2)
+				// ref
+				// op2 (ref.member = op2)
 				
 				push_byte(bytemap, ck_bytecodes::STORE_FIELD);
 				
@@ -280,6 +323,9 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 					wchar_t c = s[i];
 					push(bytemap, sizeof(wchar_t), &c);
 				}
+				
+				// STACK:
+				// op2 (ref.member = op2)
 			} else if (n->left->type == MEMBER) { // STORE_MEMBER [name]
 			
 				visit(bytemap, lineno_table, n->left->left);
@@ -289,20 +335,39 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 				// ref
 				// key
 				
-				visit(bytemap, lineno_table, n->left->right);
+				visit(bytemap, lineno_table, n->right);
 				
 				// STACK:
 				// ref
 				// key
-				// op2 (ref[member] += op2)
+				// op2 (ref[member] = op2)
+				
+				push_byte(bytemap, ck_bytecodes::VSTACK_DUP);
+				push_byte(bytemap, ck_bytecodes::VSTACK_SWAP1);
+				push_byte(bytemap, ck_bytecodes::VSTACK_SWAP2);
+				
+				// STACK:
+				// op2 (ref[member] = op2)
+				// ref
+				// key
+				// op2 (ref[member] = op2)
 				
 				push_byte(bytemap, ck_bytecodes::STORE_MEMBER);
+				
+				// STACK:
+				// op2 (ref.member = op2)
 			} else if (n->left->type == NAME) { // STORE_VAR [name]
 				
-				visit(bytemap, lineno_table, n->left->right);
+				visit(bytemap, lineno_table, n->right);
 				
 				// STACK:
 				// op2 (name += op2)
+				
+				push_byte(bytemap, ck_bytecodes::VSTACK_DUP);
+				
+				// STACK:
+				// op2 (name = op2)
+				// op2 (name = op2)
 				
 				push_byte(bytemap, ck_bytecodes::STORE_VAR);
 				
@@ -315,6 +380,9 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 					wchar_t c = s[i];
 					push(bytemap, sizeof(wchar_t), &c);
 				}
+				
+				// STACK:
+				// op2 (name = op2)
 			}
 			
 			break;
@@ -360,7 +428,7 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 				// ref
 				// val
 				
-				visit(bytemap, lineno_table, n->left->right);
+				visit(bytemap, lineno_table, n->right);
 				
 				// STACK:
 				// ref
@@ -390,6 +458,14 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 				// ref
 				// result
 				
+				push_byte(bytemap, ck_bytecodes::VSTACK_DUP);
+				push_byte(bytemap, ck_bytecodes::VSTACK_SWAP1);
+				
+				// STACK:
+				// result
+				// ref
+				// result
+				
 				push_byte(bytemap, ck_bytecodes::STORE_FIELD);
 				
 				push(bytemap, sizeof(int), &size);
@@ -398,6 +474,9 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 					wchar_t c = s[i];
 					push(bytemap, sizeof(wchar_t), &c);
 				}
+				
+				// STACK:
+				// result
 			} else if (n->left->type == MEMBER) { // STORE_MEMBER [name]
 			
 				visit(bytemap, lineno_table, n->left->left);
@@ -451,7 +530,20 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 				// key
 				// result
 				
+				push_byte(bytemap, ck_bytecodes::VSTACK_DUP);
+				push_byte(bytemap, ck_bytecodes::VSTACK_SWAP1);
+				push_byte(bytemap, ck_bytecodes::VSTACK_SWAP2);
+				
+				// STACK:
+				// result
+				// ref
+				// key
+				// result
+				
 				push_byte(bytemap, ck_bytecodes::STORE_MEMBER);
+				
+				// STACK:
+				// result
 			} else if (n->left->type == NAME) { // STORE_VAR [name]
 				// STORE_VAR
 				
@@ -467,7 +559,7 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 					push(bytemap, sizeof(wchar_t), &c);
 				}
 				
-				visit(bytemap, lineno_table, n->left->right);
+				visit(bytemap, lineno_table, n->right);
 				
 				// STACK:
 				// val
@@ -491,8 +583,10 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 					case ASSIGN_BITXOR:  push_byte(bytemap, ck_bytecodes::OPT_BITXOR ); break;
 					case ASSIGN_HASH:    push_byte(bytemap, ck_bytecodes::OPT_HASH   ); break;
 				}
+				push_byte(bytemap, ck_bytecodes::VSTACK_DUP);
 				
 				// STACK:
+				// result
 				// result
 				
 				push_byte(bytemap, ck_bytecodes::STORE_VAR);
@@ -503,6 +597,9 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 					wchar_t c = s[i];
 					push(bytemap, sizeof(wchar_t), &c);
 				}
+				
+				// STACK:
+				// result
 			}
 			
 			break;
@@ -539,52 +636,126 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 	
 		case PRE_INC:
 		case PRE_DEC: {
-			// value <-- calling unary ++ operator
-			// ref \
-			// key / <-- calling assignment
-			
-			visit(bytemap, lineno_table, n->left);    // --> value into stack
-			push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR); // ++ operator --> into stack
-			if (n->type == PRE_INC)
-				push_byte(bytemap, ck_bytecodes::OPT_INC);
-			else
-				push_byte(bytemap, ck_bytecodes::OPT_DEC);
-			push_byte(bytemap, ck_bytecodes::VSTACK_DUP); // duplicate stack for modified value
-			
-			// STACK:
-			// new_value
-			// new_value:dup
-			
 			if (n->left->type == FIELD) { // STORE_FIELD [name]
-				// ...                --> VSTACK += ref <-- top
-				// STORE_FIELD [name]
 			
 				visit(bytemap, lineno_table, n->left->left);
+				push_byte(bytemap, ck_bytecodes::VSTACK_DUP);
+				
+				// STACK:
+				// ref
+				// ref
+				
+				push_byte(bytemap, ck_bytecodes::LOAD_FIELD);
+				
+				wstring& s = *(wstring*) n->left->objectlist->object;
+				int size = s.size();
+				
+				push(bytemap, sizeof(int), &size);
+				
+				for (int i = 0; i < size; ++i) {
+					wchar_t c = s[i];
+					push(bytemap, sizeof(wchar_t), &c);
+				}
+				
+				// STACK:
+				// ref
+				// val
+				
+				push_byte(bytemap, ck_bytecodes::VSTACK_DUP);
+				push_byte(bytemap, ck_bytecodes::VSTACK_SWAP1);
+				
+				// STACK:
+				// val
+				// ref
+				// val
+				
+				push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR);
+				if (n->type == POS_INC)
+					push_byte(bytemap, ck_bytecodes::OPT_INC);
+				else
+					push_byte(bytemap, ck_bytecodes::OPT_DEC);
+				
+				// STACK:
+				// val
+				// ref
+				// result
 				
 				push_byte(bytemap, ck_bytecodes::STORE_FIELD);
 				
-				wstring& s = *(wstring*) n->left->objectlist->object;
-				int size = s.size();
-				
 				push(bytemap, sizeof(int), &size);
 				
 				for (int i = 0; i < size; ++i) {
 					wchar_t c = s[i];
 					push(bytemap, sizeof(wchar_t), &c);
 				}
+				
+				// STACK:
+				// val
 			} else if (n->left->type == MEMBER) { // STORE_MEMBER [name]
-				// ...             --> VSTACK += ref <-- top-1
-				// ...             --> VSTACK += key <-- top
-				// STORE_MEMBER
 			
 				visit(bytemap, lineno_table, n->left->left);
+				push_byte(bytemap, ck_bytecodes::VSTACK_DUP);
 				visit(bytemap, lineno_table, n->left->right);
+				push_byte(bytemap, ck_bytecodes::VSTACK_DUP);
+				push_byte(bytemap, ck_bytecodes::VSTACK_SWAP1);
+				
+				// STACK:
+				// ref
+				// key
+				// ref
+				// key
+				
+				push_byte(bytemap, ck_bytecodes::LOAD_MEMBER);
+				
+				// STACK:
+				// ref
+				// key
+				// val
+				
+				push_byte(bytemap, ck_bytecodes::VSTACK_DUP);
+				
+				// STACK:
+				// ref
+				// key
+				// val
+				// val
+				
+				push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR);
+				if (n->type == POS_INC)
+					push_byte(bytemap, ck_bytecodes::OPT_INC);
+				else
+					push_byte(bytemap, ck_bytecodes::OPT_DEC);
+				
+				// STACK:
+				// ref
+				// key
+				// val
+				// result
+
+				push_byte(bytemap, ck_bytecodes::VSTACK_SWAP1);
+				
+				// STACK:
+				// ref
+				// val
+				// key
+				// result
+
+				push_byte(bytemap, ck_bytecodes::VSTACK_SWAP2);
+				
+				// STACK:
+				// val
+				// ref
+				// key
+				// result
 				
 				push_byte(bytemap, ck_bytecodes::STORE_MEMBER);
+				
+				// STACK:
+				// val
 			} else if (n->left->type == NAME) { // STORE_VAR [name]
 				// STORE_VAR
 				
-				push_byte(bytemap, ck_bytecodes::STORE_VAR);
+				push_byte(bytemap, ck_bytecodes::LOAD_VAR);
 				
 				wstring& s = *(wstring*) n->left->objectlist->object;
 				int size = s.size();
@@ -595,62 +766,166 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 					wchar_t c = s[i];
 					push(bytemap, sizeof(wchar_t), &c);
 				}
+				
+				// STACK:
+				// val
+				
+				push_byte(bytemap, ck_bytecodes::VSTACK_DUP);
+				push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR);
+				if (n->type == POS_INC)
+					push_byte(bytemap, ck_bytecodes::OPT_INC);
+				else
+					push_byte(bytemap, ck_bytecodes::OPT_DEC);
+				
+				// STACK:
+				// val
+				// result
+				
+				push_byte(bytemap, ck_bytecodes::STORE_VAR);
+				
+				push(bytemap, sizeof(int), &size);
+				
+				for (int i = 0; i < size; ++i) {
+					wchar_t c = s[i];
+					push(bytemap, sizeof(wchar_t), &c);
+				}
+				
+				// STACK:
+				// val
 			}
-			
-			// STACK:
-			// new_value
 			
 			break;
 		}
 		
 		case POS_INC:
 		case POS_DEC: {
-			// value <-- calling unary ++ operator
-			// ref \
-			// key / <-- calling assignment
-			
-			visit(bytemap, lineno_table, n->left);    // --> value into stack
-			push_byte(bytemap, ck_bytecodes::VSTACK_DUP);      // duplicate stack before modify
-			push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR); // ++ operator --> into stack
-			if (n->type == POS_INC)
-				push_byte(bytemap, ck_bytecodes::OPT_INC);
-			else
-				push_byte(bytemap, ck_bytecodes::OPT_DEC);
-			
-			// STACK:
-			// old_value
-			// new_value
-			
 			if (n->left->type == FIELD) { // STORE_FIELD [name]
-				// ...                --> VSTACK += ref <-- top
-				// STORE_FIELD [name]
 			
 				visit(bytemap, lineno_table, n->left->left);
+				push_byte(bytemap, ck_bytecodes::VSTACK_DUP);
+				
+				// STACK:
+				// ref
+				// ref
+				
+				push_byte(bytemap, ck_bytecodes::LOAD_FIELD);
+				
+				wstring& s = *(wstring*) n->left->objectlist->object;
+				int size = s.size();
+				
+				push(bytemap, sizeof(int), &size);
+				
+				for (int i = 0; i < size; ++i) {
+					wchar_t c = s[i];
+					push(bytemap, sizeof(wchar_t), &c);
+				}
+				
+				// STACK:
+				// ref
+				// val
+				
+				push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR);
+				if (n->type == POS_INC)
+					push_byte(bytemap, ck_bytecodes::OPT_INC);
+				else
+					push_byte(bytemap, ck_bytecodes::OPT_DEC);
+				
+				// STACK:
+				// val
+				// ref
+				// result
+				
+				push_byte(bytemap, ck_bytecodes::VSTACK_DUP);
+				push_byte(bytemap, ck_bytecodes::VSTACK_SWAP1);
+				
+				// STACK:
+				// result
+				// ref
+				// result
 				
 				push_byte(bytemap, ck_bytecodes::STORE_FIELD);
 				
-				wstring& s = *(wstring*) n->left->objectlist->object;
-				int size = s.size();
-				
 				push(bytemap, sizeof(int), &size);
 				
 				for (int i = 0; i < size; ++i) {
 					wchar_t c = s[i];
 					push(bytemap, sizeof(wchar_t), &c);
 				}
+				
+				// STACK:
+				// result
 			} else if (n->left->type == MEMBER) { // STORE_MEMBER [name]
-				// ...             --> VSTACK += ref <-- top-1
-				// ...             --> VSTACK += key <-- top
-				// STORE_MEMBER
 			
 				visit(bytemap, lineno_table, n->left->left);
+				push_byte(bytemap, ck_bytecodes::VSTACK_DUP);
 				visit(bytemap, lineno_table, n->left->right);
+				push_byte(bytemap, ck_bytecodes::VSTACK_DUP);
+				push_byte(bytemap, ck_bytecodes::VSTACK_SWAP1);
+				
+				// STACK:
+				// ref
+				// key
+				// ref
+				// key
+				
+				push_byte(bytemap, ck_bytecodes::LOAD_MEMBER);
+				
+				// STACK:
+				// ref
+				// key
+				// val
+				
+				push_byte(bytemap, ck_bytecodes::VSTACK_DUP);
+				
+				// STACK:
+				// ref
+				// key
+				// val
+				
+				push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR);
+				if (n->type == POS_INC)
+					push_byte(bytemap, ck_bytecodes::OPT_INC);
+				else
+					push_byte(bytemap, ck_bytecodes::OPT_DEC);
+				
+				// STACK:
+				// ref
+				// key
+				// val
+				// result
+				
+				push_byte(bytemap, ck_bytecodes::VSTACK_DUP);
+				
+				// STACK:
+				// ref
+				// key
+				// result
+				// result
+
+				push_byte(bytemap, ck_bytecodes::VSTACK_SWAP1);
+				
+				// STACK:
+				// ref
+				// result
+				// key
+				// result
+
+				push_byte(bytemap, ck_bytecodes::VSTACK_SWAP2);
+				
+				// STACK:
+				// result
+				// ref
+				// key
+				// result
 				
 				push_byte(bytemap, ck_bytecodes::STORE_MEMBER);
+				
+				// STACK:
+				// result
 			} else if (n->left->type == NAME) { // STORE_VAR [name]
 				// STORE_VAR
 				
-				push_byte(bytemap, ck_bytecodes::STORE_VAR);
+				push_byte(bytemap, ck_bytecodes::LOAD_VAR);
 				
 				wstring& s = *(wstring*) n->left->objectlist->object;
 				int size = s.size();
@@ -661,13 +936,62 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 					wchar_t c = s[i];
 					push(bytemap, sizeof(wchar_t), &c);
 				}
+				
+				// STACK:
+				// val
+				
+				push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR);
+				if (n->type == POS_INC)
+					push_byte(bytemap, ck_bytecodes::OPT_INC);
+				else
+					push_byte(bytemap, ck_bytecodes::OPT_DEC);
+				
+				push_byte(bytemap, ck_bytecodes::VSTACK_DUP);
+				
+				// STACK:
+				// result
+				// result
+				
+				push_byte(bytemap, ck_bytecodes::STORE_VAR);
+				
+				push(bytemap, sizeof(int), &size);
+				
+				for (int i = 0; i < size; ++i) {
+					wchar_t c = s[i];
+					push(bytemap, sizeof(wchar_t), &c);
+				}
+				
+				// STACK:
+				// result
 			}
-			
-			// STACK:
-			// old_value
 			
 			break;
 		}
+	
+		case PLUS   : { visit(bytemap, lineno_table, n->left); visit(bytemap, lineno_table, n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_ADD    ); break; }
+		case MINUS  : { visit(bytemap, lineno_table, n->left); visit(bytemap, lineno_table, n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_SUB    ); break; }
+		case MUL    : { visit(bytemap, lineno_table, n->left); visit(bytemap, lineno_table, n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_MUL    ); break; }
+		case DIV    : { visit(bytemap, lineno_table, n->left); visit(bytemap, lineno_table, n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_DIV    ); break; }
+		case BITRSH : { visit(bytemap, lineno_table, n->left); visit(bytemap, lineno_table, n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_BITRSH ); break; }
+		case BITLSH : { visit(bytemap, lineno_table, n->left); visit(bytemap, lineno_table, n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_BITLSH ); break; }
+		case BITURSH: { visit(bytemap, lineno_table, n->left); visit(bytemap, lineno_table, n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_BITURSH); break; }
+		case BITNOT : { visit(bytemap, lineno_table, n->left); visit(bytemap, lineno_table, n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_BITNOT ); break; }
+		case DIR    : { visit(bytemap, lineno_table, n->left); visit(bytemap, lineno_table, n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_DIR    ); break; }
+		case PATH   : { visit(bytemap, lineno_table, n->left); visit(bytemap, lineno_table, n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_PATH   ); break; }
+		case MOD    : { visit(bytemap, lineno_table, n->left); visit(bytemap, lineno_table, n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_MOD    ); break; }
+		case BITOR  : { visit(bytemap, lineno_table, n->left); visit(bytemap, lineno_table, n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_BITOR  ); break; }
+		case BITAND : { visit(bytemap, lineno_table, n->left); visit(bytemap, lineno_table, n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_BITAND ); break; }
+		case HASH   : { visit(bytemap, lineno_table, n->left); visit(bytemap, lineno_table, n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_HASH   ); break; }
+		case EQ     : { visit(bytemap, lineno_table, n->left); visit(bytemap, lineno_table, n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_EQ     ); break; }
+		case NEQ    : { visit(bytemap, lineno_table, n->left); visit(bytemap, lineno_table, n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_NEQ    ); break; }
+		case OR     : { visit(bytemap, lineno_table, n->left); visit(bytemap, lineno_table, n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_OR     ); break; }
+		case AND    : { visit(bytemap, lineno_table, n->left); visit(bytemap, lineno_table, n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_AND    ); break; }
+		case GT     : { visit(bytemap, lineno_table, n->left); visit(bytemap, lineno_table, n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_GT     ); break; }
+		case GE     : { visit(bytemap, lineno_table, n->left); visit(bytemap, lineno_table, n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_GE     ); break; }
+		case LT     : { visit(bytemap, lineno_table, n->left); visit(bytemap, lineno_table, n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_LT     ); break; }
+		case LE     : { visit(bytemap, lineno_table, n->left); visit(bytemap, lineno_table, n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_LE     ); break; }
+		case PUSH   : { visit(bytemap, lineno_table, n->left); visit(bytemap, lineno_table, n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_PUSH   ); break; }
+		case ARROW  : { visit(bytemap, lineno_table, n->left); visit(bytemap, lineno_table, n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_ARROW  ); break; }
 	};
 };
 
@@ -909,6 +1233,11 @@ void ck_translator::print(vector<unsigned char>& bytemap) {
 			
 			case ck_bytecodes::VSTACK_SWAP1: {
 				wcout << "> VSTACK_SWAP1" << endl;
+				break;
+			}
+			
+			case ck_bytecodes::VSTACK_SWAP2: {
+				wcout << "> VSTACK_SWAP2" << endl;
 				break;
 			}
 			
