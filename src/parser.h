@@ -121,17 +121,13 @@ namespace ck_token {
 	const int FIELD           = 209; // a.field
 	const int MEMBER          = 208; // a[<expression>]
 	const int CALL            = 210; // func(...)
-	const int NATIVE_CALL     = 211; // native_func(...)
 	const int EMPTY           = 201; // ...
 	const int BLOCK           = 203; // { ... }
 	const int DEFINE          = 205; // var a = ...
-	const int ASSIGN_DEFINE   = 204; // var
-	const int FUNCTIONROOT    = 213; // root of the function sub-three
 	
 	const int EXPRESSION      = 202;
 	const int ASTROOT         = 206;
-	const int CONDITION       = 207;
-	const int IMPORTED_SCRIPT = 212;
+	const int CONDITION       = 207; // ?:
 };
 
 namespace ck_parser {

@@ -6,7 +6,7 @@
 
 namespace ck_bytecodes {
 	const int LINENO               = 9; // Marks the lineno change
-	const int NONE                 = 10;
+	const int NOP                  = 10;
 	const int PUSH_CONST_INT       = 11;
 	const int PUSH_CONST_DOUBLE    = 12;
 	const int PUSH_CONST_BOOLEAN   = 13;
@@ -31,6 +31,8 @@ namespace ck_bytecodes {
 	const int VSTACK_SWAP          = 34; // swap stack top and top-1
 	const int VSTACK_SWAP1         = 35; // swap stack top-1 and top-2
 	const int VSTACK_SWAP2         = 36; // swap stack top-2 and top-3
+	const int VSTATE_PUSH_SCOPE    = 37; // Push scope to scope list
+	const int VSTATE_POP_SCOPE     = 38; // Pop scope from scope list
 	
 	const int OPT_ADD     = 1;
 	const int OPT_SUB     = 2;

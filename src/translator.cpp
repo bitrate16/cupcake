@@ -999,7 +999,24 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 		case POS   : { visit(bytemap, lineno_table, n->left); push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_POS   ); break; }
 		case NEG   : { visit(bytemap, lineno_table, n->left); push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_NEG   ); break; }
 		
+		case BLOCK: {
+			push_byte(bytemap, VSTATE_PUSH_SCOPE);
+			
+			ASTNode* t = n->left;
+			while (t) {
+				visit(bytemap, lineno_table, t);
+				t = t->next;
+			}
+			
+			push_byte(bytemap, VSTATE_POP_SCOPE);
+			
+			break;
+		}
 		
+		case EMPTY: {
+			push_byte(bytemap, NOP);
+			break;
+		}
 	};
 };
 
@@ -1041,8 +1058,8 @@ void ck_translator::print(vector<unsigned char>& bytemap) {
 				break;
 			}
 			
-			case ck_bytecodes::NONE: {
-				wcout << ">" << endl;
+			case ck_bytecodes::NOP: {
+				wcout << "> NOP" << endl;
 				break;
 			}
 			
