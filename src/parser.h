@@ -119,7 +119,7 @@ namespace ck_token {
 
 	// Additional statements & expressions
 	const int FIELD           = 209; // a.field
-	const int MEMBER          = 208; // a['member']
+	const int MEMBER          = 208; // a[<expression>]
 	const int CALL            = 210; // func(...)
 	const int NATIVE_CALL     = 211; // native_func(...)
 	const int EMPTY           = 201; // ...
