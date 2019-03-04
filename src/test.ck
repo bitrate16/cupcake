@@ -1,23 +1,9 @@
-while (1) {
-	{
-		{
-			{
-				{
-					{
-						{
-							break;
-							continue;
-						}
-					}
-				}
-			}
-		}
-	}
-}
-
-	continue;
+if (1) 
+	;
+else
+	;
 	
-	function() {
-		return 12;
-		return;
-	};
+	
+	if (1) 
+	;
+	

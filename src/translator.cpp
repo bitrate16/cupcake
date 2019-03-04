@@ -1420,7 +1420,71 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 			break;
 		}
 		
-		
+		case IF: {
+			if (n->left->next->next->type != EMPTY) {
+				// if ...
+				// ...
+				// else
+				// ...
+				// 
+				// ... <-- condition
+				// JMP_IF_ZERO .else_node
+				// ...
+				// JMP .end
+				// .else_node:
+				// ...
+				// .end:
+				
+				VISIT(n->left);
+				
+				int else_node = bytemap.size();
+				push_byte(bytemap, ck_bytecodes::JMP_IF_ZERO);
+				int else_node_jump = bytemap.size();
+				push(bytemap, sizeof(int), &else_node);
+				
+				VISIT(n->left->next);
+				
+				int end = bytemap.size();
+				push_byte(bytemap, ck_bytecodes::JMP);
+				int end_jump = bytemap.size();
+				push(bytemap, sizeof(int), &end);
+				
+				else_node = bytemap.size();
+				for (int i = 0; i < sizeof(int); ++i) 
+					bytemap[i + else_node_jump] = ((unsigned char*) &else_node)[i];
+				
+				VISIT(n->left->next->next);
+				
+				end = bytemap.size();
+				for (int i = 0; i < sizeof(int); ++i) 
+					bytemap[i + end_jump] = ((unsigned char*) &end)[i];
+			} else {
+				// if ...
+				// ...
+				// 
+				// ... <-- condition
+				// JMP_IF_ZERO .end
+				// ...
+				// .end:
+				
+				VISIT(n->left);
+				
+				int end = bytemap.size();
+				push_byte(bytemap, ck_bytecodes::JMP_IF_ZERO);
+				int end_jump = bytemap.size();
+				push(bytemap, sizeof(int), &end);
+				
+				VISIT(n->left->next);
+				
+				end = bytemap.size();
+				for (int i = 0; i < sizeof(int); ++i) 
+					bytemap[i + end_jump] = ((unsigned char*) &end)[i];
+			}
+			
+			break;
+			
+			
+		}
 	}
 };
 
