@@ -33,9 +33,6 @@ void push_raise(vector<unsigned char>& bytemap, const wstring& s) {
 };
 
 
-// Tracking line numbers change
-int last_lineno = 0;
-int last_lineno_addr = 0;
 
 // Due the parsing of loops, switch/case, functions
 // translator has to preserve the type of enclosing statement 
@@ -143,6 +140,9 @@ void pop_address(vector<unsigned char>& bytemap, int jmp_1, int jmp_2) {
 };
 
 
+// Tracking line numbers change
+int last_lineno = 0;
+int last_lineno_addr = 0;
 
 void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, ASTNode* n) {
 	if (!n)
@@ -153,9 +153,9 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 	if (n->lineno != last_lineno) {
 		last_lineno = n->lineno;
 		
+		last_lineno_addr = bytemap.size();
 		push(lineno_table, sizeof(int), &last_lineno);        // Record: [lineno|start]
 		push(lineno_table, sizeof(int), &last_lineno_addr);
-		last_lineno_addr = bytemap.size();
 		
 		push_byte(bytemap, ck_bytecodes::LINENO);
 		push(bytemap, sizeof(int), &last_lineno);
@@ -1143,7 +1143,7 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 		}
 		
 		case WHILE: {
-			vector<int> jmp_1; // <-- loop start replacement (do nothing, use loop_start)
+			vector<int> jmp_1; // <-- loop start replacement
 			vector<int> jmp_2; // <-- loop end replacement
 			
 			int loop_start = bytemap.size();
@@ -1339,6 +1339,88 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 			
 			break;
 		}
+	
+		case DO: {
+			vector<int> jmp_1; // <-- loop start replacement
+			vector<int> jmp_2; // <-- loop end replacement
+			
+			// do 
+			// ...
+			// while (...)
+			// 
+			// :I:
+			//  JMP .loop_body
+			// .loop_start:
+			//  ... <-- condition
+			// .loop_body:
+			//  JMP_IF_ZERO .loop_end
+			//  ...
+			//  JMP .loop_start 
+			// 
+			// :II:
+			// .loop_start:
+			//  ...
+			// .loop_condition: <-- here goes continue
+			//  ... <-- condition
+			//  JMP_IF_ZERO .loop_end
+			//  JMP .loop_start
+			// .loop_end:
+		
+			// :II:
+			int loop_start = bytemap.size();
+			push_address(BREAK_PLACEMENT_LOOP, loop_start, &jmp_1, &jmp_2);
+			VISIT(n->right);
+			
+			int loop_condition = bytemap.size();
+			VISIT(n->left); // <-- Expressions only, no break/continue/return are expected.
+			
+			int loop_end = bytemap.size();
+			push_byte(bytemap, ck_bytecodes::JMP_IF_ZERO);
+			jmp_2.push_back(bytemap.size());
+			push(bytemap, sizeof(int), &loop_end);
+			
+			push_byte(bytemap, ck_bytecodes::JMP);
+			push(bytemap, sizeof(int), &loop_start);
+			
+			loop_end = bytemap.size();
+			pop_address(bytemap, loop_condition, loop_end);
+		
+			/*
+			// :I:
+			int loop_body = bytemap.size();
+			push_byte(bytemap, ck_bytecodes::JMP);
+			int loop_body_jmp_addr = bytemap.size();
+			push(bytemap, sizeof(int), &loop_body);
+			
+			int loop_start = bytemap.size();
+			
+			VISIT(n->left);
+			push_byte(bytemap, ck_bytecodes::JMP_IF_ZERO);
+			
+			// Expect loop end to be inserted later
+			jmp_2.push_back(bytemap.size());
+			push(bytemap, sizeof(int), &loop_start);
+			
+			// Save JMP .loop_block
+			loop_body = bytemap.size();
+			for (int i = 0; i < sizeof(int); ++i) 
+				bytemap[i + loop_body_jmp_addr] = ((unsigned char*) &loop_body)[i];
+			
+			
+			// Start trackiing all placement templates
+			push_address(BREAK_PLACEMENT_LOOP, loop_start, &jmp_1, &jmp_2);
+			
+			VISIT(n->right);
+			push_byte(bytemap, ck_bytecodes::JMP);
+			push(bytemap, sizeof(int), &loop_start);
+			
+			pop_address(bytemap, loop_start, bytemap.size());
+			*/
+			
+			break;
+		}
+		
+		
 	}
 };
 
