@@ -1385,7 +1385,7 @@ void ck_translator::print(vector<unsigned char>& bytemap, int off, int offset, i
 		wcout << '[' << setw(int_offset) << k << setw(-1) << "] ";
 		
 		for (int i = 0; i < off; ++i)
-			wcout << U'>';
+			wcout << (wchar_t) U'>';
 		
 		switch(bytemap[k++]) {
 			case ck_bytecodes::LINENO: {
@@ -1688,8 +1688,8 @@ void ck_translator::print(vector<unsigned char>& bytemap, int off, int offset, i
 				
 				wcout << ") [" << sizeof_block << "]:" << endl;
 				
-				//print(bytemap, off + 1, bytemap.size(), sizeof_block);
-				//k += sizeof_block;
+				print(bytemap, off + 1, k, sizeof_block);
+				k += sizeof_block;
 			}
 		}
 	}
