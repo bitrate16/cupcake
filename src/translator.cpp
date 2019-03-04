@@ -1485,6 +1485,132 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 			
 			
 		}
+	
+		case FOR: {
+			// XXX: Solve for all types of for structures
+			
+			vector<int> jmp_1; // <-- loop start replacement
+			vector<int> jmp_2; // <-- loop end replacement
+			
+			// for ($1; $2; $3)
+			// ...
+			// 
+			// $1 - simple statement
+			// $2 - expression
+			// $3 - expression => VSTACK_POP
+			//
+			// :$$$:
+			//
+			//  $1
+			// .loop_condition:
+			//  $2
+			//  JMP_IF_ZERO .end
+			//  JMP .loop_block
+			// .loop_increment:
+			//  $3
+			//  JMP .loop_condition
+			// .loop_block:
+			//  ...
+			// JMP .loop_increment
+			// .end:
+			
+			int loop_start = bytemap.size();
+			
+			// Placement for loop
+			push_address(BREAK_PLACEMENT_LOOP, loop_start, &jmp_1, &jmp_2);
+			
+			// Placement for block (scope)
+			push_byte(bytemap, ck_bytecodes::VSTATE_PUSH_SCOPE);
+			push_address(BREAK_PLACEMENT_BLOCK, 0, nullptr, nullptr);
+			
+			if (n->left->type != EMPTY)
+				VISIT(n->left);
+			else
+				push_byte(bytemap, ck_bytecodes::NOP);
+			
+			int loop_condition = bytemap.size();
+			
+			if (n->left->next->type != EMPTY)
+				VISIT(n->left->next);
+			else {
+				push_byte(bytemap, ck_bytecodes::PUSH_CONST_BOOLEAN);
+				bool TrUe = 1;
+				push(bytemap, 1, &TrUe);
+			}
+				
+			
+			int end = 13;
+			push_byte(bytemap, ck_bytecodes::JMP_IF_ZERO);
+			int end_addr = bytemap.size();
+			jmp_2.push_back(end_addr);
+			push(bytemap, sizeof(int), &end);
+			
+			int loop_block = 13;
+			push_byte(bytemap, ck_bytecodes::JMP);
+			int loop_block_jump = bytemap.size();
+			push(bytemap, sizeof(int), &loop_block);
+			
+			int loop_increment = bytemap.size();
+			
+			if (n->left->next->next->type != EMPTY) {
+				VISIT(n->left->next->next);
+				
+				// Pop expression value
+				push_byte(bytemap, ck_bytecodes::VSTACK_POP);
+			} else 
+				push_byte(bytemap, ck_bytecodes::NOP);
+			
+			push_byte(bytemap, ck_bytecodes::JMP);
+			push(bytemap, sizeof(int), &loop_condition);
+			
+			loop_block = bytemap.size();
+			for (int i = 0; i < sizeof(int); ++i) 
+				bytemap[i + loop_block_jump] = ((unsigned char*) &loop_block)[i];
+			
+			if (n->left->next->next->next->type == BLOCK) {
+				ASTNode* t = n->left->next->next->next->left;
+				while (t) {
+					VISIT(t);
+					t = t->next;
+				}
+			} else
+				VISIT(n->left->next->next->next);
+			
+			push_byte(bytemap, ck_bytecodes::JMP);
+			push(bytemap, sizeof(int), &loop_increment);
+			
+			end = bytemap.size();			
+			
+			// Pop block
+			pop_address(bytemap, 0, 0);
+			push_byte(bytemap, ck_bytecodes::VSTATE_POP_SCOPE);
+			
+			// Pop loop
+			pop_address(bytemap, loop_condition, end);
+			
+			
+			// for ($1; true; $3)
+			// ...
+			// 
+			// :$.$:
+			//
+			//  $1
+			//  JMP_IF_ZERO .end
+			//  JMP .loop_block
+			// .loop_increment:
+			//  $3
+			//  JMP .loop_condition
+			// .loop_block:
+			//  ...
+			// .end:
+			
+			// ...
+			// XXX: FINISH HIM
+			
+			break;
+		}
+		
+		
 	}
 };
 
