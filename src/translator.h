@@ -42,6 +42,8 @@ namespace ck_bytecodes {
 	const int VSTATE_POP_SCOPES    = 45; // Pop N scopes from scope list
 	const int RETURN_VALUE         = 46; // Return value
 	const int PUSH_CONST_FUNCTION  = 47;
+	const int VSTATE_PUSH_TRY      = 48;
+	const int VSTATE_POP_TRY       = 49;
 	
 	const int OPT_ADD     = 1;
 	const int OPT_SUB     = 2;
@@ -77,9 +79,9 @@ namespace ck_bytecodes {
 	const int OPT_INC     = 16;	
 	const int OPT_DEC     = 17;
 	
-	
-	
-	
+	const int TRY_NO_CATCH = 1;
+	const int TRY_NO_ARG   = 2;
+	const int TRY_WITH_ARG = 3;
 	
 	
 	

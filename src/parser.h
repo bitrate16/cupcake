@@ -35,7 +35,7 @@ namespace ck_token {
 	const int FUNCTION       = 58;
 	const int VAR            = 59;
 	const int TRY            = 60;
-	const int EXPECT         = 61;
+	const int CATCH         = 61;
 	const int RAISE          = 62;
 	const int CONST          = 64;
 	const int SAFE           = 65;
@@ -175,7 +175,7 @@ namespace ck_parser {
 				case ck_token::FUNCTION: os << "function"; break;
 				case ck_token::VAR : os << "var"; break;
 				case ck_token::TRY : os << "try"; break;
-				case ck_token::EXPECT : os << "expect"; break;
+				case ck_token::CATCH : os << "catch"; break;
 				case ck_token::RAISE : os << "raise"; break;
 				case ck_token::CONST : os << "const"; break;
 				case ck_token::SAFE : os << "safe"; break;

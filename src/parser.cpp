@@ -185,8 +185,8 @@ int tokenizer::next_token() {
 			return put(SELF);
 		if (svref == L"try")
 			return put(TRY);
-		if (svref == L"expect")
-			return put(EXPECT);
+		if (svref == L"catch")
+			return put(CATCH);
 		if (svref == L"raise")
 			return put(RAISE);
 		if (svref == L"if")
@@ -2033,7 +2033,7 @@ ASTNode *parser::statement_with_semicolons() {
 		ASTNode *tryexpect = new ASTNode(get(-1)->lineno, TRY);
 		tryexpect->addChild(statement());
 		
-		if (match(EXPECT)) {
+		if (match(CATCH)) {
 			if (match(LP)) {
 				if (!match(NAME)) {
 					delete tryexpect;
@@ -2051,7 +2051,13 @@ ASTNode *parser::statement_with_semicolons() {
 				tryexpect->addLastObject(name);
 			}
 			
-			tryexpect->addChild(statement());
+			ASTNode *catch_node = statement();
+			if (!catch_node) {
+				delete tryexpect;
+				return NULL;
+			}
+			
+			tryexpect->addChild(catch_node);
 		} else {
 			ASTNode *empty = new ASTNode(-1, EMPTY);
 			tryexpect->addChild(empty);
@@ -2067,11 +2073,11 @@ ASTNode *parser::statement_with_semicolons() {
 ASTNode *parser::parse() {
 	ASTNode *root = NULL;
 	
-	if (!repl)
-		root = new ASTNode(0, ASTROOT);
-	
 	if (error_ || eof_)
 		return NULL;
+	
+	if (!repl)
+		root = new ASTNode(0, ASTROOT);
 	
 	while (!eof()) {
 		ASTNode *node = statement();

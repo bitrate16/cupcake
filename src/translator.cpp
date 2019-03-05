@@ -148,7 +148,7 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 	if (!n)
 		return;
 	
-	// Each time the line number changes, it will be appended to the bytecode.
+	// Each time the line number changes, it will be appended to the bytemap.
 	// XXX: Use Line Number Table
 	if (n->lineno != last_lineno) {
 		last_lineno = n->lineno;
@@ -1664,7 +1664,171 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 		}
 		
 		case TRY: {
+			// VSTATE_PUSH_TRY [type] [try_node] [catch_node] [catch_name]
+			// [type]: (unsigned char)
+			//  TRY_NO_CATCH -> try {}              -> VSTATE_PUSH_TRY [type] [try_node] [exit]
+			//  TRY_NO_ARG   -> try {} catch {}     -> VSTATE_PUSH_TRY [type] [try_node] [catch_node]
+			//  TRY_WITH_ARG -> try {} catch (e) {} -> VSTATE_PUSH_TRY [type] [try_node] [catch_node] [catch_name] --> creates new scope
 			
+			if (n->right->type == EMPTY) {
+				// try {
+				//  ...
+				// }
+				
+				//  VSTATE_PUSH_TRY [TRY_NO_CATCH] [try_node] [exit]
+				//  ...
+				// .exit:      <-- jumped due the exception
+				//  VSTATE_POP_TRY
+				
+				push_byte(bytemap, ck_bytecodes::VSTATE_PUSH_TRY);
+				
+				unsigned char type = ck_bytecodes::TRY_NO_CATCH;
+				push(bytemap, sizeof(unsigned char), &type);
+				
+				int try_node = 13;
+				int try_node_jump = bytemap.size();
+				push(bytemap, sizeof(int), &try_node);
+				
+				int end = 13;
+				int end_jump = bytemap.size();
+				push(bytemap, sizeof(int), &end);
+				
+				try_node = bytemap.size();
+				for (int i = 0; i < sizeof(int); ++i) 
+					bytemap[i + try_node_jump] = ((unsigned char*) &try_node)[i];
+				
+				VISIT(n->left);
+				
+				end = bytemap.size();
+				for (int i = 0; i < sizeof(int); ++i) 
+					bytemap[i + end_jump] = ((unsigned char*) &end)[i];
+				
+				push_byte(bytemap, ck_bytecodes::VSTATE_POP_TRY);
+			} else if (n->objectlist == nullptr) {
+				// try {
+				//  ...
+				// } catch {}
+				
+				//  VSTATE_PUSH_TRY [TRY_NO_ARG] [try_node] [catch_node]
+				//  ...
+				//  VSTATE_POP_TRY
+				// 	JMP .end
+				// .catch_node:
+				//  VSTATE_POP_TRY
+				//  ...
+				// .end:
+				
+				push_byte(bytemap, ck_bytecodes::VSTATE_PUSH_TRY);
+				
+				unsigned char type = ck_bytecodes::TRY_NO_ARG;
+				push(bytemap, sizeof(unsigned char), &type);
+				
+				int try_node = 13;
+				int try_node_jump = bytemap.size();
+				push(bytemap, sizeof(int), &try_node);
+				
+				int catch_node = 13;
+				int catch_node_jump = bytemap.size();
+				push(bytemap, sizeof(int), &catch_node);
+				
+				try_node = bytemap.size();
+				for (int i = 0; i < sizeof(int); ++i) 
+					bytemap[i + try_node_jump] = ((unsigned char*) &try_node)[i];
+				
+				VISIT(n->left);
+				
+				push_byte(bytemap, ck_bytecodes::VSTATE_POP_TRY);
+				
+				int end = 13;
+				push_byte(bytemap, ck_bytecodes::JMP);
+				int end_jump = bytemap.size();
+				push(bytemap, sizeof(int), &end);
+				
+				catch_node = bytemap.size();
+				for (int i = 0; i < sizeof(int); ++i) 
+					bytemap[i + catch_node_jump] = ((unsigned char*) &catch_node)[i];
+				
+				push_byte(bytemap, ck_bytecodes::VSTATE_POP_TRY);
+				
+				VISIT(n->right);
+				
+				end = bytemap.size();
+				for (int i = 0; i < sizeof(int); ++i) 
+					bytemap[i + end_jump] = ((unsigned char*) &end)[i];
+			} else {
+				// try {
+				//  ...
+				// } catch (e) {}
+				
+				//  VSTATE_PUSH_TRY [TRY_WITH_ARG] [try_node] [catch_node] [catch_name]
+				//  ...
+				//  VSTATE_POP_TRY
+				// 	JMP .end
+				// .catch_node:
+				//  VSTATE_POP_TRY
+				//  ...
+				//  VSTATE_POP_SCOPE
+				// .end:
+				
+				push_byte(bytemap, ck_bytecodes::VSTATE_PUSH_TRY);
+				
+				unsigned char type = ck_bytecodes::TRY_WITH_ARG;
+				push(bytemap, sizeof(unsigned char), &type);
+				
+				int try_node = 13;
+				int try_node_jump = bytemap.size();
+				push(bytemap, sizeof(int), &try_node);
+				
+				int catch_node = 13;
+				int catch_node_jump = bytemap.size();
+				push(bytemap, sizeof(int), &catch_node);
+				
+				wstring& s = *(wstring*) n->objectlist->object;
+				int size = s.size();
+				
+				push(bytemap, sizeof(int), &size);
+				
+				for (int i = 0; i < size; ++i) {
+					wchar_t c = s[i];
+					push(bytemap, sizeof(wchar_t), &c);
+				}
+				
+				try_node = bytemap.size();
+				for (int i = 0; i < sizeof(int); ++i) 
+					bytemap[i + try_node_jump] = ((unsigned char*) &try_node)[i];
+				
+				VISIT(n->left);
+				
+				push_byte(bytemap, ck_bytecodes::VSTATE_POP_TRY);
+				
+				int end = 13;
+				push_byte(bytemap, ck_bytecodes::JMP);
+				int end_jump = bytemap.size();
+				push(bytemap, sizeof(int), &end);
+				
+				catch_node = bytemap.size();
+				for (int i = 0; i < sizeof(int); ++i) 
+					bytemap[i + catch_node_jump] = ((unsigned char*) &catch_node)[i];
+				
+				push_byte(bytemap, ck_bytecodes::VSTATE_POP_TRY);
+				push_byte(bytemap, ck_bytecodes::VSTATE_POP_SCOPE);
+				
+				if (n->right->type != BLOCK)
+					VISIT(n->right);
+				else {					
+					ASTNode* t = n->right->left;
+					while (t) {
+						VISIT(t);
+						t = t->next;
+					}
+				}
+				
+				end = bytemap.size();
+				for (int i = 0; i < sizeof(int); ++i) 
+					bytemap[i + end_jump] = ((unsigned char*) &end)[i];
+			}
+			
+			break;
 		}
 	}
 };
@@ -1676,9 +1840,10 @@ void ck_translator::translate(vector<unsigned char>& bytemap, vector<unsigned ch
 	
 	// bytemap - the resulting bytemap
 	
-	if (n && n->type != TERR)
-		visit(bytemap, lineno_table, n);
+	if (!(n && n->type != TERR))
+		return;
 	
+	visit(bytemap, lineno_table, n);
 	push_byte(bytemap, ck_bytecodes::HALT);
 	
 	last_lineno = -1;
@@ -2017,6 +2182,50 @@ void ck_translator::print(vector<unsigned char>& bytemap, int off, int offset, i
 				
 				print(bytemap, off + 1, k, sizeof_block);
 				k += sizeof_block;
+			}
+		
+			case ck_bytecodes::VSTATE_POP_TRY: {
+				wcout << "> VSTATE_POP_TRY" << endl;
+				break;
+			}
+
+			case ck_bytecodes::VSTATE_PUSH_TRY: {
+				unsigned char type;
+				read(bytemap, k, sizeof(unsigned char), &type);
+				
+				if (type == ck_bytecodes::TRY_NO_CATCH) {
+					int try_node;
+					int exit;
+					
+					read(bytemap, k, sizeof(int), &try_node);
+					read(bytemap, k, sizeof(int), &exit);
+					
+					wcout << "> VSTATE_PUSH_TRY [TRY_NO_CATCH] [" << try_node << "] [" << exit << ']' << endl;
+				} else if (type == ck_bytecodes::TRY_NO_ARG) {
+					int try_node;
+					int catch_node;
+					
+					read(bytemap, k, sizeof(int), &try_node);
+					read(bytemap, k, sizeof(int), &catch_node);
+					
+					wcout << "> VSTATE_PUSH_TRY [TRY_NO_ARG] [" << try_node << "] [" << catch_node << ']' << endl;
+				} else {
+					int try_node;
+					int catch_node;
+					int name_size;
+					
+					read(bytemap, k, sizeof(int), &try_node);
+					read(bytemap, k, sizeof(int), &catch_node);
+					read(bytemap, k, sizeof(int), &name_size);
+										
+					wchar_t cstr[name_size+1];
+					read(bytemap, k, sizeof(wchar_t) * name_size, cstr);
+					cstr[name_size] = 0;
+					
+					wcout << "> VSTATE_PUSH_TRY [TRY_WITH_ARG] (" << cstr << ") [" << try_node << "] [" << catch_node << ']' << endl;
+				}
+				
+				break;
 			}
 		}
 	}
