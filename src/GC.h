@@ -1,12 +1,14 @@
 #pragma once
 
-#include "GIL"
+#include "GIL2.h"
+#include "vobject.h"
 
 namespace ck_core {		
 	/*
 	 * Garbage collector object, tracked at creation.
 	 */
 	class GC;
+	class gc_list;
 	class gc_object {
 		public:
 		bool gc_reachable = 0;
@@ -46,7 +48,7 @@ namespace ck_core {
 		// For stupid users, that decide to GC by themself
 		bool deleted_ptr;
 		
-		gc_chain();
+		gc_list();
 	};
 
 	/*
@@ -60,12 +62,12 @@ namespace ck_core {
 		int size;
 		int roots_size;
 		int locks_size;
-		gc_chain *objects;
-		gc_chain *roots;
-		gc_chain *locks;
+		gc_list *objects;
+		gc_list *roots;
+		gc_list *locks;
 		
 		// Number of objects created since last gc_collect pass
-		atd::atomic<int> created_interval;
+		std::atomic<int> created_interval;
 		// Number of minimum objects to be created before next GC
 		const int MIN_CREATED_INTERVAL;
 		
@@ -74,15 +76,15 @@ namespace ck_core {
 		
 		public:
 		// Called on object creation.
-		void attach(vobject *o);
+		void attach(ck_vobject::vobject *o);
 		
 		// Called to make given object root object
-		void attach_root(vobject *o);
-		void deattach_root(vobject *o);
+		void attach_root(ck_vobject::vobject *o);
+		void deattach_root(ck_vobject::vobject *o);
 		
 		// Called to lock given object from deletion.
-		void lock(vobject *o);
-		void unlock(vobject *o);
+		void lock(ck_vobject::vobject *o);
+		void unlock(ck_vobject::vobject *o);
 		
 		// Amount of objects registered by GC.
 		int count();

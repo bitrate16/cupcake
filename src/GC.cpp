@@ -1,9 +1,10 @@
 #include <stdexcept>
 
-#include "GC"
-#include "GIL"
+#include "GC.h"
+#include "GIL2.h"
 
-using namespace gc_core;
+using namespace ck_core;
+using namespace ck_vobject;
 
 // gc_object		
 gc_object::gc_object() : 
@@ -32,7 +33,7 @@ void gc_object::operator delete[](void* ptr) {
 };
 
 // gc_chain
-gc_chain::gc_chain() : 
+gc_list::gc_list() : 
 				next(nullptr), 
 				obj(nullptr), 
 				deleted_ptr(0) {};
@@ -197,23 +198,23 @@ void collect() {
 	}
 	
 	// Mark all roots
-	GC_Chain *chain = roots;
-	GC_Chain *list  = nullptr;
+	gc_list *chain = roots;
+	gc_list *list  = nullptr;
 	while (chain) {
 		if (chain->deleted_ptr) {
-			GC_Chain *tmp = chain;
+			gc_list *tmp = chain;
 			chain         = chain->next;
 			delete tmp;
 		} else if (!chain->obj->gc_root) {
 			attach(chain->obj);
 			chain->obj->gc_root_chain = nullptr;
 			
-			GC_Chain *tmp = chain;
+			gc_list *tmp = chain;
 			chain         = chain->next;
 			delete tmp;
 		} else {
 			chain->obj->gc_mark();
-			GC_Chain *tmp = chain;
+			gc_list *tmp = chain;
 			chain         = chain->next;
 			
 			tmp->next = list;
@@ -228,19 +229,19 @@ void collect() {
 	list  = nullptr;
 	while (chain) {
 		if (chain->deleted_ptr) {
-			GC_Chain *tmp = chain;
+			gc_list *tmp = chain;
 			chain         = chain->next;
 			delete tmp;
 		} else if (!chain->obj->gc_lock) {
 			gc_attach(chain->obj);
 			chain->obj->gc_lock_chain = nullptr;
 			
-			GC_Chain *tmp = chain;
+			gc_list *tmp = chain;
 			chain         = chain->next;
 			delete tmp;
 		} else {
 			chain->obj->mark();
-			GC_Chain *tmp = chain;
+			gc_list *tmp = chain;
 			chain         = chain->next;
 			
 			tmp->next = list;
@@ -255,12 +256,12 @@ void collect() {
 	list  = nullptr;
 	while (chain) {	
 		if (chain->deleted_ptr) {
-			GC_Chain *tmp = chain;
+			gc_list *tmp = chain;
 			chain = chain->next;
 			--gc_size;			
 			delete tmp;
 		} else if (!chain->obj->gc_reachable && !chain->obj->gc_root && !chain->obj->gc_lock) {			
-			GC_Chain *tmp = chain;
+			gc_list *tmp = chain;
 			chain = chain->next;
 			--gc_size;
 			tmp->obj->gc_finalize();
@@ -270,7 +271,7 @@ void collect() {
 		} else {
 			// Reset
 			chain->obj->gc_reachable = 0;
-			GC_Chain *tmp = chain;
+			gc_list *tmp = chain;
 			chain         = chain->next;
 			
 			tmp->next = list;
@@ -300,7 +301,7 @@ void dispose() {
 	}
 	
 	while (roots) {
-		GC_Chain *tmp = roots->next;
+		gc_list *tmp = roots->next;
 		if (!roots->deleted_ptr)
 			roots->object->root_chain = nullptr;
 		delete roots;
@@ -310,7 +311,7 @@ void dispose() {
 	
 	// Delete all unused objects
 	while (objects) {
-		GC_Chain *tmp = objects->next;
+		gc_list *tmp = objects->next;
 		if (objects->deleted_ptr) {
 			delete objects;
 		} else {

@@ -1,15 +1,25 @@
-#include "GIL2"
-#include "GC"
+#include "GIL2.h"
+#include "GC.h"
 
 using namespace ck_core;
 
 GIL::GIL() {
-	// Assing self instance
+	// Assign self instance
 	gil = this;
 	
 	// No lock needed. First start.
-	ckthread *ct = new ckthread();
-	threads->push(ct);
+	// Allocate pointer to the new ckthread
+	current_thread = new ckthread();
+	threads->push_back(current_thread);
+	
+	// Current (creator) thread is being tracked as primary thread.
+	// This thread mush override all system signals and woke System.sysint(code)
+	// in the current thread and executer.
+	// When current thread finishes befure other threads it has to start waiting 
+	// for other threads to finish their work. Current thread must lock on sync_condition
+	// and every woke up check if there is any other threads.
+	
+	// All this ^ actions is done from main().
 };
 
 // Ignore for signals
@@ -42,3 +52,4 @@ GIL::~GIL() {
 	// Finally commit suicide
 	delete this;
 };
+

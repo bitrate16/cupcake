@@ -1,9 +1,16 @@
 #pragma once
 
-#include "GIL"
-#include <wstring>
+#include <string>
+
+#include "GIL2.h"
+
 
 namespace ck_vobject {
+	class gc_object {
+		public:
+		virtual void mark();
+	};
+	
 	// Describes type of an object
 	class vtype {
 		vtype *parent;
