@@ -1489,6 +1489,20 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 		case FOR: {
 			// XXX: Solve for all types of for structures
 			
+			// for (var i = 10; i < 10; ++i) statement
+			// 
+			// [outer scope]
+			//  \
+			//   [scope with i] <-- statement is executed in this scope
+			
+			// for (var i = 10; i < 10; ++i) block
+			// 
+			// [outer scope]
+			//  \
+			//   [scope with i] 
+			//    \
+			//     [scope of the block] <-- block is executed in this scope
+			
 			vector<int> jmp_1; // <-- loop start replacement
 			vector<int> jmp_2; // <-- loop end replacement
 			
@@ -1567,14 +1581,15 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 			for (int i = 0; i < sizeof(int); ++i) 
 				bytemap[i + loop_block_jump] = ((unsigned char*) &loop_block)[i];
 			
-			if (n->left->next->next->next->type == BLOCK) {
+			/* if (n->left->next->next->next->type == BLOCK) {
 				ASTNode* t = n->left->next->next->next->left;
 				while (t) {
 					VISIT(t);
 					t = t->next;
 				}
-			} else
-				VISIT(n->left->next->next->next);
+			} else */
+			
+			VISIT(n->left->next->next->next);
 			
 			push_byte(bytemap, ck_bytecodes::JMP);
 			push(bytemap, sizeof(int), &loop_increment);
@@ -1610,7 +1625,47 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 			break;
 		}
 		
+		case CONDITION: {
+			// condition ? exp1 : exp2
+			
+			//  $condidion
+			//  JMP_IF_ZERO .else_node
+			//  $if_node
+			//  JMP .end
+			// .else_node:
+			//  $else_node
+			// .end:
+			
+			VISIT(n->left);
+			
+			int else_node = 13;
+			push_byte(bytemap, ck_bytecodes::JMP_IF_ZERO);
+			int else_node_jump = bytemap.size();
+			push(bytemap, sizeof(int), &else_node);
+			
+			VISIT(n->left->next);
+			
+			int end = 13;
+			push_byte(bytemap, ck_bytecodes::JMP);
+			int end_jump = bytemap.size();
+			push(bytemap, sizeof(int), &end);
+			
+			else_node = bytemap.size();
+			for (int i = 0; i < sizeof(int); ++i) 
+				bytemap[i + else_node_jump] = ((unsigned char*) &else_node)[i];
+			
+			VISIT(n->left->next->next);
+			
+			end = bytemap.size();
+			for (int i = 0; i < sizeof(int); ++i) 
+				bytemap[i + end_jump] = ((unsigned char*) &end)[i];
+			
+			break;
+		}
 		
+		case TRY: {
+			
+		}
 	}
 };
 
