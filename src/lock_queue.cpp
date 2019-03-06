@@ -1,8 +1,15 @@
-#include "lock_queue"
+#include "lock_queue.h"
 
-void ck_sync::lock_queue::lock() (std::function<void ()> on_blocked = lock_queue_none,   // Called before thread waits lock
-							      std::function<void ()> on_unblocked = lock_queue_none, // Called on thread acquires lock
-							      std::function<void ()> on_first = lock_queue_none) {   // Called when thread is first
+#include <queue>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <functional>
+
+
+void ck_sync::lock_queue::lock (std::function<void ()> on_blocked,   // Called before thread waits lock
+							    std::function<void ()> on_unblocked, // Called on thread acquires lock
+							    std::function<void ()> on_first) {   // Called when thread is first
 	{
 		// Add self into queue
 		std::unique_lock<std::mutex> locker(mutex2);
@@ -14,15 +21,15 @@ void ck_sync::lock_queue::lock() (std::function<void ()> on_blocked = lock_queue
 		}
 	}
 	
-	on_locked();
+	on_blocked();
 	
 	std::unique_lock<std::mutex> lk(mutex1);
 	cv.wait(lk, [&]{ return queue.front() == std::this_thread::get_id(); });
 	
-	on_unlocked();
+	on_unblocked();
 };
 
-void ck_sync::lock_queue::try_lock(std::function<void ()> on_first = lock_queue_none) {   // Called when thread is first
+bool ck_sync::lock_queue::try_lock(std::function<void ()> on_first) {   // Called when thread is first
 	// Add self into queue
 	std::unique_lock<std::mutex> locker(mutex2);
 	if (queue.empty()) {
@@ -38,7 +45,7 @@ bool ck_sync::lock_queue::unlock() {
 	std::lock_guard<std::mutex> guard(mutex1);
 	// Remove self from queue
 	std::unique_lock<std::mutex> locker(mutex2);
-	if (queue->front() != std::this_thread::get_id())
+	if (queue.front() != std::this_thread::get_id())
 		return 0;
 	
 	queue.pop();
@@ -47,9 +54,9 @@ bool ck_sync::lock_queue::unlock() {
 };
 
 
-void ck_sync::shared_lock_queue::lock() (std::function<void ()> on_blocked = lock_queue_none,   // Called before thread waits lock
-							             std::function<void ()> on_unblocked = lock_queue_none, // Called on thread acquires lock
-							             std::function<void ()> on_first = lock_queue_none) {   // Called when thread is first
+void ck_sync::shared_lock_queue::lock (std::function<void ()> on_blocked,   // Called before thread waits lock
+							           std::function<void ()> on_unblocked, // Called on thread acquires lock
+							           std::function<void ()> on_first) {   // Called when thread is first
 	{
 		// Add self into queue
 		std::unique_lock<std::mutex> locker(mutex2);
@@ -61,20 +68,20 @@ void ck_sync::shared_lock_queue::lock() (std::function<void ()> on_blocked = loc
 		}
 	}
 	
-	on_locked();
+	on_blocked();
 	
 	std::unique_lock<std::mutex> lk(mutex1);
 	cv.wait(lk, [&]{ return queue.front() == std::this_thread::get_id(); });
 	
-	on_unlocked();
+	on_unblocked();
 };
 
-void ck_sync::shared_lock_queue::shared_lock() (std::unique_lock<std::mutex> &lock,                    // Passing lock by reference allows 
-											  													  	   // acquiring it on the outside.
-											  													  	   // Lock expected to be locked :D
-											    std::function<void ()> on_blocked = lock_queue_none,   // Called before thread waits lock
-											    std::function<void ()> on_unblocked = lock_queue_none, // Called on thread acquires lock
-											    std::function<void ()> on_first = lock_queue_none) {   // Called when thread is first
+void ck_sync::shared_lock_queue::shared_lock (std::unique_lock<std::mutex> &lock,  // Passing lock by reference allows 
+											  									   // acquiring it on the outside.
+											  									   // Lock expected to be locked :D
+											  std::function<void ()> on_blocked,   // Called before thread waits lock
+											  std::function<void ()> on_unblocked, // Called on thread acquires lock
+											  std::function<void ()> on_first) {   // Called when thread is first
 	{
 		// Add self into queue
 		std::unique_lock<std::mutex> locker(mutex2);
@@ -86,7 +93,7 @@ void ck_sync::shared_lock_queue::shared_lock() (std::unique_lock<std::mutex> &lo
 		}
 	}
 	
-	on_locked();
+	on_blocked();
 	
 	// std::unique_lock<std::mutex> lk(mutex1); <---|
 	// |--------------------------------------------|
@@ -102,10 +109,10 @@ void ck_sync::shared_lock_queue::shared_lock() (std::unique_lock<std::mutex> &lo
 	// Ater unblock shared lock will be acquired by current thread.
 	cv.wait(lock, [&]{ return queue.front() == std::this_thread::get_id(); });
 	
-	on_unlocked();
+	on_unblocked();
 };
 
-void ck_sync::shared_lock_queue::try_lock(std::function<void ()> on_first = lock_queue_none) {   // Called when thread is first
+bool ck_sync::shared_lock_queue::try_lock(std::function<void ()> on_first) {   // Called when thread is first
 	// Add self into queue
 	std::unique_lock<std::mutex> locker(mutex2);
 	if (queue.empty()) {
@@ -121,7 +128,7 @@ bool ck_sync::shared_lock_queue::unlock() {
 	std::unique_lock<std::mutex> guard(mutex1);
 	// Remove self from queue
 	std::lock_guard<std::mutex> locker(mutex2);
-	if (queue->front() != std::this_thread::get_id())
+	if (queue.front() != std::this_thread::get_id())
 		return 0;
 	
 	queue.pop();

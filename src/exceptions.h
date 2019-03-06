@@ -29,6 +29,7 @@ namespace ck_exceptions {
 		// CK_STRING: Onlys tring message that is thrown to up
 		std::wstring native_string = nullptr;
 		
+	public:		
 		
 		ck_message(const wchar_t* message) throw() : native_wmessage(message), message_type(CK_WMESSAGE) {};
 		ck_message(const char* message) throw() : native_message(message), message_type(CK_MESSAGE) {};
@@ -36,8 +37,6 @@ namespace ck_exceptions {
 
 		
 		virtual ~ck_message() throw();
-		
-	public:
 		
 		friend std::wostream& operator<<(std::wostream& os, const ck_message& m);
 	};

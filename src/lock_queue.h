@@ -2,7 +2,10 @@
 
 #include <queue>
 #include <thread>
+#include <mutex>
 #include <condition_variable>
+#include <functional>
+
 
 namespace ck_sync {
 	// Empty lambda for lock_queue::lock()
@@ -27,7 +30,9 @@ namespace ck_sync {
 		// Coditional variable for wait
 		std::condition_variable cv;
 		// Threads queue
-		std::queue<int> queue;
+		std::queue<std::thread::id> queue;
+	
+	public:
 		
 		// Make this thread wait in lock queue
 		// on_blocked is called when thread begin vaiting for onlock
@@ -69,9 +74,11 @@ namespace ck_sync {
 		// Coditional variable for wait
 		std::condition_variable &cv;
 		// Threads queue
-		std::queue<int> queue;
+		std::queue<std::thread::id> queue;
+	
+	public:
 		
-		shared_lock_queue(std::mutex &_mtx, condition_variable &_cv) : mutex1(_mtx), cv(_cv) {};
+		shared_lock_queue(std::mutex &_mtx, std::condition_variable &_cv) : mutex1(_mtx), cv(_cv) {};
 		
 		// Make this thread wait in lock queue
 		// on_blocked is called when thread begin vaiting for onlock
@@ -83,7 +90,7 @@ namespace ck_sync {
 				  
 		// Allows passing mutex1 lock by reference and 
 		// operating with it out of the scope.
-		void sharedlock(std::unique_lock<std::mutex> &lock,              // Passing lock by reference allows 
+		void shared_lock(std::unique_lock<std::mutex> &lock,              // Passing lock by reference allows 
 																	     // acquiring it on the outside.
 																	     // Lock expected to be locked :D
 				  std::function<void ()> on_blocked = lock_queue_none,   // Called before thread waits lock

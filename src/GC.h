@@ -55,7 +55,8 @@ namespace ck_core {
 	 * Garbage collector. Collects your shit.
 	 */
 	class GC {
-		private:
+	
+	private:
 		// Protects object from multiple threads access.
 		std::mutex protect_lock;
 		int collecting;
@@ -70,6 +71,8 @@ namespace ck_core {
 		std::atomic<int> created_interval;
 		// Number of minimum objects to be created before next GC
 		const int MIN_CREATED_INTERVAL;
+		
+	public:
 		
 		GC();
 		~GC();
@@ -90,10 +93,10 @@ namespace ck_core {
 		int count();
 		
 		// Amount of roots
-		int roots();
+		int roots_count();
 		
 		// Amount of locked obejcts
-		int locks();
+		int locks_count();
 		
 		void collect();
 		void dispose();

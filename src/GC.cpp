@@ -48,7 +48,7 @@ GC::GC() :
 		objects(nullptr), 
 		created_interval(0) {};
 
-~GC() {
+GC::~GC() {
 	dispose();
 	
 	while (objects) {
@@ -73,7 +73,7 @@ GC::GC() :
 int GC::MIN_CREATED_INTERVAL = 16;
 
 // Called on object creation.
-void attach(vobject *o) {
+void GC::attach(vobject *o) {
 	if (o == nullptr)
 		return;
 	
@@ -97,7 +97,7 @@ void attach(vobject *o) {
 };
 
 // Called to make given object root object
-void attach_root(vobject *o) {
+void GC::attach_root(vobject *o) {
 	if (o == nullptr)
 		return;
 	
@@ -120,7 +120,7 @@ void attach_root(vobject *o) {
 	++roots_size;
 };
 
-void deattach_root(vobject *o) {
+void GC::deattach_root(vobject *o) {
 	if (o == nullptr)
 		return;
 	
@@ -133,7 +133,7 @@ void deattach_root(vobject *o) {
 };
 
 // Called to lock given object from deletion.
-void lock(vobject *o) {
+void GC::lock(vobject *o) {
 	if (o == nullptr)
 		return;
 	
@@ -156,7 +156,7 @@ void lock(vobject *o) {
 	++locks_size;
 };
 
-void unlock(vobject *o) {
+void GC::unlock(vobject *o) {
 	if (o == nullptr)
 		return;
 	
@@ -169,15 +169,15 @@ void unlock(vobject *o) {
 };
 
 // Amount of objects registered by GC.
-int count() { return size; };
+int GC::count() { return size; };
 
 // Amount of roots
-int roots() { return roots_size; };
+int GC::roots_count() { return roots_size; };
 
 // Amount of locked obejcts
-int locks() { return locks_size; };
+int GC::locks_count() { return locks_size; };
 
-void collect() {
+void GC::collect() {
 	std::unique_lock<std::mutex> guard(protect_lock);
 	if (collecting)
 		return;
@@ -286,7 +286,7 @@ void collect() {
 	gil->unlock_threads();
 };
 
-void dispose() {	
+void GC::dispose() {	
 	// Called on GIL dispose, so no GIL.lock needed.
 
 	std::unique_lock<std::mutex> guard(protect_lock);

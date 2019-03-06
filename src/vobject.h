@@ -18,7 +18,7 @@ namespace ck_vobject {
 		
 		public:
 		vtype(int);
-		vtype(vtype *, int);
+		vtype(vtype*, int);
 		
 		bool is_typeof(int id);
 		int get_id();
@@ -30,7 +30,7 @@ namespace ck_vobject {
 	const int VSOBJECT_TYPE = 1;
 	
 	// Following constant represents none type.
-	extern const vtype none(nullptr, NONE_TYPE);
+	// extern const vtype none(nullptr, NONE_TYPE);
 	
 	// Virtual object representation. Core object type in ck interpreter.
 	// Basically not thread safe. Allows any thread call 
@@ -46,11 +46,12 @@ namespace ck_vobject {
 	// unlock() -> Unlocks, logically.
 	// get/put/remove/contains are overriden by sync_<name>.
 	//                         basically they lock() if object is sync()
-	class vobject : gc_object {
+	class vscope;
+	class vobject : public gc_object {
 		// XXX: check for working
 		// Each object must implement type ierarchy to provide
 		// correct functionality and type recognition.
-		static const vtype type(nullptr, VOBJECT_TYPE);
+		// static const vtype type(nullptr, VOBJECT_TYPE);
 		
 		vobject();
 		
@@ -74,7 +75,7 @@ namespace ck_vobject {
 	//  and checked GIL::lock_requested to block itself"
 	// That means that this operation by definition MUST unblock before 
 	// thread responds to the GIL::lock_requested.
-	class vsobject : vobject {
+	/* class vsobject : vobject {
 		// XXX: check for working too
 		// Each object must implement type ierarchy to provide
 		// correct functionality and type recognition.
@@ -109,5 +110,5 @@ namespace ck_vobject {
 		bool sync_remove(vscope*, std::wstring);
 		
 		vobject *call(vscope*, std::vector<vobject*> args);
-	};
+	}; */
 };
