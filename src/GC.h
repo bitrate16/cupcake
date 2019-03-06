@@ -57,10 +57,13 @@ namespace ck_core {
 	 * Garbage collector chain.
 	 */
 	class gc_list {
-		public:
+	
+	public:
+	
 		gc_list  *next;
 		gc_object *obj;
-		// For stupid users, that decide to GC by themself
+		
+		// For stupid users, that decide to GC by themself even after delete is forbidden.
 		bool deleted_ptr;
 		
 		gc_list();
@@ -72,6 +75,7 @@ namespace ck_core {
 	class GC {
 	
 	private:
+	
 		// Protects object from multiple threads access.
 		std::mutex protect_lock;
 		int collecting;
@@ -85,7 +89,76 @@ namespace ck_core {
 		// Number of objects created since last gc_collect pass
 		std::atomic<int> created_interval;
 		// Number of minimum objects to be created before next GC
-		const int MIN_CREATED_INTERVAL;
+		// Yes, i like number 64.
+		// 64 is like 8 * 8 and 2 << (8 - 2).
+		// Or it can be represented as sum of eight 1's.
+		// 
+		// Yes, i'm capitan and that's my ship.
+        // 		                                               _  _
+        //                                                    ' \/ '
+        //    _  _                        <|
+        //     \/              __'__     __'__      __'__
+        //                    /    /    /    /     /    /
+        //                   /\____\    \____\     \____\               _  _
+        //                  / ___!___   ___!___    ___!___               \/
+        //                // (      (  (      (   (      (
+        //              / /   \______\  \______\   \______\
+        //            /  /   ____!_____ ___!______ ____!_____
+        //          /   /   /         //         //         /
+        //       /    /   |         ||         ||         |
+        //      /_____/     \         \\         \\         \
+        //            \      \_________\\_________\\_________\
+        //             \         |          |         |
+        //              \________!__________!_________!________/
+        //               \|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_/|
+        //                \    _______________                /
+        // ^^^%%%^%^^^%^%%^\_"/_)/_)_/_)__)/_)/)/)_)_"_'_"_//)/)/)/)%%%^^^%^^%%%%^
+        // ^!!^^"!%%!^^^!^^^!!^^^%%%%%!!!!^^^%%^^^!!%%%%^^^!!!!!!%%%^^^^%^^%%%^^^!
+		// ^!!!!^$$$!^!^!^!^$^!^$^!^  THIS IS THE BOTTOM  ^!!!$$$$^$^!$^!^!^!$^$$$
+		// &&&&!^$^^^^$$$!!!!!!^$^!^   > YOU ARE HERE <   ^!&$$$$^&&&&&&^^^^^!!$$$
+        // ^!!^^&^^^!^^^!!^^^%%%^^!&!!^^^%%^^^!!%%%%^^^!!!!!!%%%^^^^%^^%%%^^^!!&&^
+		//
+		// We've been travelling for too long over that sea.
+		//
+        //                      _==|            
+        //            _==|   )__)  |
+        //              )_)  )___) ))
+        //             )___) )____))_)
+        //        _    )____)_____))__)\
+        //         \---__|____/|___|___-\\---
+        // ^^^^^^^^^\   oo oo oo oo     /~~^^^^^^^
+        //   ~^^^^ ~~~~^^~~~~^^~~^^~~~~~
+        //     ~~^^      ~^^~     ~^~ ~^ ~^
+        //          ~^~~        ~~~^^~
+        // 
+		// But now we have reached the target
+		//
+        //     ,-'"""`-,    
+        //   ,' \ _|_ / `.  
+        //  /`.,'\ | /`.,'\ 
+        // (  /`. \|/ ,'\  )
+        // |--|--;=@=:--|--|
+        // (  \,' /|\ `./  )
+        //  \,'`./ | \,'`./ 
+        //   `. / """ \ ,'  
+        //     '-._|_,-`    
+        // 
+		// Here it is:
+		//
+		//     /\/\/\/\/\/\/\/\
+        //    / ╔══╗╔╗╔╗╔╗╔══╗ \
+        //    \ ║╔╗║║║║║║║║╔╗║ /
+        //    / ║║║║║║║║║║║║║║ \
+        //    \ ║║║║║║║║║║║║║║ /
+        //    / ║╚╝║║╚╝╚╝║║╚╝║ \
+        //    \ ╚══╝╚═╝╚═╝╚══╝ /
+		//     \/\/\/\/\/\/\/\/
+		//
+		// 	   ( ͡° ͜ʖ ͡°) what's this?
+		// 
+		// >> https://www.youtube.com/watch?v=osR1jctb47Y <<
+		// 
+		const int MIN_CREATED_INTERVAL = 64;
 		
 	public:
 		
@@ -93,7 +166,7 @@ namespace ck_core {
 		~GC();
 		
 		public:
-		// Called on object creation.
+		// Called on object creation to attach it to the current instance of GC.
 		void attach(ck_vobject::vobject *o);
 		
 		// Called to make given object root object
