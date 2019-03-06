@@ -2,16 +2,23 @@
 
 #include <csignal>
 
-#include "GC.h"
 #include "exceptions.h"
 
 using namespace std;
 using namespace ck_core;
 using namespace ck_exceptions;
 
+
+// Init with nothing
+thread_local ckthread* GIL::current_thread_ptr = nullptr;
+GIL*                   GIL::gil_instance       = nullptr;
+
+
 GIL::GIL() : sync_lock(sync_mutex, sync_condition) {
 	// Assign self instance
-	gil = this;
+	GIL::gil_instance = this;
+	GIL::current_thread();
+	GIL::gc = new GC();
 	
 	// No lock needed. First start.
 	// Allocate pointer to the new ckthread
@@ -51,9 +58,33 @@ GIL::~GIL() {
 		delete threads[i];
 	
 	// Call last garbage collection
-	gc.dispose();
+	gc->dispose();
+	
+	delete gc; // Press F to pay respects..
 	
 	// Finally commit suicide
 	delete this;
 };
+
+
+// For first: do nothing
+bool GIL::request_lock() { return 1; };
+		
+bool GIL::try_request_lock() { return 1; };
+
+bool GIL::free_lock() { return 1; };
+
+bool GIL::accept_lock() { return 1; };
+
+bool GIL::io_lock() { return 1; };
+
+bool GIL::io_unlock() { return 1; };
+
+void GIL::spawn_thread(std::function<void ()> body) {};
+
+void GIL::lock_for_condition(std::function<bool ()> condition_lambda) {};
+
+void GIL::lock_for_time_condition(std::function<bool ()> condition_lambda, long wait_delay) {};
+
+void GIL::notify_sync_lock() {};
 

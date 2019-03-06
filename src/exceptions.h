@@ -14,7 +14,11 @@ namespace ck_exceptions {
 	enum ck_message_type {
 		CK_WMESSAGE,
 		CK_MESSAGE,
-		CK_STRING
+		CK_STRING,
+		// Failed new()
+		BAD_ALLOC,
+		// Failed new[]()
+		BAD_ALLOC2
 	};
 	
 	class ck_message {
@@ -34,6 +38,8 @@ namespace ck_exceptions {
 		ck_message(const wchar_t* message) throw() : native_wmessage(message), message_type(CK_WMESSAGE) {};
 		ck_message(const char* message) throw() : native_message(message), message_type(CK_MESSAGE) {};
 		ck_message(const std::wstring& message) throw() : native_string(message), message_type(CK_STRING) {};
+		
+		ck_message(ck_message_type type) : message_type(type) {};
 
 		
 		virtual ~ck_message() throw();

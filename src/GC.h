@@ -16,9 +16,12 @@ namespace ck_core {
 		bool gc_reachable = 0;
 		
 	public:
+	
+		void* operator new(std::size_t count);
+		void* operator new[](std::size_t count);
 		
 		gc_object();
-		virtual ~gc_object();
+		virtual ~gc_object() throw();
 		
 		// Called when GC indexes all reachable objects
 		virtual void gc_mark();
@@ -168,15 +171,15 @@ namespace ck_core {
 		
 		public:
 		// Called on object creation to attach it to the current instance of GC.
-		void attach(ck_vobject::vobject *o);
+		void attach(gc_object *o);
 		
 		// Called to make given object root object
-		void attach_root(ck_vobject::vobject *o);
-		void deattach_root(ck_vobject::vobject *o);
+		void attach_root(gc_object *o);
+		void deattach_root(gc_object *o);
 		
 		// Called to lock given object from deletion.
-		void lock(ck_vobject::vobject *o);
-		void unlock(ck_vobject::vobject *o);
+		void lock(gc_object *o);
+		void unlock(gc_object *o);
 		
 		// Amount of objects registered by GC.
 		int count();

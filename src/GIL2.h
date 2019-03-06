@@ -71,6 +71,7 @@ namespace ck_core {
 		};
 	};
 	
+	class GC;
 	class GIL {
 		// Array of all created threads
 		std::vector<ckthread*> threads;
@@ -91,27 +92,31 @@ namespace ck_core {
 		// Points to the current ckthread
 		// Assigned when thread is being spawned via 
 		// spawn_thread or creation of GIL
-		static ckthread* current_thread_ptr;
+		static thread_local ckthread* current_thread_ptr; // zero-initialized
 	
 		// Pointer to itself
 		// Assigned when thread is being spawned via 
 		// spawn_thread or creation of GIL
-		static GIL* gil;
+		static GIL* gil_instance; // zero-initialized
 		
 		// Instance of Garbage Collector
-		ck_core::GC gc;
+		GC* gc; // zero-initialized
 	
 	public:
 		
 		GIL();
 		~GIL();
 		
-		inline ckthread* current_thread() {
-			return current_thread_ptr;
+		inline static ckthread* current_thread() {
+			return GIL::current_thread_ptr;
 		};
 		
-		inline GIL* instance() {
-			return gil;
+		inline static GIL* instance() {
+			return GIL::gil_instance;
+		};
+		
+		inline static GC* gc_instance() {
+			return GIL::instance()->gc;
 		};
 		
 		// Add current thread into sync_lock list.

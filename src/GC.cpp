@@ -1,10 +1,13 @@
+#include "GC.h"
+
+#include <exception>
+#include <new>
 
 #include "GIL2.h"
-#include "GC.h"
 #include "exceptions.h"
 
 using namespace ck_core;
-using namespace ck_vobject;
+using namespace ck_exceptions;
 
 
 // gc_object		
@@ -25,15 +28,33 @@ void gc_object::gc_mark() {
 		
 void gc_object::gc_finalize() {};
 
+void* operator new(std::size_t count) {
+	try {
+		return ::operator new(count);
+	} catch (std::bad_alloc) {
+		throw ck_message(ck_message_type::BAD_ALLOC);
+	}
+};
+
+void* operator new[](std::size_t count) {
+	try {
+		return ::operator new(count);
+	} catch (std::bad_alloc) {
+		throw ck_message(ck_message_type::BAD_ALLOC2);
+	}
+};
+
 void gc_object::operator delete  (void* ptr) {
+	// Assuming that operator delete is not accessible
 	::delete(ptr);
 };
 
 void gc_object::operator delete[](void* ptr) {
+	// Assuming that operator delete is not accessible
 	::delete[](ptr);
 };
 
-// gc_chain
+// gc_list
 gc_list::gc_list() : 
 				next(nullptr), 
 				obj(nullptr), 
@@ -53,28 +74,26 @@ GC::~GC() {
 	dispose();
 	
 	while (objects) {
-		gc_chain *c = objects;
+		gc_list *c = objects;
 		objects = objects->next;
 		delete c;
 	}
 	
 	while (roots) {
-		gc_chain *c = roots;
+		gc_list *c = roots;
 		roots = roots->next;
 		delete c;
 	}
 	
 	while (locks) {
-		gc_chain *c = locks;
+		gc_list *c = locks;
 		locks = locks->next;
 		delete c;
 	}
 };
 
-int GC::MIN_CREATED_INTERVAL = 16;
-
 // Called on object creation.
-void GC::attach(vobject *o) {
+void GC::attach(gc_object *o) {
 	if (o == nullptr)
 		return;
 	
@@ -82,9 +101,9 @@ void GC::attach(vobject *o) {
 	if (o->gc_record)
 		return;
 	
-	gc_chain *c = new gc_chain;
+	gc_list *c = new gc_list;
 	if (!c)
-		throw std::runtime_exception("GC error");
+		throw ck_message("GC error");
 	
 	++created_interval;
 	o->gc_record    = 1;
@@ -98,7 +117,7 @@ void GC::attach(vobject *o) {
 };
 
 // Called to make given object root object
-void GC::attach_root(vobject *o) {
+void GC::attach_root(gc_object *o) {
 	if (o == nullptr)
 		return;
 	
@@ -106,9 +125,9 @@ void GC::attach_root(vobject *o) {
 	if (o->gc_lock)
 		return;
 	
-	gc_chain *c = new gc_chain;
+	gc_list *c = new gc_list;
 	if (!c)
-		throw std::runtime_exception("GC error");
+		throw ck_message("GC error");
 	
 	o->gc_root       = 1;
 	o->gc_reachable  = 0;
@@ -121,7 +140,7 @@ void GC::attach_root(vobject *o) {
 	++roots_size;
 };
 
-void GC::deattach_root(vobject *o) {
+void GC::deattach_root(gc_object *o) {
 	if (o == nullptr)
 		return;
 	
@@ -134,7 +153,7 @@ void GC::deattach_root(vobject *o) {
 };
 
 // Called to lock given object from deletion.
-void GC::lock(vobject *o) {
+void GC::lock(gc_object *o) {
 	if (o == nullptr)
 		return;
 	
@@ -142,9 +161,9 @@ void GC::lock(vobject *o) {
 	if (o->gc_lock)
 		return;
 	
-	gc_chain *c = new gc_chain;
+	gc_list *c = new gc_list;
 	if (!c)
-		throw std::runtime_exception("GC error");
+		throw ck_message("GC error");
 	
 	o->gc_lock       = 1;
 	o->gc_reachable  = 0;
@@ -157,7 +176,7 @@ void GC::lock(vobject *o) {
 	++locks_size;
 };
 
-void GC::unlock(vobject *o) {
+void GC::unlock(gc_object *o) {
 	if (o == nullptr)
 		return;
 	
@@ -183,11 +202,11 @@ void GC::collect() {
 	if (collecting)
 		return;
 	
-	if (created_interval <= GC.MIN_CREATED_INTERVAL)
+	if (created_interval <= GC::MIN_CREATED_INTERVAL)
 		return;
 	
 	// Call lock on GIL to prevent interruption
-	if (!gil->try_lock_threads())
+	if (!GIL::instance()->try_request_lock())
 		return;
 	
 	created_interval = 0;
@@ -234,16 +253,17 @@ void GC::collect() {
 			chain         = chain->next;
 			delete tmp;
 		} else if (!chain->obj->gc_lock) {
-			gc_attach(chain->obj);
+			// <> already recorded
+			// attach(chain->obj);
 			chain->obj->gc_lock_chain = nullptr;
 			
 			gc_list *tmp = chain;
 			chain         = chain->next;
 			delete tmp;
 		} else {
-			chain->obj->mark();
+			chain->obj->gc_mark();
 			gc_list *tmp = chain;
-			chain         = chain->next;
+			chain        = chain->next;
 			
 			tmp->next = list;
 			list      = tmp;
@@ -259,15 +279,15 @@ void GC::collect() {
 		if (chain->deleted_ptr) {
 			gc_list *tmp = chain;
 			chain = chain->next;
-			--gc_size;			
+			--size;			
 			delete tmp;
 		} else if (!chain->obj->gc_reachable && !chain->obj->gc_root && !chain->obj->gc_lock) {			
 			gc_list *tmp = chain;
 			chain = chain->next;
-			--gc_size;
+			--size;
 			tmp->obj->gc_finalize();
 
-			delete tmp->object;
+			delete tmp->obj;
 			delete tmp;			
 		} else {
 			// Reset
@@ -284,7 +304,7 @@ void GC::collect() {
 
 	collecting = 0;	
 	
-	gil->unlock_threads();
+	GIL::instance()->free_lock();
 };
 
 void GC::dispose() {	
@@ -304,7 +324,7 @@ void GC::dispose() {
 	while (roots) {
 		gc_list *tmp = roots->next;
 		if (!roots->deleted_ptr)
-			roots->object->root_chain = nullptr;
+			roots->obj->gc_root_chain = nullptr;
 		delete roots;
 		roots = tmp;
 	}
@@ -316,7 +336,7 @@ void GC::dispose() {
 		if (objects->deleted_ptr) {
 			delete objects;
 		} else {
-			--gc_size;
+			--size;
 			objects->obj->gc_finalize();
 			
 			delete objects->obj;
