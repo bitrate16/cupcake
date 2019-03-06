@@ -1,10 +1,11 @@
-#include <stdexcept>
 
-#include "GC.h"
 #include "GIL2.h"
+#include "GC.h"
+#include "exceptions.h"
 
 using namespace ck_core;
 using namespace ck_vobject;
+
 
 // gc_object		
 gc_object::gc_object() : 

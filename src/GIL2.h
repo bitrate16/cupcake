@@ -99,7 +99,7 @@ namespace ck_core {
 		static GIL* gil;
 		
 		// Instance of Garbage Collector
-		GC gc;
+		ck_core::GC gc;
 	
 	public:
 		

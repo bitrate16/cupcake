@@ -1,7 +1,8 @@
 #pragma once
 
 #include "GIL2.h"
-#include "vobject.h"
+#include "GC.h"
+
 
 namespace ck_core {		
 	/*
@@ -10,8 +11,11 @@ namespace ck_core {
 	class GC;
 	class gc_list;
 	class gc_object {
-		public:
+	
+	protected:
 		bool gc_reachable = 0;
+		
+	public:
 		
 		gc_object();
 		virtual ~gc_object();
@@ -22,18 +26,29 @@ namespace ck_core {
 		// Called when GC destroyes current object
 		virtual void gc_finalize();
 		
-		private:
+		// Mark current object as reachable
+		inline void gc_reach() { gc_reachable = 1; };
+		
+	private:
+	
 		// Allow access only from GC class.
 		friend class GC;
 		
+		// Set to 1 if object is being recorded
 		bool gc_record;
+		// Set to 1 if object is GC root
 		bool   gc_root;
+		// Set to 1 if object is locked (like root, but not root, okay?)
 		bool   gc_lock;
 		
+		// Pointer to alignation in current GC chain
 		gc_list *gc_chain;
+		// Pointer to alignation to current GC lock
 		gc_list *gc_lock_chain;
+		// Pointer to alignation to current GC root
 		gc_list *gc_root_chain;
 		
+		// Allow delete only from GC
 		void operator delete  (void* ptr);
 		void operator delete[](void* ptr);
 	};
