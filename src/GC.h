@@ -88,12 +88,13 @@ namespace ck_core {
 		
 		// Number of objects created since last gc_collect pass
 		std::atomic<int> created_interval;
-		// Number of minimum objects to be created before next GC
-		// Yes, i like number 64.
-		// 64 is like 8 * 8 and 2 << (8 - 2).
-		// Or it can be represented as sum of eight 1's.
-		// 
-		// Yes, i'm capitan and that's my ship.
+		
+        // Number of minimum objects to be created before next GC
+        // Yes, i like number 64.
+        // 64 is like 8 * 8 and 2 << (8 - 2).
+        // Or it can be represented as sum of eight 1's.
+        // 
+        // Yes, i'm capitan and that's my ship.
         // 		                                               _  _
         //                                                    ' \/ '
         //    _  _                        <|
@@ -114,12 +115,12 @@ namespace ck_core {
         //                \    _______________                /
         // ^^^%%%^%^^^%^%%^\_"/_)/_)_/_)__)/_)/)/)_)_"_'_"_//)/)/)/)%%%^^^%^^%%%%^
         // ^!!^^"!%%!^^^!^^^!!^^^%%%%%!!!!^^^%%^^^!!%%%%^^^!!!!!!%%%^^^^%^^%%%^^^!
-		// ^!!!!^$$$!^!^!^!^$^!^$^!^  THIS IS THE BOTTOM  ^!!!$$$$^$^!$^!^!^!$^$$$
-		// &&&&!^$^^^^$$$!!!!!!^$^!^   > YOU ARE HERE <   ^!&$$$$^&&&&&&^^^^^!!$$$
+        // ^!!!!^$$$!^!^!^!^$^!^$^!^  THIS IS THE BOTTOM  ^!!!$$$$^$^!$^!^!^!$^$$$
+        // &&&&!^$^^^^$$$!!!!!!^$^!^   > YOU ARE HERE <   ^!&$$$$^&&&&&&^^^^^!!$$$
         // ^!!^^&^^^!^^^!!^^^%%%^^!&!!^^^%%^^^!!%%%%^^^!!!!!!%%%^^^^%^^%%%^^^!!&&^
-		//
-		// We've been travelling for too long over that sea.
-		//
+        //
+        // We've been travelling for too long over that sea.
+        //
         //                      _==|            
         //            _==|   )__)  |
         //              )_)  )___) ))
@@ -131,8 +132,8 @@ namespace ck_core {
         //     ~~^^      ~^^~     ~^~ ~^ ~^
         //          ~^~~        ~~~^^~
         // 
-		// But now we have reached the target
-		//
+        // But now we have reached the target
+        //
         //     ,-'"""`-,    
         //   ,' \ _|_ / `.  
         //  /`.,'\ | /`.,'\ 
@@ -143,21 +144,21 @@ namespace ck_core {
         //   `. / """ \ ,'  
         //     '-._|_,-`    
         // 
-		// Here it is:
-		//
-		//     /\/\/\/\/\/\/\/\
+        // Here it is:
+        //
+        //     /\/\/\/\/\/\/\/\
         //    / ╔══╗╔╗╔╗╔╗╔══╗ \
         //    \ ║╔╗║║║║║║║║╔╗║ /
         //    / ║║║║║║║║║║║║║║ \
         //    \ ║║║║║║║║║║║║║║ /
         //    / ║╚╝║║╚╝╚╝║║╚╝║ \
         //    \ ╚══╝╚═╝╚═╝╚══╝ /
-		//     \/\/\/\/\/\/\/\/
-		//
-		// 	   ( ͡° ͜ʖ ͡°) what's this?
-		// 
-		// >> https://www.youtube.com/watch?v=osR1jctb47Y <<
-		// 
+        //     \/\/\/\/\/\/\/\/
+        //
+        //    ( ͡° ͜ʖ ͡°) what's this?
+        // 
+        // >> https://www.youtube.com/watch?v=osR1jctb47Y <<
+        // 
 		const int MIN_CREATED_INTERVAL = 64;
 		
 	public:
