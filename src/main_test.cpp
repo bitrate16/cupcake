@@ -9,6 +9,8 @@ using namespace ck_ast;
 using namespace std;
 using namespace ck_translator;
 
+// make && valgrind --leak-check=full --track-origins=yes ./test
+
 int main() {
 	FILE *f = fopen("test.ck", "r");
 	

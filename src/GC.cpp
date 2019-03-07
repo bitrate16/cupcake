@@ -28,7 +28,7 @@ void gc_object::gc_mark() {
 		
 void gc_object::gc_finalize() {};
 
-void* operator new(std::size_t count) {
+void* gc_object::operator new(std::size_t count) {
 	try {
 		return ::operator new(count);
 	} catch (std::bad_alloc) {
@@ -36,9 +36,9 @@ void* operator new(std::size_t count) {
 	}
 };
 
-void* operator new[](std::size_t count) {
+void* gc_object::operator new[](std::size_t count) {
 	try {
-		return ::operator new(count);
+		return ::operator new[](count);
 	} catch (std::bad_alloc) {
 		throw ck_message(ck_message_type::BAD_ALLOC2);
 	}
