@@ -11,23 +11,46 @@ namespace ck_vobject {
 		virtual void mark();
 	};
 	
-	// Describes type of an object
-	class vtype {
-		vtype *parent;
-		int id;
+	class vscope;
+	class vobject : public gc_object {
 		
-		public:
-		vtype(int);
-		vtype(vtype*, int);
+	public:
 		
-		bool is_typeof(int id);
-		int get_id();
+		vobject();
+		virtual ~vobject();
+		
+		virtual vobject* get     (vscope*, const std::wstring);
+		virtual vobject* put     (vscope*, const std::wstring, vobject*);
+		virtual bool     contains(vscope*, const std::wstring);
+		virtual bool     remove  (vscope*, const std::wstring);
+		virtual vobject* call    (vscope*, std::vector<vobject*> args);
+		
+		virtual void gc_mark();
+		virtual void gc_finalize();
 	};
 	
-	// Default constants to define standard root types.
-	const int NONE_TYPE     = -1;
-	const int VOBJECT_TYPE  = 0;
-	const int VSOBJECT_TYPE = 1;
+	class vscope : public vobject {
+			
+	public:
+	
+		vscope* parent;
+		
+		vscope() : vobject::vobject() {};
+		~vscope() {};
+		
+		vobject* get     (vscope*, const std::wstring);
+		vobject* put     (vscope*, const std::wstring, vobject*);
+		bool     contains(vscope*, const std::wstring);
+		bool     remove  (vscope*, const std::wstring);
+		vobject* call    (vscope*, std::vector<vobject*> args);
+		
+		void declare(const std::wstring, vobject* obj = nullptr);
+	};
+	
+		// XXX: check for working
+		// Each object must implement type ierarchy to provide
+		// correct functionality and type recognition.
+		// static const vtype type(nullptr, VOBJECT_TYPE);
 	
 	// Following constant represents none type.
 	// extern const vtype none(nullptr, NONE_TYPE);
@@ -46,21 +69,6 @@ namespace ck_vobject {
 	// unlock() -> Unlocks, logically.
 	// get/put/remove/contains are overriden by sync_<name>.
 	//                         basically they lock() if object is sync()
-	class vscope;
-	class vobject : public gc_object {
-		// XXX: check for working
-		// Each object must implement type ierarchy to provide
-		// correct functionality and type recognition.
-		// static const vtype type(nullptr, VOBJECT_TYPE);
-		
-		vobject();
-		
-		vobject *get(vscope*, std::wstring);
-		vobject *put(vscope*, std::wstring, vobject*);
-		bool contains(vscope*, std::wstring);
-		bool remove(vscope*, std::wstring);
-		vobject *call(vscope*, std::vector<vobject*> args);
-	};
 	
 	// Virtual synchronized object.
 	// Wrapper for vobject but allows unique access to the fields.

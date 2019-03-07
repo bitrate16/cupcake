@@ -1833,6 +1833,10 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 	}
 };
 
+void ck_translator::translate(ck_bytecode& bytecode, ASTNode* n) {
+	translate(bytecode.lineno_table, bytecode.bytemap, n);
+};
+
 void ck_translator::translate(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, ASTNode* n) {
 	// lineno_table - Table of Line Numbers
 	// Provides range of commands mapped to a single line number
