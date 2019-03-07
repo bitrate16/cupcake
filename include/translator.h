@@ -82,19 +82,6 @@ namespace ck_bytecodes {
 	const int TRY_NO_CATCH = 1;
 	const int TRY_NO_ARG   = 2;
 	const int TRY_WITH_ARG = 3;
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 };
 
 namespace ck_translator {

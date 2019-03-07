@@ -1,7 +1,16 @@
 #include "GIL2.h"
 
+#include <thread>
+#include <vector>
+#include <condition_variable>
+#include <atomic>
 #include <csignal>
 
+#include "executer.h"
+#include "exceptions.h"
+#include "vobject.h"
+#include "GC.h"
+#include "lock_queue.h"
 #include "exceptions.h"
 
 using namespace std;
@@ -10,8 +19,9 @@ using namespace ck_exceptions;
 
 
 // Init with nothing
-thread_local ckthread* GIL::current_thread_ptr = nullptr;
-GIL*                   GIL::gil_instance       = nullptr;
+thread_local ckthread*    GIL::current_thread_ptr = nullptr;
+GIL*                      GIL::gil_instance       = nullptr;
+thread_local ck_executer* GIL::executer           = nullptr;
 
 
 GIL::GIL() : sync_lock(sync_mutex, sync_condition) {
@@ -19,6 +29,7 @@ GIL::GIL() : sync_lock(sync_mutex, sync_condition) {
 	GIL::gil_instance = this;
 	GIL::current_thread();
 	GIL::gc = new GC();
+	GIL::executer = new ck_executer();
 	
 	// No lock needed. First start.
 	// Allocate pointer to the new ckthread
@@ -54,6 +65,8 @@ GIL::~GIL() {
 	signal(SIGABRT, dummy_signal); // <-- abortion is murder
 	
 	// Derstroy all ck_threads (delete instances)
+	// Causing undefined behavior on accidental delete of GIL.
+	//  (but i don't care)
 	for (int i = 0; i < threads.size(); ++i) 
 		delete threads[i];
 	
@@ -61,9 +74,7 @@ GIL::~GIL() {
 	gc->dispose();
 	
 	delete gc; // Press F to pay respects..
-	
-	// Finally commit suicide
-	delete this;
+	delete executer;
 };
 
 

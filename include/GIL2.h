@@ -5,6 +5,7 @@
 #include <condition_variable>
 #include <atomic>
 
+#include "executer.h"
 #include "exceptions.h"
 #include "vobject.h"
 #include "GC.h"
@@ -71,8 +72,14 @@ namespace ck_core {
 		};
 	};
 	
+	// Forward Pointers
 	class GC;
+	class ck_executer;
+	
 	class GIL {
+	
+		friend int main(int argc, const char** argv);
+		
 		// Array of all created threads
 		std::vector<ckthread*> threads;
 		
@@ -93,6 +100,9 @@ namespace ck_core {
 		// Assigned when thread is being spawned via 
 		// spawn_thread or creation of GIL
 		static thread_local ckthread* current_thread_ptr; // zero-initialized
+		
+		// Assigned on thread creation. Thread-local instance of executer.
+		static thread_local ck_executer* executer;
 	
 		// Pointer to itself
 		// Assigned when thread is being spawned via 
@@ -117,6 +127,10 @@ namespace ck_core {
 		
 		inline static GC* gc_instance() {
 			return GIL::instance()->gc;
+		};
+		
+		inline static ck_executer* executer_instance() {
+			return GIL::instance()->executer;
 		};
 		
 		// Add current thread into sync_lock list.
