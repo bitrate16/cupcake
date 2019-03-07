@@ -18,7 +18,9 @@ gc_object::gc_object() :
 			gc_lock(0),
 			gc_chain(nullptr),
 			gc_lock_chain(nullptr),
-			gc_root_chain(nullptr) {};
+			gc_root_chain(nullptr) {
+				GIL::gc_instance()->attach(this);
+			};
 			
 gc_object::~gc_object() {};
 		
@@ -27,6 +29,7 @@ void gc_object::gc_mark() {
 };
 		
 void gc_object::gc_finalize() {};
+
 
 void* gc_object::operator new(std::size_t count) {
 	try {
@@ -53,6 +56,7 @@ void gc_object::operator delete[](void* ptr) {
 	// Assuming that operator delete is not accessible
 	::delete[](ptr);
 };
+
 
 // gc_list
 gc_list::gc_list() : 

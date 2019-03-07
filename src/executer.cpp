@@ -108,7 +108,7 @@ void ck_executer::execute(ck_core::ck_script* scr, std::wstring argn, ck_vobject
 	
 	vscope* new_scope = new vscope();
 	new_scope->root();
-	new_scope->define(argn, argv);
+	new_scope->declare(argn, argv);
 	scopes.push_back(new_scope);
 	
 	// Reset pointer to 0 and start

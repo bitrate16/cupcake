@@ -14,7 +14,7 @@ namespace ck_core {
 	class gc_object {
 	
 	public: // WARNING: put destructor and constructor in PUBLIC section
-	
+		
 		void* operator new(std::size_t count);
 		void* operator new[](std::size_t count);
 		
