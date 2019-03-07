@@ -91,7 +91,11 @@ bool GIL::io_lock() { return 1; };
 
 bool GIL::io_unlock() { return 1; };
 
-void GIL::spawn_thread(std::function<void ()> body) {};
+void GIL::spawn_thread(std::function<void ()> body) {
+	// bla-bla-bla
+	// ...
+	// GIL::instance()->notify_sync_lock();
+};
 
 void GIL::lock_for_condition(std::function<bool ()> condition_lambda) {};
 

@@ -1,7 +1,8 @@
 #pragma once
 
-#include "GIL2.h"
-#include "GC.h"
+#include <mutex>
+#include <condition_variable>
+#include <atomic>
 
 
 namespace ck_core {		
@@ -12,16 +13,19 @@ namespace ck_core {
 	class gc_list;
 	class gc_object {
 	
-	protected:
-		bool gc_reachable = 0;
-		
-	public:
+	public: // WARNING: put destructor and constructor in PUBLIC section
 	
 		void* operator new(std::size_t count);
 		void* operator new[](std::size_t count);
 		
+		// Let's look like it is private
+		//  Else that's not my problem if you delete it from somewhere.
+		void operator delete  (void* ptr);
+		void operator delete[](void* ptr);
+		
 		gc_object();
-		virtual ~gc_object() throw();
+		
+		virtual ~gc_object();
 		
 		// Called when GC indexes all reachable objects
 		virtual void gc_mark();
@@ -31,6 +35,8 @@ namespace ck_core {
 		
 		// Mark current object as reachable
 		inline void gc_reach() { gc_reachable = 1; };
+		
+		bool gc_reachable = 0;
 		
 	private:
 	
@@ -50,10 +56,6 @@ namespace ck_core {
 		gc_list *gc_lock_chain;
 		// Pointer to alignation to current GC root
 		gc_list *gc_root_chain;
-		
-		// Allow delete only from GC
-		void operator delete  (void* ptr);
-		void operator delete[](void* ptr);
 	};
 	
 	/*

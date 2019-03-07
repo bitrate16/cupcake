@@ -3,8 +3,8 @@
 #include <exception>
 #include <new>
 
-#include "GIL2.h"
 #include "exceptions.h"
+#include "GIL2.h"
 
 using namespace ck_core;
 using namespace ck_exceptions;

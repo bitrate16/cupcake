@@ -1,18 +1,14 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
-#include "GIL2.h"
+#include "GC.h"
 
 
-namespace ck_vobject {
-	class gc_object {
-		public:
-		virtual void mark();
-	};
-	
+namespace ck_vobject {	
 	class vscope;
-	class vobject : public gc_object {
+	class vobject : public ck_core::gc_object {
 		
 	public:
 		
@@ -35,8 +31,8 @@ namespace ck_vobject {
 	
 		vscope* parent;
 		
-		vscope() : vobject::vobject() {};
-		~vscope() {};
+		vscope();
+		~vscope();
 		
 		vobject* get     (vscope*, const std::wstring);
 		vobject* put     (vscope*, const std::wstring, vobject*);
@@ -44,7 +40,16 @@ namespace ck_vobject {
 		bool     remove  (vscope*, const std::wstring);
 		vobject* call    (vscope*, std::vector<vobject*> args);
 		
+		// Force declare variable in this scope.
 		void declare(const std::wstring, vobject* obj = nullptr);
+		
+		// Makes scope being gc_root
+		void root();
+		// Unmakes scope being gc_root
+		void unroot();
+		
+		virtual void gc_mark();
+		virtual void gc_finalize();
 	};
 	
 		// XXX: check for working

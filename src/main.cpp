@@ -1,5 +1,6 @@
 #include "parser.h"
 #include "executer.h"
+#include "exceptions.h"
 #include "script.h"
 #include "sfile.h"
 #include "GIL2.h"
@@ -10,6 +11,8 @@ using namespace ck_parser;
 using namespace ck_ast;
 using namespace ck_translator;
 using namespace ck_bytecodes;
+using namespace ck_sfile;
+using namespace ck_exceptions;
 using namespace ck_core;
 
 
@@ -35,8 +38,8 @@ int main(int argc, const char** argv) {
 	
 	// Convert AST to bytecodes & initialize script instance
 	ck_script* scr = new ck_script();
-	scr->directory = ck_sfile::get_current_working_dir();
-	scr->filename  = std::wstring(mbfilename.begin(), mbfilename.end());
+	scr->directory = get_current_working_dir();
+	scr->filename  = wstring(mbfilename.begin(), mbfilename.end());
 	translate(scr->bytecode.bytemap, scr->bytecode.lineno_table, n);
 	delete n;
 	
@@ -44,7 +47,13 @@ int main(int argc, const char** argv) {
 	// Initialize GIL, GC and other root components
 	GIL* gil = new GIL(); // <-- all is done inside
 	
-	GIL::executer_instance()->execute(scr);
+	try {
+		GIL::executer_instance()->execute(scr);
+	} catch (ck_message& msg) {
+		// XXX: High level elevated exception. Should exit, or process it via system.defexceptionhandler()
+	}
+	
+	// Normally the next step is make this program wait for signals or other threads to die.
 	
 	// Free up heap
 	delete gil;
