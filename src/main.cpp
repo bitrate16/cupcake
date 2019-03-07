@@ -1,6 +1,7 @@
 #include "parser.h"
 #include "executer.h"
 #include "exceptions.h"
+#include "translator.h"
 #include "script.h"
 #include "sfile.h"
 #include "GIL2.h"

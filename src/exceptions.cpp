@@ -8,6 +8,7 @@
 using namespace std;
 using namespace ck_exceptions;
 
+
 wostream& ck_exceptions::operator<<(wostream& os, const ck_message& m) {
 	switch(m.message_type) {
 		case ck_message_type::CK_MESSAGE: {

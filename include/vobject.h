@@ -15,11 +15,11 @@ namespace ck_vobject {
 		vobject();
 		virtual ~vobject();
 		
-		virtual vobject* get     (vscope*, const std::wstring);
-		virtual vobject* put     (vscope*, const std::wstring, vobject*);
-		virtual bool     contains(vscope*, const std::wstring);
-		virtual bool     remove  (vscope*, const std::wstring);
-		virtual vobject* call    (vscope*, std::vector<vobject*> args);
+		virtual vobject* get     (vscope*, const std::wstring&);
+		virtual vobject* put     (vscope*, const std::wstring&, vobject*);
+		virtual bool     contains(vscope*, const std::wstring&);
+		virtual bool     remove  (vscope*, const std::wstring&);
+		virtual vobject* call    (vscope*, std::vector<vobject*>);
 		
 		virtual void gc_mark();
 		virtual void gc_finalize();
@@ -34,14 +34,14 @@ namespace ck_vobject {
 		vscope();
 		~vscope();
 		
-		vobject* get     (vscope*, const std::wstring);
-		vobject* put     (vscope*, const std::wstring, vobject*);
-		bool     contains(vscope*, const std::wstring);
-		bool     remove  (vscope*, const std::wstring);
-		vobject* call    (vscope*, std::vector<vobject*> args);
+		vobject* get     (vscope*, const std::wstring&);
+		vobject* put     (vscope*, const std::wstring&, vobject*);
+		bool     contains(vscope*, const std::wstring&);
+		bool     remove  (vscope*, const std::wstring&);
+		vobject* call    (vscope*, std::vector<vobject*>);
 		
 		// Force declare variable in this scope.
-		void declare(const std::wstring, vobject* obj = nullptr);
+		void declare(const std::wstring& name, vobject* obj = nullptr);
 		
 		// Makes scope being gc_root
 		void root();
