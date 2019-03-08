@@ -6,7 +6,7 @@
 
 namespace ck_bytecodes {
 	const int LINENO               = 9; // Marks the lineno change
-	const int NOP                  = 10;
+	const int NOP                  = 10; // Does nothing.
 	const int PUSH_CONST_INT       = 11; // Push Int
 	const int PUSH_CONST_DOUBLE    = 12; // Push Double
 	const int PUSH_CONST_BOOLEAN   = 13; // Push Bool
@@ -14,10 +14,10 @@ namespace ck_bytecodes {
 	const int PUSH_CONST_UNDEFINED = 15; // Push Undefined
 	const int PUSH_CONST_STRING    = 16; // Push String
 	const int LOAD_VAR             = 17; // scope.get_var(name)
-	const int VSTACK_POP           = 18; // Pop the valut from stack and do nothing with it
-	const int PUSH_CONST_ARRAY     = 19;
-	const int PUSH_CONST_OBJECT    = 20;
-	const int DEFINE_VAR           = 21;
+	const int VSTACK_POP           = 18; // Pop the value from stack and do nothing with it
+	const int PUSH_CONST_ARRAY     = 19; // Push Array
+	const int PUSH_CONST_OBJECT    = 20; // Push Object
+	const int DEFINE_VAR           = 21; // Define variable vith [top] value in current scope
 	const int REF_CALL             = 24; // a.b() or a['b']()
 	const int VSTACK_DUP           = 25; // Duplicate top of the stack
 	const int LOAD_MEMBER          = 26; // stack.next_to_top().get_member(stack.pop())
@@ -27,10 +27,10 @@ namespace ck_bytecodes {
 	const int STORE_VAR            = 30; // scope.store(name)
 	const int STORE_FIELD          = 31; // top:[value, ref]
 	const int STORE_MEMBER         = 32; // top:[value, key, ref]
-	const int UNARY_OPERATOR       = 33;
-	const int VSTACK_SWAP          = 34; // swap stack top and top-1
-	const int VSTACK_SWAP1         = 35; // swap stack top-1 and top-2
-	const int VSTACK_SWAP2         = 36; // swap stack top-2 and top-3
+	const int UNARY_OPERATOR       = 33; // Call of unary operator for [top]
+	const int VSTACK_SWAP          = 34; // swap stack [top] and [top-1]
+	const int VSTACK_SWAP1         = 35; // swap stack [top-1] and [top-2]
+	const int VSTACK_SWAP2         = 36; // swap stack [top-2] and [top-3]
 	const int VSTATE_PUSH_SCOPE    = 37; // Push scope to scope list
 	const int VSTATE_POP_SCOPE     = 38; // Pop scope from scope list
 	const int JMP_IF_ZERO          = 39; // Jump to [int] address if top of the stack is not zero. stack.pop()
@@ -41,9 +41,9 @@ namespace ck_bytecodes {
 	const int RAISE_STRING         = 44; // raise from translator. ~Eof
 	const int VSTATE_POP_SCOPES    = 45; // Pop N scopes from scope list
 	const int RETURN_VALUE         = 46; // Return value
-	const int PUSH_CONST_FUNCTION  = 47;
-	const int VSTATE_PUSH_TRY      = 48;
-	const int VSTATE_POP_TRY       = 49;
+	const int PUSH_CONST_FUNCTION  = 47; // Push BytecodeFunction
+	const int VSTATE_PUSH_TRY      = 48; // Push try frame
+	const int VSTATE_POP_TRY       = 49; // Pop try frame
 	
 	const int OPT_ADD     = 1;
 	const int OPT_SUB     = 2;
