@@ -7,12 +7,12 @@
 namespace ck_bytecodes {
 	const int LINENO               = 9; // Marks the lineno change
 	const int NOP                  = 10;
-	const int PUSH_CONST_INT       = 11;
-	const int PUSH_CONST_DOUBLE    = 12;
-	const int PUSH_CONST_BOOLEAN   = 13;
-	const int PUSH_CONST_NULL      = 14;
-	const int PUSH_CONST_UNDEFINED = 15;
-	const int PUSH_CONST_STRING    = 16;
+	const int PUSH_CONST_INT       = 11; // Push Int
+	const int PUSH_CONST_DOUBLE    = 12; // Push Double
+	const int PUSH_CONST_BOOLEAN   = 13; // Push Bool
+	const int PUSH_CONST_NULL      = 14; // Push Null
+	const int PUSH_CONST_UNDEFINED = 15; // Push Undefined
+	const int PUSH_CONST_STRING    = 16; // Push String
 	const int LOAD_VAR             = 17; // scope.get_var(name)
 	const int VSTACK_POP           = 18; // Pop the valut from stack and do nothing with it
 	const int PUSH_CONST_ARRAY     = 19;
