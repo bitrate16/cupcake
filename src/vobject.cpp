@@ -45,9 +45,7 @@ std::wstring vobject::string_value() {
 
 // S C O P E
 
-vscope* parent;
-
-vscope::vscope() : vobject::vobject() {};
+vscope::vscope(vscope* parent) : vobject::vobject() { this->parent = parent; };
 vscope::~vscope() {};
 
 vobject* vscope::get     (vscope* scope, const std::wstring& name) { return nullptr; };

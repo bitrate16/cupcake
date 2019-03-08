@@ -124,8 +124,9 @@ namespace ck_core {
 		void execute(ck_core::ck_script* scr);
 		
 		// Executes passed script by allocating new stack frame.
-		// argn would be passed to new created scope with value of argv
-		void execute(ck_core::ck_script* scr, std::wstring argn, ck_vobject::vobject* argv);
+		// If argv is non null it will be appended to the scope.
+		// If scope is not null, it will be used as the main scope
+		void execute(ck_core::ck_script* scr, ck_vobject::vscope* scope = nullptr, std::wstring argn = L"", ck_vobject::vobject* argv = nullptr);
 		
 		// Allows executing object as a function.
 		// Expected only two branches: 

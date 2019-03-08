@@ -416,7 +416,7 @@ void ck_executer::exec_bytecode() {
 	}
 };
 
-void ck_executer::execute(ck_core::ck_script* scr) {
+void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, std::wstring argn, ck_vobject::vobject* argv) {
 	// Create stack_window and save executer state
 	windows.push_back(stack_window());
 	windows.back().scope_id  = scopes.size()     - 1;
@@ -431,75 +431,19 @@ void ck_executer::execute(ck_core::ck_script* scr) {
 	scripts.push_back(scr);
 	int script_id = scripts.size();
 	
-	vscope* new_scope = new vscope();
-	new_scope->root();
-	scopes.push_back(new_scope);
+	vscope* new_scope = nullptr;
 	
-	// Reset pointer to 0 and start
-	pointer = 0;
-	
-	try {
-		exec_bytecode();
-	} catch(const ck_exceptions::ck_message& msg) {
-		throw msg;
-	} catch (const std::exception& ex) {
-		throw(ex);
-	}  catch (...) {
-		throw(ck_exceptions::ck_message_type::NATIVE_EXCEPTION);
-	} 
-	
-	// Restore previous state
-	if (script_id != scripts.size()) {
-		// XXX: Error happenned, stack shifted
+	if (scope == nullptr) {
+		new_scope = new vscope();
+		new_scope->root();
+		if (argv != nullptr)
+			new_scope->declare(argn, argv);
+	} else {
+		new_scope = scope;
+		// new_scope->root(); <-- it must alreadu be root
+		if (argv != nullptr)
+			new_scope->declare(argn, argv);
 	}
-	
-	// Restore all scopes
-	for (int i = scopes.size() - 1; i > windows.back().scope_id; --i) {
-		if (scopes[i])
-			scopes[i]->unroot();
-		
-		scopes.pop_back();
-	}
-	
-	// Restore all try frames
-	for (int i = try_stack.size() - 1; i > windows.back().try_id; --i) 
-		try_stack.pop_back();
-	
-	// Restore all functional frames
-	for (int i = call_stack.size() - 1; i > windows.back().call_id; --i) 
-		call_stack.pop_back();
-	
-	// Restore objects stack
-	for (int i = objects.size() - 1; i > windows.back().object_id; --i) 
-		objects.pop_back();
-	
-	// Restore all objects
-	for (int i = objects.size() - 1; i > windows.back().object_id; --i) 
-		objects.pop_back();
-	
-	pointer = windows.back().pointer;
-	windows.pop_back();
-	return;
-};
-
-void ck_executer::execute(ck_core::ck_script* scr, std::wstring argn, ck_vobject::vobject* argv) {
-	// Create stack_window and save executer state
-	windows.push_back(stack_window());
-	windows.back().scope_id  = scopes.size()     - 1;
-	windows.back().script_id = scripts.size()    - 1;
-	windows.back().call_id   = call_stack.size() - 1;
-	windows.back().try_id    = try_stack.size()  - 1;
-	windows.back().object_id = objects.size()    - 1;
-	windows.back().window_id = windows.size()    - 1;
-	windows.back().pointer   = pointer;
-	
-	// Push script instance to the bottom
-	scripts.push_back(scr);
-	int script_id = scripts.size();
-	
-	vscope* new_scope = new vscope();
-	new_scope->root();
-	new_scope->declare(argn, argv);
 	scopes.push_back(new_scope);
 	
 	// Reset pointer to 0 and start
@@ -522,7 +466,7 @@ void ck_executer::execute(ck_core::ck_script* scr, std::wstring argn, ck_vobject
 	
 	// Restore all scopes
 	for (int i = scopes.size() - 1; i > windows.back().scope_id; --i) {
-		if (scopes[i])
+		if (scopes[i] && (scope == nullptr || i != windows.back().scope_id))
 			scopes[i]->unroot();
 		
 		scopes.pop_back();

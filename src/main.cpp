@@ -5,6 +5,7 @@
 #include "script.h"
 #include "sfile.h"
 #include "GIL2.h"
+#include "primary_init.h"
 
 using namespace std;
 using namespace ck_token;
@@ -15,6 +16,7 @@ using namespace ck_bytecodes;
 using namespace ck_sfile;
 using namespace ck_exceptions;
 using namespace ck_core;
+using namespace ck_vobject;
 
 
 // make && valgrind --leak-check=full --track-origins=yes ./test
@@ -48,8 +50,11 @@ int main(int argc, const char** argv) {
 	// Initialize GIL, GC and other root components
 	GIL* gil = new GIL(); // <-- all is done inside
 	
+	vscope *scope = new vscope();
+	GIL::gc_instance()->attach_root(scope);
+	
 	try {
-		GIL::executer_instance()->execute(scr);
+		GIL::executer_instance()->execute(scr, scope);
 	} catch (ck_message& msg) {
 		// XXX: High level elevated exception. Should exit, or process it via system.defexceptionhandler()
 	}

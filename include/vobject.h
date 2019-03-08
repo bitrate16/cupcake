@@ -43,7 +43,7 @@ namespace ck_vobject {
 	
 		vscope* parent;
 		
-		vscope();
+		vscope(vscope* parent = nullptr);
 		~vscope();
 		
 		vobject* get     (vscope*, const std::wstring&);
