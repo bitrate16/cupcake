@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <string>
+#include <iostream>
 
 // Simple file class.
 // Allows representing input path as a tree of file paths
@@ -10,6 +11,8 @@
 // <key>  ::= <any key but '/' or '\'>
 
 namespace ck_sfile {
+	
+	// XXX: Allow directory walking: ../, <path> + ../../......
 	 
 	std::wstring get_current_working_dir();
 	
@@ -26,26 +29,48 @@ namespace ck_sfile {
 	
 		// Construct object from string splitting it by '/' and '\'
 		sfile(const std::wstring& str) {
+			std::wstring nstr = str + L"/";
+			
 			// Parse input string to path vector
 			int last_cursor = 0;
-			for (int i = 0; i < str.size(); ++i) {
+			for (int i = 0; i < nstr.size(); ++i) { 
 				// Iter on '/' or '\' and skip first '/' on linux
-				if (str[i] == '\\' || str[i] == '/') {
-					if (i == 0)
-						absolute_path = 1;
-					else {
+				if (nstr[i] == U'\\' || nstr[i] == U'/') {
+#ifdef _WIN32
+					// owo
+#else               // > NOTWINDOWS
+					if (i == 0) {
+						absolute_path = 1; // linux root notation '/'
+						last_cursor   = 1;
+						continue;
+					} else 			
+#endif              // < NOTWINDOWS
+					{
+						if (i == last_cursor) {
+							last_cursor = i;
+							continue;
+						}
+						
 						std::wstring temp;
 						for (int k = last_cursor; k < i; ++k)
-							temp += str[k];
-						++i;
+							temp += nstr[k];
+						last_cursor = i + 1;
+						
 						path.push_back(temp);
+						
+#ifdef _WIN32           // > WINDOWS
+						if (path.size() == 1 && nstr.back() == U':') // windows root notation <key>:
+							absolute_path;
+#endif                  // < WINDOWS
+
+						continue;
 					}
 				}
 			}
 		};
 		
 		// Create new path by appending subpath to the passed ref.
-		sfile(const sfile& ref, const std::wstring& subpath) {
+		sfile(const sfile& ref, const sfile& subpath) {
 			*this = ref;
 			*this += subpath;
 		};
@@ -165,6 +190,101 @@ namespace ck_sfile {
 			return string_path;
 		};
 	
+		// Normalize current path using passed parent path.
+		// Usually uses current_directory().
+		// When amount of ../ as bigger than amount of path keys, 
+		// path is concatenated with parent_path.
+		void normalize(const sfile& parent_path) {
+			// convert foo/bar/tar/sar/mar/kar/../../../par  -->  foo/bar/tar/par
+			// convert ./foo --> /absolute/program/path/foo
+			
+			// Total weight of names
+			int nweight = 0;
+			
+			for (int i = 0; i < path.size(); ++i) {
+				if (path[i] == L"..") 
+					--nweight;
+				else
+					++nweight;
+				
+				if (nweight < 0)
+					break;
+			}
+			
+			if (nweight < 0) {
+				if (absolute_path)
+					path.clear();
+				else {
+					sfile absolute(parent_path, *this);
+					path = absolute.path;
+					absolute_path = absolute.absolute_path;
+					
+					nweight = 0;
+					for (int i = 0; i < path.size(); ++i) {
+						if (path[i] == L"..") 
+							--nweight;
+						else
+							++nweight;
+						
+						if (nweight < 0)
+							break;
+					}
+						
+					if (nweight < 0)
+						path.clear();
+					else {
+						// Try to normalize absolute path assuming name weight > 0
+						
+						for (int i = 0; i < path.size() - 1; ++i) {
+							if (path[i + 1] == L"..") {
+								path.erase(path.begin() + i + 1);
+								path.erase(path.begin() + i);
+								i -= 2;
+								continue;
+							}
+						}
+					}
+				}
+			} else {
+				// Try to normalize simple path assuming name weight > 0
+				
+				for (int i = 0; i < path.size() - 1; ++i) {
+					if (path[i + 1] == L"..") {
+						path.erase(path.begin() + i + 1);
+						path.erase(path.begin() + i);
+						i -= 2;
+						continue;
+					}
+				}
+			}
+		};
+		
+		friend std::wostream& operator<<(std::wostream& os, const sfile& f) {
+				if (f.absolute_path) {
+#ifdef _WIN32
+					
+#else
+					os << L"/ ";
+#endif
+				}
+				
+				for (int i = 0; i < f.path.size(); ++i) {			
+#ifdef _WIN32
+					if (i != path.size() - 1)
+						os << f.path[i] << L" \\ ";
+					else
+						os << f.path[i];
+#else
+					if (i != f.path.size() - 1)
+						os << f.path[i] << L" / ";
+					else
+						os << f.path[i];
+#endif
+				}
+			
+			return os;
+		};
+		
 		
 		static sfile current_directory() {
 			return get_current_working_dir();
