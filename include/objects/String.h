@@ -71,10 +71,10 @@ namespace ck_objects {
 		std::wstring concatenate(std::wstring&);
 		
 		// Remove all whitespace characters in front of the string
-		std::wstring stringLeading();
+		std::wstring stripLeading();
 		
 		// Remove all whitespace characters in back of the string
-		std::wstring stringTrailing();
+		std::wstring stripTrailing();
 		
 		// ~ str.stripLeading().stripTrailing()
 		std::wstring strip();

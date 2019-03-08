@@ -218,31 +218,92 @@ bool operator!=(const String&);
 */
 
 // String operations
-wchar_t charAt(int index);
-/* {
-// XXX: Maybe throw range error?
-if (index < 0 || index >= string.size())
-return -1;
 
-return string[index];
-};*/
+// Returns char at position.
+//  Returns -1 if out of bounds.
+wchar_t String::charAt(int index) {
+	// XXX: Maybe throw range error?
+	if (index < 0 || index >= str.size())
+		return -1;
 
-std::wstring concatenate(std::wstring&);
+	return str[index];
+};
+
+std::wstring String::concatenate(std::wstring& string) {
+	return str + string;
+};
 
 // Remove all whitespace characters in front of the string
-std::wstring stringLeading();
+std::wstring String::stripLeading() {
+	int i = 0;
+	while (i < str.size())
+		if (str[i] == ' ' || str[i] == '\t' || str[i] == '\n' || str[i] == '\r')
+			++i;
+		else
+			break;
+	
+	if (i == str.size() - 1)
+		return L"";
+	
+	return str.substr(i, str.size() - i);
+};
 
 // Remove all whitespace characters in back of the string
-std::wstring stringTrailing();
+std::wstring String::stripTrailing() {
+	int i = str.size() - 1;
+	while (i >= 0)
+		if (str[i] == ' ' || str[i] == '\t' || str[i] == '\n' || str[i] == '\r')
+			--i;
+		else
+			break;
+	
+	if (i == 0)
+		return L"";
+	
+	return str.substr(0, i);
+};
 
 // ~ str.stripLeading().stripTrailing()
-std::wstring strip();
+std::wstring String::strip() {
+	int a = 0;
+	while (a < str.size())
+		if (str[a] == ' ' || str[a] == '\t' || str[a] == '\n' || str[a] == '\r')
+			++a;
+		else
+			break;
+	
+	if (a == str.size() - 1)
+		return L"";
+	
+	int b = str.size() - 1;
+	while (b >= 0)
+		if (str[b] == ' ' || str[b] == '\t' || str[b] == '\n' || str[b] == '\r')
+			--b;
+		else
+			break;
+	
+	if (b == 0)
+		return L"";
+	
+	return str.substr(a, b - a);
+	
+};
 
 // Returns 1 if string is empty
-bool isEmpty();
+bool String::isEmpty() {
+	return str.size() == 0;
+};
 
 // Returns 1 if string consists of whitespace characters
-bool isBlank();
+bool String::isBlank() {
+	int a = 0;
+	while (a < str.size())
+		if (str[a] == ' ' || str[a] == '\t' || str[a] == '\n' || str[a] == '\r')
+			++a;
+		else
+			return 0;
+	return 1;
+};
 
 // Returns index of character in string or -1
 int indexOf(wchar_t);
