@@ -49,7 +49,7 @@ namespace ck_objects {
 		wchar_t& operator[](int index);
 		
 		// Returns value of string index
-		wchar_t& operator[](int index) const;
+		wchar_t operator[](int index) const;
 		
 		// Compare two strings
 		bool operator==(const String&);

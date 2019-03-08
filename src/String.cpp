@@ -198,19 +198,27 @@ wstring String::string_value() {
 int String::length() {
 	return str.size();
 };
-/*
+
 // Returns reference to an index of string
-wchar_t& operator[](int index);
+wchar_t String::operator[](int index) const {
+	return str[index];
+};
 
 // Returns value of string index
-wchar_t& operator[](int index) const;
+wchar_t& String::operator[](int index) {
+	return str[index];
+};
 
 // Compare two strings
-bool operator==(const String&);
+bool String::operator==(const String& s) {
+	return s.str == str;
+};
 
 // Uncompare two strings
-bool operator!=(const String&);
-*/
+bool String::operator!=(const String& s) {
+	return s.str != str;
+};
+
 
 // String operations
 
