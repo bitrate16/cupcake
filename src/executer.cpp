@@ -1,5 +1,7 @@
 #include "executer.h"
 
+#include <vector>
+
 #include "GIL2.h"
 #include "vobject.h"
 #include "script.h"
@@ -416,7 +418,7 @@ void ck_executer::exec_bytecode() {
 	}
 };
 
-void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, std::wstring argn, ck_vobject::vobject* argv) {
+void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, std::vector<std::wstring>* argn, std::vector<ck_vobject::vobject*>* argv) {
 	// Create stack_window and save executer state
 	windows.push_back(stack_window());
 	windows.back().scope_id  = scopes.size()     - 1;
@@ -436,14 +438,17 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 	if (scope == nullptr) {
 		new_scope = new vscope();
 		new_scope->root();
-		if (argv != nullptr)
-			new_scope->declare(argn, argv);
 	} else {
 		new_scope = scope;
 		// new_scope->root(); <-- it must alreadu be root
-		if (argv != nullptr)
-			new_scope->declare(argn, argv);
 	}
+		
+	if (argn != nullptr && argv != nullptr) {
+		int argc = argn->size() < argv->size() ? argn->size() : argv->size();
+		for (int i = 0; i < argc; ++i)
+			new_scope->declare((*argn)[i], (*argv)[i]);
+	}
+	
 	scopes.push_back(new_scope);
 	
 	// Reset pointer to 0 and start
@@ -493,7 +498,7 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 	return;
 };
 
-void ck_executer::call_object(ck_vobject::vobject* obj) {};
+ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj) { return nullptr; };
 
 void ck_executer::goto_address(int bytecode_address) {};
 

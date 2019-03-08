@@ -38,7 +38,7 @@ namespace ck_objects {	// WARNING: This and all standard objects uses prototype 
 		bool     contains(const std::wstring&);
 		bool     remove  (const std::wstring&);
 		
-		// Called on interpreter start ti initialize prototype
+		// Called on interpreter start to initialize prototype
 		static vobject* create_proto();
 	};
 	

@@ -124,15 +124,15 @@ namespace ck_core {
 		void execute(ck_core::ck_script* scr);
 		
 		// Executes passed script by allocating new stack frame.
-		// If argv is non null it will be appended to the scope.
+		// If argv is non empty, it will be appended to the scope.
 		// If scope is not null, it will be used as the main scope
-		void execute(ck_core::ck_script* scr, ck_vobject::vscope* scope = nullptr, std::wstring argn = L"", ck_vobject::vobject* argv = nullptr);
+		void execute(ck_core::ck_script* scr, ck_vobject::vscope* scope = nullptr, std::vector<std::wstring>* argn = nullptr, std::vector<ck_vobject::vobject*>* argv = nullptr);
 		
 		// Allows executing object as a function.
 		// Expected only two branches: 
 		// 1. obj is typeof native_function and supports direct call
 		// 2. obj is any other type and does not support direct call. Then obj.::vobject::call() is called.
-		void call_object(ck_vobject::vobject* obj);
+		ck_vobject::vobject* call_object(ck_vobject::vobject* obj);
 		
 		// Jumps on the address of bytecode map
 		void goto_address(int bytecode_address);

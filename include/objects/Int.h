@@ -1,22 +1,23 @@
 #pragma once
 
 #include <vector>
+#include <cwchar>
 
 #include "Object.h"
 
 namespace ck_objects {	
 
-	class Array : public ck_objects::Object {
+	class Int : public ck_vobject::vobject {
 		
 	protected:
 		
-		// Array elements. Can be accessed via array[index:int]
-		std::vector<ck_vobject::vobject*> elements;
+		// Оёо Б3ърпф
+		long long val;
 		
 	public:
 		
-		Array();
-		virtual ~Array();
+		Int(long long value = 0);
+		virtual ~Int();
 		
 		virtual vobject* get     (ck_vobject::vscope*, const std::wstring&);
 		virtual void     put     (ck_vobject::vscope*, const std::wstring&, vobject*);
@@ -27,22 +28,17 @@ namespace ck_objects {
 		virtual void gc_mark();
 		virtual void gc_finalize();
 		
-		// Array functions only
 		
-		void append(Array*);
-		int size();
+		// Returns value
+		virtual long long int_value();
 		
-		// Scope-independent getter-setter
-		vobject* get_item(int, bool range_wrap = 0);
-		
-		// If range_check is 1 then (index-size) null object will be appended to the array.
-		// Else on out of range returns 0 and does nothing.
-		bool     set_item(int, vobject*, bool range_wrap = 0, bool range_check = 0);
+		// Returns int to string
+		virtual std::wstring string_value();
 		
 		// Called on interpreter start to initialize prototype
 		static vobject* create_proto();
 	};
 	
 	// Defined on interpreter start.
-	static Object* ArrayProto = nullptr;
+	static Object* IntProto = nullptr;
 };

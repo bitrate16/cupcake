@@ -12,6 +12,9 @@ using namespace ck_objects;
 using namespace ck_core;
 
 vobject* String::create_proto() {
+	if (StringProto != nullptr)
+		return StringProto;
+	
 	StringProto = new Object();
 	GIL::gc_instance()->attach_root(StringProto);
 	
@@ -22,25 +25,16 @@ vobject* String::create_proto() {
 
 
 String::String() {
-	if (StringProto == nullptr)
-		create_proto();
-	
 	Object::put(wstring(L"proto"), StringProto);
 };
 
 String::String(const std::wstring* s) {
-	if (StringProto == nullptr)
-		create_proto();
-	
 	str = *s;
 	
 	Object::put(wstring(L"proto"), StringProto);
 };
 
 String::String(const std::wstring& s) {
-	if (StringProto == nullptr)
-		create_proto();
-	
 	str = s;
 	
 	Object::put(wstring(L"proto"), StringProto);

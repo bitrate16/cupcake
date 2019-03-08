@@ -118,7 +118,7 @@ namespace ck_objects {
 		// Returns sobstring [$1, $2]
 		std::wstring substring(int, int);
 		
-		// Called on interpreter start ti initialize prototype
+		// Called on interpreter start to initialize prototype
 		static vobject* create_proto();
 	};
 	
