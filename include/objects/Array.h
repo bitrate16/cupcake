@@ -41,5 +41,5 @@ namespace ck_objects {
 	};
 	
 	// Defined on interpreter start.
-	static Object* ArrayProto;
+	static Object* ArrayProto = nullptr;
 };

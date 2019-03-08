@@ -27,7 +27,7 @@ Array::~Array() {
 	
 };
 		
-		
+			
 // index < 0 ~ return wrap to the [0, size]
 // index > size ~ return nullptr
 vobject* Array::get(vscope* scope, const wstring& name) {
@@ -170,6 +170,10 @@ void Array::gc_mark() {
 	
 	for (const auto& any : objects) 
 		any.second->gc_mark();
+	
+	for (int i = 0; i < elements.size(); ++i)
+		if (elements[i])
+			elements[i]->gc_mark();
 };
 
 void Array::gc_finalize() {};
