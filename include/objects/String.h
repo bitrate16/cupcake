@@ -92,31 +92,34 @@ namespace ck_objects {
 		int lastIndexOf(wchar_t);
 		
 		// Returns index of sobstring in string from or -1
-		int indexOf(std::wstring);
+		int indexOf(const std::wstring&);
 		
 		// Returns index of sobstring in string from back or -1
-		int lastIndexOf(std::wstring);
+		int lastIndexOf(const std::wstring&);
 		
 		// Replace all $1 with $2
 		std::wstring replace(wchar_t, wchar_t);
 		
 		// Replace $1 with $2
-		std::wstring replace(std::wstring, std::wstring);
+		std::wstring replace(const std::wstring&, const std::wstring&);
 		
 		// Replace all $1 with $2
-		std::wstring replaceAll(std::wstring, std::wstring);
+		std::wstring replaceAll(const std::wstring&, const std::wstring&);
 		
 		// Check for $1 is contained in string
-		std::wstring contains(wchar_t);
+		bool contains(wchar_t);
 		
 		// Check for $1 is substring
-		std::wstring contains(std::wstring);
+		bool contains(const std::wstring&);
 		
 		// Returns sobstring [0, $1]
 		std::wstring substring(int);
 		
 		// Returns sobstring [$1, $2]
 		std::wstring substring(int, int);
+		
+		// Returns sobstring [$1, $2]
+		std::vector<std::wstring> split(const std::wstring&, int count = -1);
 		
 		// Called on interpreter start to initialize prototype
 		static vobject* create_proto();

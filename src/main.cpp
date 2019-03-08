@@ -52,6 +52,7 @@ int main(int argc, const char** argv) {
 	
 	vscope *scope = new vscope();
 	GIL::gc_instance()->attach_root(scope);
+	ck_objects::primary_init(scope);
 	
 	try {
 		GIL::executer_instance()->execute(scr, scope);

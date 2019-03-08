@@ -1,6 +1,7 @@
 #include "objects/String.h"
 
 #include <string>
+#include <algorithm>
 
 #include "exceptions.h"
 #include "GIL2.h"
@@ -300,34 +301,131 @@ bool String::isBlank() {
 };
 
 // Returns index of character in string or -1
-int indexOf(wchar_t);
+int String::indexOf(wchar_t c) {
+	int i = 0;
+	while (i < str.size())
+		if (str[i] == c)
+			return i;
+		else
+			++i;
+	return -1;
+};
 
 // Returns index of character in string from back or -1
-int lastIndexOf(wchar_t);
+int String::lastIndexOf(wchar_t c) {
+	int i = str.size() - 1;
+	while (i >= 0)
+		if (str[i] == c)
+			return i;
+		else
+			--i;
+	return -1;
+};
 
 // Returns index of sobstring in string from or -1
-int indexOf(std::wstring);
+int String::indexOf(const std::wstring& s) {
+	int ind = str.find(s);
+	if (ind == wstring::npos)
+		return -1;
+	return ind;
+};
 
 // Returns index of sobstring in string from back or -1
-int lastIndexOf(std::wstring);
+int String::lastIndexOf(const std::wstring& s) {
+	int ind = str.rfind(s);
+	if (ind == wstring::npos)
+		return -1;
+	return ind;
+};
 
 // Replace $1 with $2
-std::wstring replace(wchar_t, wchar_t);
+std::wstring String::replace(wchar_t c1, wchar_t c2) {
+	wstring tmp = str;
+	std::replace(tmp.begin(), tmp.end(), c1, c2);
+	return tmp;
+};
 
 // Replace $1 with $2
-std::wstring replace(std::wstring, std::wstring);
+std::wstring String::replace(const std::wstring& substring, const std::wstring& replacement) {
+	wstring tmp = str;
+	size_t pos = tmp.find(substring);
+ 
+	if (pos != std::wstring::npos) 
+		tmp.replace(pos, substring.size(), replacement);
+	
+	return tmp;
+};
 
 // Replace all $1 with $2
-std::wstring replaceAll(std::wstring, std::wstring);
+std::wstring String::replaceAll(const std::wstring& substring, const std::wstring& replacement) {
+	wstring tmp = str;
+	size_t pos = tmp.find(substring);
+ 
+	while (pos != std::wstring::npos) {
+		tmp.replace(pos, substring.size(), replacement);
+		pos = tmp.find(substring, pos + replacement.size());
+	}
+	
+	return tmp;
+};
 
 // Check for $1 is contained in string
-std::wstring contains(wchar_t);
+bool String::contains(wchar_t c) {
+	return indexOf(c) != -1;
+};
 
 // Check for $1 is substring
-std::wstring contains(std::wstring);
+bool String::contains(const std::wstring& substr) {
+	return str.find(substr) != wstring::npos;
+};
 
 // Returns sobstring [0, $1]
-std::wstring substring(int);
+std::wstring String::substring(int start) {
+	if (start < 0 || start >= str.size())
+		return L"";
+	
+	return str.substr(start, str.size() - start);
+};
 
 // Returns sobstring [$1, $2]
-std::wstring substring(int, int);
+std::wstring String::substring(int start, int length) {
+	if (start < 0 || length < 0 || start + length >= str.size() || length == 0)
+		return L"";
+	
+	return str.substr(start, length);
+};
+
+std::vector<std::wstring> String::split(const std::wstring& split, int count) {
+	wstring str = this->str;
+	vector<wstring> result;
+	
+	if (count < -1)
+		count = -1;
+	
+	if (count == 0 || count == 1) {
+		result.push_back(str);
+		return result;
+	}
+	
+	while (str.size()) {
+		if (count != -1 && result.size() == count - 1) {
+			result.push_back(str);
+			break;
+		}
+		
+		int index = str.find(split);
+		if (index != string::npos) {
+			result.push_back(str.substr(0, index));
+			str = str.substr(index + split.size());
+			
+			if (str.size() == 0) 
+				result.push_back(str);
+		} else {
+			result.push_back(str);
+			break;
+		}
+	}
+	
+	return result;
+};
+
