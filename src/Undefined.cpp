@@ -18,6 +18,11 @@ vobject* Undefined::create_proto() {
 	UndefinedProto = new Object();
 	GIL::gc_instance()->attach_root(UndefinedProto);
 	
+	if (UndefinedInstance == nullptr) {
+		UndefinedInstance = new Undefined();
+		GIL::gc_instance()->attach_root(UndefinedInstance);
+	}
+	
 	// ...
 	
 	return UndefinedProto;

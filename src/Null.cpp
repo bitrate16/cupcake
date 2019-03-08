@@ -18,6 +18,11 @@ vobject* Null::create_proto() {
 	NullProto = new Object();
 	GIL::gc_instance()->attach_root(NullProto);
 	
+	if (NullInstance == nullptr) {
+		NullInstance = new Null();
+		GIL::gc_instance()->attach_root(NullInstance);
+	}
+	
 	// ...
 	
 	return NullProto;
