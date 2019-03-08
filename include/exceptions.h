@@ -12,8 +12,8 @@
 // will be safety processed by cupcake try/catch statements.
 namespace ck_exceptions {		
 	enum ck_message_type {
-		CK_WMESSAGE,
-		CK_MESSAGE,
+		CK_WCMESSAGE,
+		CK_CMESSAGE,
 		CK_STRING,
 		// Failed new()
 		BAD_ALLOC,
@@ -22,7 +22,13 @@ namespace ck_exceptions {
 		// catch(...) rethrow
 		UNDEFINED_BEHAVIOUR,
 		// catch(exception) rethrow
-		NATIVE_EXCEPTION
+		NATIVE_EXCEPTION, 
+		// For example when trying to assign index of string
+		// Message expected in wstring
+		CK_UNSUPPORTED_OPERATION,
+		// Any king of ck runtime errors
+		// Message expected in wstring
+		CK_RUNTIME_ERROR
 	};
 	
 	class ck_message {
@@ -42,11 +48,12 @@ namespace ck_exceptions {
 		
 	public:		
 		
-		ck_message(const wchar_t* message) throw() : native_wmessage(message), message_type(CK_WMESSAGE) {};
-		ck_message(const char* message) throw() : native_message(message), message_type(CK_MESSAGE) {};
+		ck_message(const wchar_t* message) throw() : native_wmessage(message), message_type(CK_WCMESSAGE) {};
+		ck_message(const char* message) throw() : native_message(message), message_type(CK_CMESSAGE) {};
 		ck_message(const std::wstring& message) throw() : native_string(message), message_type(CK_STRING) {};
 		ck_message(const std::exception& ex) throw() : native_exception(ex), message_type(NATIVE_EXCEPTION) {};
 		
+		ck_message(const std::wstring& message, ck_message_type type) throw() : native_string(message), message_type(type) {};
 		ck_message(ck_message_type type) : message_type(type) {};
 
 		

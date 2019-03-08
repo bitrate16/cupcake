@@ -3,16 +3,21 @@
 #include <string>
 
 #include "exceptions.h"
+#include "GIL2.h"
 
 using namespace std;
 using namespace ck_exceptions;
 using namespace ck_vobject;
 using namespace ck_objects;
+using namespace ck_core;
 
-static void create_proto() {
+vobject* Object::create_proto() {
 	ObjectProto = new Object();
+	GIL::gc_instance()->attach_root(ObjectProto);
 	
 	// ...
+	
+	return ObjectProto;
 };
 
 
@@ -30,7 +35,7 @@ Object::~Object() {
 		
 vobject* Object::get(vscope* scope, const wstring& name) {
 	vobject* ret = get(name);
-	if (!ret && ObjectProto != this)
+	if (!ret && ObjectProto != this && ObjectProto)
 		return ObjectProto->get(scope, name);
 	return ret;
 };
@@ -38,25 +43,25 @@ vobject* Object::get(vscope* scope, const wstring& name) {
 void Object::put(vscope* scope, const wstring& name, vobject* object) {
 	if (contains(name))
 		put(name, object);
-	else if(ObjectProto != this)
+	else if(ObjectProto != this && ObjectProto)
 		ObjectProto->put(scope, name, object);
 };
 
 bool Object::contains(vscope* scope, const wstring& name) {
-	return contains(name) || (ObjectProto != this && ObjectProto->contains(scope, name));
+	return contains(name) || (ObjectProto != this && ObjectProto && ObjectProto->contains(scope, name));
 };
 
 bool Object::remove(vscope* scope, const wstring& name) {
 	if (remove(name))
 		return 1;
-	if (ObjectProto != this && ObjectProto->remove(scope, name))
+	if (ObjectProto != this && ObjectProto && ObjectProto->remove(scope, name))
 		return 1;
 	return 0;
 };
 
 vobject* Object::call(vscope* scope, vector<vobject*> args) {
 	// XXX: Construct object from input
-	throw ck_message("Object is not callable");
+	throw ck_message(L"Object is not callable", ck_message_type::CK_UNSUPPORTED_OPERATION);
 };
 
 void Object::gc_mark() {

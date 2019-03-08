@@ -3,16 +3,21 @@
 #include <string>
 
 #include "exceptions.h"
+#include "GIL2.h"
 
 using namespace std;
 using namespace ck_exceptions;
 using namespace ck_vobject;
 using namespace ck_objects;
+using namespace ck_core;
 
-static void create_proto() {
+vobject* Array::create_proto() {
 	ArrayProto = new Object();
+	GIL::gc_instance()->attach_root(ArrayProto);
 	
 	// ...
+	
+	return ArrayProto;
 };
 
 
@@ -55,7 +60,7 @@ vobject* Array::get(vscope* scope, const wstring& name) {
 	
 	// Else return variable by name
 	vobject* ret = Object::get(name);
-	if (!ret)
+	if (!ret && ArrayProto)
 		return ArrayProto->get(scope, name);
 	return ret;
 };
@@ -90,7 +95,7 @@ void Array::put(vscope* scope, const wstring& name, vobject* object) {
 	// Else put variable by name
 	if (Object::contains(name))
 		Object::put(name, object);
-	else if(ArrayProto != this)
+	else if(ArrayProto)
 		ArrayProto->put(scope, name, object);
 };
 
@@ -112,7 +117,7 @@ bool Array::contains(vscope* scope, const wstring& name) {
 	if (is_int) {
 		int index = std::stoi(name);
 		if (index < 0)
-			return 1;
+			return 0;
 		
 		if (index < elements.size())
 			return 1;
@@ -120,7 +125,7 @@ bool Array::contains(vscope* scope, const wstring& name) {
 		return 0;
 	}
 	
-	return Object::contains(name) || (ArrayProto != this && ArrayProto->contains(scope, name));
+	return Object::contains(name) || (ArrayProto && ArrayProto->contains(scope, name));
 };
 
 // index < 0 ~ bound to [0, size] -> remove
@@ -152,14 +157,14 @@ bool Array::remove(vscope* scope, const wstring& name) {
 	
 	if (Object::remove(name))
 		return 1;
-	if (ArrayProto != this && ArrayProto->remove(scope, name))
+	if (ArrayProto && ArrayProto->remove(scope, name))
 		return 1;
 	return 0;
 };
 
 vobject* Array::call(vscope* scope, vector<vobject*> args) {
 	// XXX: Construct object from input
-	throw ck_message("Array is not callable");
+	throw ck_message(L"Array is not callable", ck_message_type::CK_UNSUPPORTED_OPERATION);
 };
 
 void Array::gc_mark() {

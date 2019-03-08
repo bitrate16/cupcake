@@ -38,6 +38,9 @@ namespace ck_objects {
 		// If range_check is 1 then (index-size) null object will be appended to the array.
 		// Else on out of range returns 0 and does nothing.
 		bool     set_item(int, vobject*, bool range_wrap = 0, bool range_check = 0);
+		
+		// Called on interpreter start ti initialize prototype
+		static vobject* create_proto();
 	};
 	
 	// Defined on interpreter start.

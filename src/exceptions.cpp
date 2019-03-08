@@ -11,12 +11,12 @@ using namespace ck_exceptions;
 
 wostream& ck_exceptions::operator<<(wostream& os, const ck_message& m) {
 	switch(m.message_type) {
-		case ck_message_type::CK_MESSAGE: {
+		case ck_message_type::CK_CMESSAGE: {
 			os << "ck_message: " << m.native_message << endl;
 			break;
 		}
 		
-		case ck_message_type::CK_WMESSAGE: {
+		case ck_message_type::CK_WCMESSAGE: {
 			os << "ck_message: " << m.native_wmessage << endl;
 			break;
 		}
@@ -39,6 +39,16 @@ wostream& ck_exceptions::operator<<(wostream& os, const ck_message& m) {
 		
 		case ck_message_type::NATIVE_EXCEPTION: {
 			os << "ck_message: NATIVE_EXCEPTION: " << m.native_exception.what() << endl;
+			break;
+		}
+		
+		case ck_message_type::CK_UNSUPPORTED_OPERATION: {
+			os << "ck_message: CK_UNSUPPORTED_OPERATION: " << m.native_string << endl;
+			break;
+		}
+		
+		case ck_message_type::CK_RUNTIME_ERROR: {
+			os << "ck_message: RUNTIME_ERROR: " << m.native_string << endl;
 			break;
 		}
 	}

@@ -12,7 +12,7 @@ namespace ck_objects {
 	protected:
 		
 		// Ъъееъёъъёёъбёъ
-		std::wstring string;
+		std::wstring str;
 		
 	public:
 		
@@ -114,6 +114,9 @@ namespace ck_objects {
 		
 		// Returns sobstring [$1, $2]
 		std::wstring substring(int, int);
+		
+		// Called on interpreter start ti initialize prototype
+		static vobject* create_proto();
 	};
 	
 	// Defined on interpreter start.
