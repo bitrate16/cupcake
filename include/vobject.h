@@ -26,10 +26,15 @@ namespace ck_vobject {
 		
 		// Utility to convert between types and determine storage type.
 		// Returns pointer to desired type on success, nullptr else.
-		template<typename T, typename std::enable_if<std::is_base_of<vobject, T>::value>::type* = nullptr>
-		T* is_typeof() {
+		template<typename T, typename std::enable_if<std::is_base_of<vobject, T>::value>::type* = nullptr> T* is_typeof() {
 			return dynamic_cast<T*>(this);
 		};
+		
+		// Must return integer representation of an object
+		virtual long long int_value();
+		
+		// Must return string representation of an object
+		virtual std::wstring string_value();
 	};
 	
 	class vscope : public vobject {

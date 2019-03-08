@@ -1,5 +1,15 @@
 #include "vobject.h"
 
+#if defined(__BORLANDC__)
+    typedef unsigned char uint8_t;
+    typedef __int64 int64_t;
+    typedef unsigned long uintptr_t;
+#elif defined(_MSC_VER)
+    typedef unsigned char uint8_t;
+    typedef __int64 int64_t;
+#else
+    #include <stdint.h>
+#endif
 #include <typeinfo>
 
 #include "GC.h"
@@ -22,6 +32,16 @@ vobject* vobject::call    (vscope* scope, std::vector<vobject*> args) { return n
 void vobject::gc_mark() { ck_core::gc_object::gc_reachable = 1; };
 void vobject::gc_finalize() {};
 
+// Must return integer representation of an object
+long long vobject::int_value() { 
+	return (int) (intptr_t) this; 
+};
+
+// Must return string representation of an object
+std::wstring vobject::string_value() { 
+	return std::wstring(L"[vobject ") + std::to_wstring((int) (intptr_t) this) + std::wstring(L"]"); 
+};
+		
 
 // S C O P E
 

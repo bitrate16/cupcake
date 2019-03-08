@@ -6,7 +6,7 @@
 
 namespace ck_objects {	
 
-	class Array : public ck_vobject::vobject {
+	class Array : public ck_objects::Object {
 		
 	protected:
 		
@@ -33,11 +33,11 @@ namespace ck_objects {
 		int size();
 		
 		// Scope-independent getter-setter
-		vobject* get_item(int);
+		vobject* get_item(int, bool range_wrap = 0);
 		
 		// If range_check is 1 then (index-size) null object will be appended to the array.
 		// Else on out of range returns 0 and does nothing.
-		bool     set_item(int, vobject*, bool range_check = 0);
+		bool     set_item(int, vobject*, bool range_wrap = 0, bool range_check = 0);
 	};
 	
 	// Defined on interpreter start.

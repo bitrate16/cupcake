@@ -9,7 +9,7 @@ using namespace ck_exceptions;
 using namespace ck_vobject;
 using namespace ck_objects;
 
-void create_proto() {
+static void create_proto() {
 	ObjectProto = new Object();
 	
 	// ...
