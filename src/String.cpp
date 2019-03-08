@@ -262,6 +262,9 @@ std::wstring replace(wchar_t, wchar_t);
 // Replace $1 with $2
 std::wstring replace(std::wstring, std::wstring);
 
+// Replace all $1 with $2
+std::wstring replaceAll(std::wstring, std::wstring);
+
 // Check for $1 is contained in string
 std::wstring contains(wchar_t);
 
