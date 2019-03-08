@@ -3,6 +3,7 @@
 #include <string>
 
 #include "sfile.h"
+#include "translator.h"
 
 
 namespace ck_core {

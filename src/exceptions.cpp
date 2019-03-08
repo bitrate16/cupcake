@@ -25,6 +25,22 @@ wostream& ck_exceptions::operator<<(wostream& os, const ck_message& m) {
 			os << "ck_message: " << m.native_string << endl;
 			break;
 		}
+		
+		case ck_message_type::BAD_ALLOC: 
+		case ck_message_type::BAD_ALLOC2: {
+			os << "ck_message: BAD_ALLOC" << endl;
+			break;
+		}
+		
+		case ck_message_type::UNDEFINED_BEHAVIOUR: {
+			os << "ck_message: UNDEFINED_BEHAVIOUR rethrow catch(...)" << endl;
+			break;
+		}
+		
+		case ck_message_type::NATIVE_EXCEPTION: {
+			os << "ck_message: NATIVE_EXCEPTION: " << m.native_exception.what() << endl;
+			break;
+		}
 	}
 	
 	return os;

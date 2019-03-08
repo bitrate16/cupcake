@@ -18,7 +18,11 @@ namespace ck_exceptions {
 		// Failed new()
 		BAD_ALLOC,
 		// Failed new[]()
-		BAD_ALLOC2
+		BAD_ALLOC2,
+		// catch(...) rethrow
+		UNDEFINED_BEHAVIOUR,
+		// catch(exception) rethrow
+		NATIVE_EXCEPTION
 	};
 	
 	class ck_message {
@@ -33,11 +37,15 @@ namespace ck_exceptions {
 		// CK_STRING: Onlys tring message that is thrown to up
 		std::wstring native_string = nullptr;
 		
+		// Copy of axception
+		std::exception native_exception;
+		
 	public:		
 		
 		ck_message(const wchar_t* message) throw() : native_wmessage(message), message_type(CK_WMESSAGE) {};
 		ck_message(const char* message) throw() : native_message(message), message_type(CK_MESSAGE) {};
 		ck_message(const std::wstring& message) throw() : native_string(message), message_type(CK_STRING) {};
+		ck_message(const std::exception& ex) throw() : native_exception(ex), message_type(NATIVE_EXCEPTION) {};
 		
 		ck_message(ck_message_type type) : message_type(type) {};
 

@@ -16,13 +16,20 @@ namespace ck_vobject {
 		virtual ~vobject();
 		
 		virtual vobject* get     (vscope*, const std::wstring&);
-		virtual vobject* put     (vscope*, const std::wstring&, vobject*);
+		virtual void     put     (vscope*, const std::wstring&, vobject*);
 		virtual bool     contains(vscope*, const std::wstring&);
 		virtual bool     remove  (vscope*, const std::wstring&);
 		virtual vobject* call    (vscope*, std::vector<vobject*>);
 		
 		virtual void gc_mark();
 		virtual void gc_finalize();
+		
+		// Utility to convert between types and determine storage type.
+		// Returns pointer to desired type on success, nullptr else.
+		template<typename T, typename std::enable_if<std::is_base_of<vobject, T>::value>::type* = nullptr>
+		T* is_typeof() {
+			return dynamic_cast<T*>(this);
+		};
 	};
 	
 	class vscope : public vobject {
@@ -35,13 +42,18 @@ namespace ck_vobject {
 		~vscope();
 		
 		vobject* get     (vscope*, const std::wstring&);
-		vobject* put     (vscope*, const std::wstring&, vobject*);
+		void     put     (vscope*, const std::wstring&, vobject*);
 		bool     contains(vscope*, const std::wstring&);
 		bool     remove  (vscope*, const std::wstring&);
 		vobject* call    (vscope*, std::vector<vobject*>);
 		
 		// Force declare variable in this scope.
 		void declare(const std::wstring& name, vobject* obj = nullptr);
+		
+		// Returns pointer to the root scope
+		vscope* get_root();
+		
+		// G C _ O P T I O N S 
 		
 		// Makes scope being gc_root
 		void root();

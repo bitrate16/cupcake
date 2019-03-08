@@ -66,6 +66,7 @@ gc_list::gc_list() :
 				
 // GC		
 GC::GC() :
+		collecting(0),
 		size(0),
 		roots_size(0),
 		locks_size(0),

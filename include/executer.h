@@ -4,8 +4,11 @@
 #include <string>
 
 #include "GC.h"
-#include "vobject.h"
 
+namespace ck_vobject {
+	class vobject;
+	class vscope;
+};
 
 namespace ck_core {
 	
@@ -107,6 +110,10 @@ namespace ck_core {
 		
 		// Points to the current command address.
 		int pointer = 0;
+		
+		bool read(int size, void* ptr);
+		void exec_bytecode();
+		bool is_eof();
 		
 	public:
 		

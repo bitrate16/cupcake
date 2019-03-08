@@ -1,5 +1,7 @@
 #include "vobject.h"
 
+#include <typeinfo>
+
 #include "GC.h"
 
 using namespace ck_core;
@@ -12,7 +14,7 @@ vobject::vobject() {};
 vobject::~vobject() {};
 
 vobject* vobject::get     (vscope* scope, const std::wstring& name) { return nullptr; };
-vobject* vobject::put     (vscope* scope, const std::wstring& name, vobject* obj) { return nullptr; };
+void     vobject::put     (vscope* scope, const std::wstring& name, vobject* obj) {};
 bool     vobject::contains(vscope* scope, const std::wstring& name) {return 0; };
 bool     vobject::remove  (vscope* scope, const std::wstring& name) { return 0; };
 vobject* vobject::call    (vscope* scope, std::vector<vobject*> args) { return nullptr; };
@@ -29,17 +31,22 @@ vscope::vscope() : vobject::vobject() {};
 vscope::~vscope() {};
 
 vobject* vscope::get     (vscope* scope, const std::wstring& name) { return nullptr; };
-vobject* vscope::put     (vscope* scope, const std::wstring& name, vobject* obj) { return nullptr; };
+void     vscope::put     (vscope* scope, const std::wstring& name, vobject* obj) {};
 bool     vscope::contains(vscope* scope, const std::wstring& name) {};
 bool     vscope::remove  (vscope* scope, const std::wstring& name) {};
 vobject* vscope::call    (vscope* scope, std::vector<vobject*> args) { return nullptr; };
 
-// Force declare variable in this scope.
 void vscope::declare(const std::wstring& scope, vobject* obj) {};
 
-// Makes scope being gc_root
+vscope* vscope::get_root() {
+	vscope* t = this;
+	while (t->parent)
+		t = t->parent;
+	return t;
+};
+
+
 void vscope::root() {};
-// Unmakes scope being gc_root
 void vscope::unroot() {};
 
 void vscope::gc_mark() { ck_core::gc_object::gc_reachable = 1; };
