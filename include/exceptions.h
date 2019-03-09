@@ -35,11 +35,11 @@ namespace ck_exceptions {
 		// Message expected in wstring
 		CK_RUNTIME_ERROR, // + string
 		// Thrown on executer stack corruption
-		CK_STACK_CORRUPTED, 
+		CK_STACK_CORRUPTED, // + string
 		// Thrown on invalid operaions on types
 		CK_TYPE_ERROR, // + string
 		// Thrown on invalid state
-		CK_INVALID_STATE, // + string, // + string
+		CK_INVALID_STATE, // + string,
 		// Thrown by sctipt raise statement or any king of rethrowing vobject*
 		CK_OBJECT, // + vobject
 		// Returning value from script function

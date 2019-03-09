@@ -79,7 +79,7 @@ inline bool ck_executer::is_eof() {
 
 ck_vobject::vobject* ck_executer::vpop() {
 	if (objects.size() == 0)
-		throw ck_message(ck_message_type::CK_STACK_CORRUPTED);
+		throw ck_message(L"objects stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
 	
 	vobject* t = objects.back();
 	objects.pop_back();
@@ -89,7 +89,7 @@ ck_vobject::vobject* ck_executer::vpop() {
 
 ck_vobject::vobject* ck_executer::vpeek() {
 	if (objects.size() == 0)
-		throw ck_message(ck_message_type::CK_STACK_CORRUPTED);
+		throw ck_message(L"objects stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
 	
 	return objects.back();
 };
@@ -100,21 +100,21 @@ void ck_executer::vpush(ck_vobject::vobject* o) {
 
 void ck_executer::vswap() {
 	if (objects.size() < 2)
-		throw ck_message(ck_message_type::CK_STACK_CORRUPTED);
+		throw ck_message(L"objects stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
 	
 	std::iter_swap(objects.end(), objects.end() - 1);
 };
 
 void ck_executer::vswap1() {
 	if (objects.size() < 3)
-		throw ck_message(ck_message_type::CK_STACK_CORRUPTED);
+		throw ck_message(L"objects stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
 	
 	std::iter_swap(objects.end() - 1, objects.end() - 2);
 };
 
 void ck_executer::vswap2() {
 	if (objects.size() < 4)
-		throw ck_message(ck_message_type::CK_STACK_CORRUPTED);
+		throw ck_message(L"objects stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
 	
 	std::iter_swap(objects.end() - 2, objects.end() - 3);
 };
@@ -136,7 +136,7 @@ int ck_executer::lineno() {
 
 void ck_executer::validate_scope() {
 	if (scopes.size() == 0 || scopes.back() == nullptr)
-		throw ck_message(ck_message_type::CK_STACK_CORRUPTED);		
+		throw ck_message(L"scopes stack corrupted", ck_message_type::CK_STACK_CORRUPTED);		
 };
 
 void ck_executer::exec_bytecode() {	
@@ -310,26 +310,155 @@ void ck_executer::exec_bytecode() {
 			}
 			
 			case ck_bytecodes::REF_CALL: {
-				throw ck_message(L"Incomplete code, line: " + to_wstring(__LINE__), ck_message_type::CK_UNSUPPORTED_OPERATION);
 				int i; 
 				read(sizeof(int), &i);
+				
+				if (objects.size() < i + 2)
+					throw ck_message(L"objects stack corrupted", ck_message_type::CK_INVALID_STATE); 
+				
+				vector<vobject*> args;
+				for (int k = 0; k < i; ++k)
+					args.push_back(objects.rbegin()[k + 2]);
+				
 				wcout << "> REF_CALL [" << i << ']' << endl;
+				
+				vobject* obj = call_object(objects.rbegin()[0], objects.rbegin()[1], args);
+				for (int k = 0; k < i + 2; ++k)
+					objects.pop_back();
+				vpush(obj);
+				
 				break;
 			}
 			
 			case ck_bytecodes::CALL: {
-				throw ck_message(L"Incomplete code, line: " + to_wstring(__LINE__), ck_message_type::CK_UNSUPPORTED_OPERATION);
 				int i; 
 				read(sizeof(int), &i);
+				
+				if (objects.size() < i + 1)
+					throw ck_message(L"objects stack corrupted", ck_message_type::CK_INVALID_STATE); 
+				
+				vector<vobject*> args;
+				for (int k = 0; k < i; ++k)
+					args.push_back(objects.rbegin()[k + 1]);
+				
 				wcout << "> CALL [" << i << ']' << endl;
+				
+				vobject* obj = call_object(objects.rbegin()[0], nullptr, args);
+				for (int k = 0; k < i + 2; ++k)
+					objects.pop_back();
+				vpush(obj);
+				
 				break;
 			}
 			
 			case ck_bytecodes::OPERATOR: {
-				throw ck_message(L"Incomplete code, line: " + to_wstring(__LINE__), ck_message_type::CK_UNSUPPORTED_OPERATION);
 				unsigned char i; 
 				read(sizeof(unsigned char), &i);
+				
+				validate_scope();
+				
+				if (objects.size() < 2)
+					throw ck_message(L"objects stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
+				
+				vobject *ref = objects.rbegin()[1];
+				vobject *fun = nullptr;
+				
+				if (ref == nullptr)
+					throw ck_message(wstring(L"undefined reference to operator"), ck_message_type::CK_TYPE_ERROR);
+				
+				// lvalue operator
+				switch (i) {
+					case ck_bytecodes::OPT_ADD    : fun = ref->get(scopes.back(), L"__operator+"); break;
+					case ck_bytecodes::OPT_SUB    : fun = ref->get(scopes.back(), L"__operator-"); break;
+					case ck_bytecodes::OPT_MUL    : fun = ref->get(scopes.back(), L"__operator*"); break;
+					case ck_bytecodes::OPT_DIV    : fun = ref->get(scopes.back(), L"__operator/"); break;
+					case ck_bytecodes::OPT_BITRSH : fun = ref->get(scopes.back(), L"__operator>>"); break;
+					case ck_bytecodes::OPT_BITLSH : fun = ref->get(scopes.back(), L"__operator<<"); break;
+					case ck_bytecodes::OPT_BITURSH: fun = ref->get(scopes.back(), L"__operator>>>"); break;
+					case ck_bytecodes::OPT_DIR    : fun = ref->get(scopes.back(), L"__operator\\"); break;
+					case ck_bytecodes::OPT_PATH   : fun = ref->get(scopes.back(), L"__operator\\\\"); break;
+					case ck_bytecodes::OPT_MOD    : fun = ref->get(scopes.back(), L"__operator%"); break;
+					case ck_bytecodes::OPT_BITOR  : fun = ref->get(scopes.back(), L"__operator|"); break;
+					case ck_bytecodes::OPT_BITAND : fun = ref->get(scopes.back(), L"__operator&"); break;
+					case ck_bytecodes::OPT_HASH   : fun = ref->get(scopes.back(), L"__operator#"); break;
+					case ck_bytecodes::OPT_EQ     : fun = ref->get(scopes.back(), L"__operator=="); break;
+					case ck_bytecodes::OPT_NEQ    : fun = ref->get(scopes.back(), L"__operator!="); break;
+					case ck_bytecodes::OPT_OR     : fun = ref->get(scopes.back(), L"__operator||"); break;
+					case ck_bytecodes::OPT_AND    : fun = ref->get(scopes.back(), L"__operator&&"); break;
+					case ck_bytecodes::OPT_GT     : fun = ref->get(scopes.back(), L"__operator>"); break;
+					case ck_bytecodes::OPT_GE     : fun = ref->get(scopes.back(), L"__operator>="); break;
+					case ck_bytecodes::OPT_LT     : fun = ref->get(scopes.back(), L"__operator<"); break;
+					case ck_bytecodes::OPT_LE     : fun = ref->get(scopes.back(), L"__operator<="); break;
+					case ck_bytecodes::OPT_PUSH   : fun = ref->get(scopes.back(), L"__operator=>"); break;
+					case ck_bytecodes::OPT_BITXOR : fun = ref->get(scopes.back(), L"__operator^"); break;
+				}
+				
+				// rvalue operator
+				if (fun == nullptr || fun->is_typeof<Undefined>() || fun->is_typeof<Null>()) 
+					switch (i) {
+						case ck_bytecodes::OPT_ADD    : fun = ref->get(scopes.back(), L"__roperator+"); break;
+						case ck_bytecodes::OPT_SUB    : fun = ref->get(scopes.back(), L"__roperator-"); break;
+						case ck_bytecodes::OPT_MUL    : fun = ref->get(scopes.back(), L"__roperator*"); break;
+						case ck_bytecodes::OPT_DIV    : fun = ref->get(scopes.back(), L"__roperator/"); break;
+						case ck_bytecodes::OPT_BITRSH : fun = ref->get(scopes.back(), L"__roperator>>"); break;
+						case ck_bytecodes::OPT_BITLSH : fun = ref->get(scopes.back(), L"__roperator<<"); break;
+						case ck_bytecodes::OPT_BITURSH: fun = ref->get(scopes.back(), L"__roperator>>>"); break;
+						case ck_bytecodes::OPT_DIR    : fun = ref->get(scopes.back(), L"__roperator\\"); break;
+						case ck_bytecodes::OPT_PATH   : fun = ref->get(scopes.back(), L"__roperator\\\\"); break;
+						case ck_bytecodes::OPT_MOD    : fun = ref->get(scopes.back(), L"__roperator%"); break;
+						case ck_bytecodes::OPT_BITOR  : fun = ref->get(scopes.back(), L"__roperator|"); break;
+						case ck_bytecodes::OPT_BITAND : fun = ref->get(scopes.back(), L"__roperator&"); break;
+						case ck_bytecodes::OPT_HASH   : fun = ref->get(scopes.back(), L"__roperator#"); break;
+						case ck_bytecodes::OPT_EQ     : fun = ref->get(scopes.back(), L"__roperator=="); break;
+						case ck_bytecodes::OPT_NEQ    : fun = ref->get(scopes.back(), L"__roperator!="); break;
+						case ck_bytecodes::OPT_OR     : fun = ref->get(scopes.back(), L"__roperator||"); break;
+						case ck_bytecodes::OPT_AND    : fun = ref->get(scopes.back(), L"__roperator&&"); break;
+						case ck_bytecodes::OPT_GT     : fun = ref->get(scopes.back(), L"__roperator>"); break;
+						case ck_bytecodes::OPT_GE     : fun = ref->get(scopes.back(), L"__roperator>="); break;
+						case ck_bytecodes::OPT_LT     : fun = ref->get(scopes.back(), L"__roperator<"); break;
+						case ck_bytecodes::OPT_LE     : fun = ref->get(scopes.back(), L"__roperator<="); break;
+						case ck_bytecodes::OPT_PUSH   : fun = ref->get(scopes.back(), L"__roperator=>"); break;
+						case ck_bytecodes::OPT_ARROW  : fun = ref->get(scopes.back(), L"__roperator->"); break;
+						case ck_bytecodes::OPT_BITXOR : fun = ref->get(scopes.back(), L"__roperator^"); break;
+					}
+					
+				// no operator
+				if (fun == nullptr || fun->is_typeof<Undefined>() || fun->is_typeof<Null>()) 
+					switch (i) {
+						case ck_bytecodes::OPT_ADD    : throw ck_message(wstring(L"undefined reference to operator +"), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_SUB    : throw ck_message(wstring(L"undefined reference to operator -"), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_MUL    : throw ck_message(wstring(L"undefined reference to operator *"), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_DIV    : throw ck_message(wstring(L"undefined reference to operator /"), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_BITRSH : throw ck_message(wstring(L"undefined reference to operator >>"), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_BITLSH : throw ck_message(wstring(L"undefined reference to operator <<"), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_BITURSH: throw ck_message(wstring(L"undefined reference to operator >>>"), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_DIR    : throw ck_message(wstring(L"undefined reference to operator \\"), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_PATH   : throw ck_message(wstring(L"undefined reference to operator \\\\"), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_MOD    : throw ck_message(wstring(L"undefined reference to operator %"), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_BITOR  : throw ck_message(wstring(L"undefined reference to operator |"), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_BITAND : throw ck_message(wstring(L"undefined reference to operator &"), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_HASH   : throw ck_message(wstring(L"undefined reference to operator #"), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_EQ     : throw ck_message(wstring(L"undefined reference to operator =="), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_NEQ    : throw ck_message(wstring(L"undefined reference to operator !="), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_OR     : throw ck_message(wstring(L"undefined reference to operator ||"), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_AND    : throw ck_message(wstring(L"undefined reference to operator &&"), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_GT     : throw ck_message(wstring(L"undefined reference to operator >"), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_GE     : throw ck_message(wstring(L"undefined reference to operator >="), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_LT     : throw ck_message(wstring(L"undefined reference to operator <"), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_LE     : throw ck_message(wstring(L"undefined reference to operator <="), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_PUSH   : throw ck_message(wstring(L"undefined reference to operator =>"), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_ARROW  : throw ck_message(wstring(L"undefined reference to operator ->"), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_BITXOR : throw ck_message(wstring(L"undefined reference to operator ^"), ck_message_type::CK_TYPE_ERROR); break;
+					}
+				
 				wcout << "> OPERATOR [" << (int) i << ']' << endl;
+				
+				vobject* res = call_object(fun, ref, { ref, objects.rbegin()[0] });
+				
+				vpop(); 
+				vpop();
+				vpush(res);
+				
 				break;
 			}
 			
@@ -425,12 +554,50 @@ void ck_executer::exec_bytecode() {
 				break;
 			}
 		
-			case ck_bytecodes::UNARY_OPERATOR: {
-				throw ck_message(L"Incomplete code, line: " + to_wstring(__LINE__), ck_message_type::CK_UNSUPPORTED_OPERATION);
-				
+			case ck_bytecodes::UNARY_OPERATOR: {				
 				unsigned char i; 
 				read(sizeof(unsigned char), &i);
+				
+				validate_scope();
+				
+				if (objects.size() == 0)
+					throw ck_message(L"objects stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
+				
+				vobject *ref = objects.rbegin()[0];
+				vobject *fun = nullptr;
+				
+				if (ref == nullptr)
+					throw ck_message(wstring(L"undefined reference to operator"), ck_message_type::CK_TYPE_ERROR);
+				
+				switch (i) {
+					case ck_bytecodes::OPT_DOG   : fun = ref->get(scopes.back(), L"__operator@x"); break;
+					case ck_bytecodes::OPT_NOT   : fun = ref->get(scopes.back(), L"__operator!x"); break;
+					case ck_bytecodes::OPT_BITNOT: fun = ref->get(scopes.back(), L"__operator~x"); break;
+					case ck_bytecodes::OPT_POS   : fun = ref->get(scopes.back(), L"__operator+x"); break;
+					case ck_bytecodes::OPT_NEG   : fun = ref->get(scopes.back(), L"__operator-x"); break;
+					case ck_bytecodes::OPT_INC   : fun = ref->get(scopes.back(), L"__operator++x"); break;
+					case ck_bytecodes::OPT_DEC   : fun = ref->get(scopes.back(), L"__operator--x"); break;
+				}
+					
+				// no operator
+				if (fun == nullptr || fun->is_typeof<Undefined>() || fun->is_typeof<Null>()) 
+					switch (i) {
+						case ck_bytecodes::OPT_ADD    : throw ck_message(wstring(L"undefined reference to operator @x"), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_SUB    : throw ck_message(wstring(L"undefined reference to operator !x"), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_MUL    : throw ck_message(wstring(L"undefined reference to operator +x"), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_DIV    : throw ck_message(wstring(L"undefined reference to operator -x"), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_BITRSH : throw ck_message(wstring(L"undefined reference to operator ++x"), ck_message_type::CK_TYPE_ERROR); break;
+						case ck_bytecodes::OPT_BITLSH : throw ck_message(wstring(L"undefined reference to operator --x"), ck_message_type::CK_TYPE_ERROR); break;
+					}
+				
 				wcout << "> UNARY_OPERATOR [" << (int) i << ']' << endl;
+				
+				vobject* res = call_object(fun, ref, { ref });
+				
+				vpop();
+				vpush(res);
+				
+				
 				break;
 			}
 			
@@ -543,7 +710,7 @@ void ck_executer::exec_bytecode() {
 				wcout << "> VSTATE_POP_SCOPES [" << i << ']' << endl;
 				
 				if (scopes.size() < i)
-					throw ck_message(ck_message_type::CK_STACK_CORRUPTED);
+					throw ck_message(L"scopes stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
 				
 				for (int k = 0; k < i; ++k)
 					scopes.pop_back();
@@ -635,20 +802,26 @@ void ck_executer::exec_bytecode() {
 			}
 		
 			case ck_bytecodes::VSTATE_POP_TRY: {
-				throw ck_message(L"Incomplete code, line: " + to_wstring(__LINE__), ck_message_type::CK_UNSUPPORTED_OPERATION);
+				if (try_stack.size() == 0)
+					throw ck_message(L"try stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
+				
+				// No explicit restoration. 
+				// Everything expected to be fine.
+				try_stack.pop_back();
 				
 				wcout << "> VSTATE_POP_TRY" << endl;
 				break;
 			}
 
 			case ck_bytecodes::VSTATE_PUSH_TRY: {
-				throw ck_message(L"Incomplete code, line: " + to_wstring(__LINE__), ck_message_type::CK_UNSUPPORTED_OPERATION);
-				
+				int try_node = 0;
+				int catch_node = 0;
+				wstring handler_name = 0;
 				unsigned char type;
 				read(sizeof(unsigned char), &type);
 				
 				if (type == ck_bytecodes::TRY_NO_CATCH) {
-					int try_node;
+					try_node;
 					int exit;
 					
 					read(sizeof(int), &try_node);
@@ -656,7 +829,7 @@ void ck_executer::exec_bytecode() {
 					
 					wcout << "> VSTATE_PUSH_TRY [TRY_NO_CATCH] [" << try_node << "] [" << exit << ']' << endl;
 				} else if (type == ck_bytecodes::TRY_NO_ARG) {
-					int try_node;
+					try_node;
 					int catch_node;
 					
 					read(sizeof(int), &try_node);
@@ -664,8 +837,8 @@ void ck_executer::exec_bytecode() {
 					
 					wcout << "> VSTATE_PUSH_TRY [TRY_NO_ARG] [" << try_node << "] [" << catch_node << ']' << endl;
 				} else {
-					int try_node;
-					int catch_node;
+					try_node;
+					catch_node;
 					int name_size;
 					
 					read(sizeof(int), &try_node);
@@ -675,9 +848,21 @@ void ck_executer::exec_bytecode() {
 					wchar_t cstr[name_size+1];
 					read(sizeof(wchar_t) * name_size, cstr);
 					cstr[name_size] = 0;
+					handler_name = cstr;
 					
 					wcout << "> VSTATE_PUSH_TRY [TRY_WITH_ARG] (" << cstr << ") [" << try_node << "] [" << catch_node << ']' << endl;
 				}
+				
+				try_stack.push_back(stack_try());
+				try_stack.back().scope_id = scopes.size() - 1;
+				try_stack.back().script_id = scripts.size() - 1;
+				try_stack.back().object_id = objects.size() - 1;
+				try_stack.back().window_id = windows.size() - 1;
+				try_stack.back().pointer = pointer;
+				try_stack.back().try_node = try_node;
+				try_stack.back().catch_node = catch_node;
+				try_stack.back().type = type;
+				try_stack.back().handler = handler_name;
 				
 				break;
 			}
@@ -707,23 +892,18 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 	scripts.push_back(scr);
 	int script_id = scripts.size();
 	
-	vscope* new_scope = nullptr;
-	
 	if (scope == nullptr) {
-		new_scope = new vscope();
-		new_scope->root();
-	} else {
-		new_scope = scope;
-		// new_scope->root(); <-- it must alreadu be root
+		scope = new vscope();
+		scope->root();
 	}
 		
 	if (argn != nullptr && argv != nullptr) {
 		int argc = argn->size() < argv->size() ? argn->size() : argv->size();
 		for (int i = 0; i < argc; ++i)
-			new_scope->put((*argn)[i], (*argv)[i]);
+			scope->put((*argn)[i], (*argv)[i]);
 	}
 	
-	scopes.push_back(new_scope);
+	scopes.push_back(scope);
 	
 	// Reset pointer to 0 and start
 	pointer = 0;
@@ -738,6 +918,10 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 		throw(ck_exceptions::ck_message_type::NATIVE_EXCEPTION);
 	} 
 	
+	// Restore scripts
+	for (int i = scripts.size() - 1; i > script_id; --i) 
+		scripts.pop_back();
+	
 	// Restore all scopes
 	for (int i = scopes.size() - 1; i > windows.back().scope_id; --i) {
 		if (scopes[i] && (scope == nullptr || i != windows.back().scope_id))
@@ -745,10 +929,6 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 		
 		scopes.pop_back();
 	}
-	
-	// Restore scripts
-	for (int i = scripts.size() - 1; i > script_id; --i) 
-		scripts.pop_back();
 	
 	// Restore all try frames
 	for (int i = try_stack.size() - 1; i > windows.back().try_id; --i) 
@@ -767,7 +947,7 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 	return;
 };
 
-ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, const std::vector<ck_vobject::vobject*>& args) { 
+ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>& args) { 
 	throw ck_message(L"Incomplete code, line: " + to_wstring(__LINE__), ck_message_type::CK_UNSUPPORTED_OPERATION); 
 };
 

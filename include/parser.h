@@ -91,7 +91,6 @@ namespace ck_token {
 	const int ASSIGN_BITRSH  = 121; // >>=
 	const int ASSIGN_BITLSH  = 122; // <<=
 	const int ASSIGN_BITURSH = 123; // <<<=
-	const int ASSIGN_BITNOT  = 124; // ~=
 	const int ASSIGN_DIR     = 125; // \\=
 	const int ASSIGN_PATH    = 160; // \=
 	const int ASSIGN_MOD     = 126; // %=
@@ -229,7 +228,6 @@ namespace ck_parser {
 				case ck_token::ASSIGN_BITRSH : os << ">>=" ; break;
 				case ck_token::ASSIGN_BITLSH : os << "<<=" ; break;
 				case ck_token::ASSIGN_BITURSH : os << "<<<="; break;
-				case ck_token::ASSIGN_BITNOT : os << "~="; break;
 				case ck_token::ASSIGN_DIR : os << "\\\\="; break;
 				case ck_token::ASSIGN_PATH : os << "\\="; break;
 				case ck_token::ASSIGN_HASH : os << "#="; break;

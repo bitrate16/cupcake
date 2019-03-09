@@ -485,8 +485,6 @@ int tokenizer::next_token() {
 		return put(ASSIGN_BITAND);
 	if (match('^', '='))
 		return put(ASSIGN_BITXOR);
-	if (match('~', '='))
-		return put(ASSIGN_BITNOT);
 	if (match('='))
 		return put(ASSIGN);
 	if (match('>'))
@@ -1393,8 +1391,6 @@ ASTNode *parser::assign_expression() {
 		match(ASSIGN_BITLSH)
 		||
 		match(ASSIGN_BITURSH)
-		||
-		match(ASSIGN_BITNOT)
 		||
 		match(ASSIGN_HASH)
 		||

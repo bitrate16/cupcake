@@ -517,7 +517,6 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 		case ASSIGN_BITRSH :
 		case ASSIGN_BITLSH :
 		case ASSIGN_BITURSH:
-		case ASSIGN_BITNOT :
 		case ASSIGN_DIR    :
 		case ASSIGN_PATH   :
 		case ASSIGN_MOD    :
@@ -566,7 +565,6 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 					case ASSIGN_BITRSH:  push_byte(bytemap, ck_bytecodes::OPT_BITRSH ); break;
 					case ASSIGN_BITLSH:  push_byte(bytemap, ck_bytecodes::OPT_BITLSH ); break;
 					case ASSIGN_BITURSH: push_byte(bytemap, ck_bytecodes::OPT_BITURSH); break;
-					case ASSIGN_BITNOT:  push_byte(bytemap, ck_bytecodes::OPT_BITNOT ); break;
 					case ASSIGN_DIR:     push_byte(bytemap, ck_bytecodes::OPT_DIR    ); break;
 					case ASSIGN_PATH:    push_byte(bytemap, ck_bytecodes::OPT_PATH   ); break;
 					case ASSIGN_MOD:     push_byte(bytemap, ck_bytecodes::OPT_MOD    ); break;
@@ -637,7 +635,6 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 					case ASSIGN_BITRSH:  push_byte(bytemap, ck_bytecodes::OPT_BITRSH ); break;
 					case ASSIGN_BITLSH:  push_byte(bytemap, ck_bytecodes::OPT_BITLSH ); break;
 					case ASSIGN_BITURSH: push_byte(bytemap, ck_bytecodes::OPT_BITURSH); break;
-					case ASSIGN_BITNOT:  push_byte(bytemap, ck_bytecodes::OPT_BITNOT ); break;
 					case ASSIGN_DIR:     push_byte(bytemap, ck_bytecodes::OPT_DIR    ); break;
 					case ASSIGN_PATH:    push_byte(bytemap, ck_bytecodes::OPT_PATH   ); break;
 					case ASSIGN_MOD:     push_byte(bytemap, ck_bytecodes::OPT_MOD    ); break;
@@ -696,7 +693,6 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 					case ASSIGN_BITRSH:  push_byte(bytemap, ck_bytecodes::OPT_BITRSH ); break;
 					case ASSIGN_BITLSH:  push_byte(bytemap, ck_bytecodes::OPT_BITLSH ); break;
 					case ASSIGN_BITURSH: push_byte(bytemap, ck_bytecodes::OPT_BITURSH); break;
-					case ASSIGN_BITNOT:  push_byte(bytemap, ck_bytecodes::OPT_BITNOT ); break;
 					case ASSIGN_DIR:     push_byte(bytemap, ck_bytecodes::OPT_DIR    ); break;
 					case ASSIGN_PATH:    push_byte(bytemap, ck_bytecodes::OPT_PATH   ); break;
 					case ASSIGN_MOD:     push_byte(bytemap, ck_bytecodes::OPT_MOD    ); break;
@@ -1114,12 +1110,12 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 		case LE     : { VISIT(n->left); VISIT(n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_LE     ); break; }
 		case PUSH   : { VISIT(n->left); VISIT(n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_PUSH   ); break; }
 		case ARROW  : { VISIT(n->left); VISIT(n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_ARROW  ); break; }
+		case BITXOR : { VISIT(n->left); VISIT(n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_BITXOR  ); break; }
 	
-		case DOG   : { VISIT(n->left); push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_DOG   ); break; }
-		case NOT   : { VISIT(n->left); push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_NOT   ); break; }
-		case BITXOR: { VISIT(n->left); push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_BITXOR); break; }
-		case POS   : { VISIT(n->left); push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_POS   ); break; }
-		case NEG   : { VISIT(n->left); push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_NEG   ); break; }
+		case DOG   : { VISIT(n->left); push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_DOG); break; }
+		case NOT   : { VISIT(n->left); push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_NOT); break; }
+		case POS   : { VISIT(n->left); push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_POS); break; }
+		case NEG   : { VISIT(n->left); push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_NEG); break; }
 		
 		case BLOCK: {
 			push_byte(bytemap, ck_bytecodes::VSTATE_PUSH_SCOPE);

@@ -1,6 +1,3 @@
-function(a) { 
+a = function() {}
 
-return 12; 
-
-
-return;}
+a()

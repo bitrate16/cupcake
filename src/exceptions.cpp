@@ -53,7 +53,7 @@ wostream& ck_exceptions::operator<<(wostream& os, const ck_message& m) {
 		}
 		
 		case ck_message_type::CK_STACK_CORRUPTED: {
-			os << "ck_message: CK_STACK_CORRUPTED" << endl;
+			os << "ck_message: CK_STACK_CORRUPTED: " << m.native_string << endl;
 			break;
 		}
 		

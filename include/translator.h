@@ -52,12 +52,12 @@ namespace ck_bytecodes {
 	const int OPT_BITRSH  = 5;
 	const int OPT_BITLSH  = 6;
 	const int OPT_BITURSH = 7;
-	const int OPT_BITNOT  = 8;
 	const int OPT_DIR     = 9;
 	const int OPT_PATH    = 10;
 	const int OPT_MOD     = 11;
 	const int OPT_BITOR   = 12;
 	const int OPT_BITAND  = 13;
+	const int OPT_BITXOR  = 14;
 	const int OPT_HASH    = 15;	
 	const int OPT_EQ      = 18;
 	const int OPT_NEQ     = 19;
@@ -71,13 +71,13 @@ namespace ck_bytecodes {
 	const int OPT_ARROW   = 30;
 	
 	const int OPT_DOG     = 31;
+	const int OPT_BITNOT  = 8;
 	const int OPT_NOT     = 28;
-	const int OPT_BITXOR  = 14;
 	const int OPT_POS     = 15;
 	const int OPT_NEG     = 16;
 	
-	const int OPT_INC     = 16;	
-	const int OPT_DEC     = 17;
+	const int OPT_INC     = 17;	
+	const int OPT_DEC     = 18;
 	
 	const int TRY_NO_CATCH = 1;
 	const int TRY_NO_ARG   = 2;
