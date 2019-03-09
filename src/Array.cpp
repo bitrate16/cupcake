@@ -24,6 +24,13 @@ vobject* Array::create_proto() {
 };
 
 
+Array::Array(const std::vector<ck_vobject::vobject*>& array) {
+	elements = array;
+	
+	Object::put(wstring(L"proto"), ArrayProto);
+};
+
+
 Array::Array() {
 	Object::put(wstring(L"proto"), ArrayProto);
 };

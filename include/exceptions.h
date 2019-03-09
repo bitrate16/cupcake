@@ -5,6 +5,8 @@
 #include <string>
 #include <cwchar>
 
+#include <vobject.h>
+
 
 // Exception type used for sending messages, interrupts and 
 // local information over the cupcake VM.
@@ -12,25 +14,36 @@
 // will be safety processed by cupcake try/catch statements.
 namespace ck_exceptions {		
 	enum ck_message_type {
-		CK_WCMESSAGE,
-		CK_CMESSAGE,
-		CK_STRING,
+		CK_WCMESSAGE, // + wchar_t*
+		CK_CMESSAGE, // + char*
+		CK_STRING, // + string
 		// Failed new()
 		BAD_ALLOC,
 		// Failed new[]()
 		BAD_ALLOC2,
+		
+		// User-friendly:
+		
 		// catch(...) rethrow
 		UNDEFINED_BEHAVIOUR,
 		// catch(exception) rethrow
-		NATIVE_EXCEPTION, 
+		NATIVE_EXCEPTION,  // + exception
 		// For example when trying to assign index of string
 		// Message expected in wstring
-		CK_UNSUPPORTED_OPERATION,
+		CK_UNSUPPORTED_OPERATION, // + string
 		// Any king of ck runtime errors
 		// Message expected in wstring
-		CK_RUNTIME_ERROR,
+		CK_RUNTIME_ERROR, // + string
 		// Thrown on executer stack corruption
-		CK_STACK_CORRUPTED
+		CK_STACK_CORRUPTED, 
+		// Thrown on invalid operaions on types
+		CK_TYPE_ERROR, // + string
+		// Thrown on invalid state
+		CK_INVALID_STATE, // + string, // + string
+		// Thrown by sctipt raise statement or any king of rethrowing vobject*
+		CK_OBJECT, // + vobject
+		// Returning value from script function
+		CK_RETURN // + vobject
 	};
 	
 	class ck_message {
@@ -48,6 +61,8 @@ namespace ck_exceptions {
 		// Copy of axception
 		std::exception native_exception;
 		
+		ck_vobject::vobject* script_object;
+		
 	public:		
 		
 		ck_message(const wchar_t* message) throw() : native_wmessage(message), message_type(CK_WCMESSAGE) {};
@@ -57,6 +72,7 @@ namespace ck_exceptions {
 		
 		ck_message(const std::wstring& message, ck_message_type type) throw() : native_string(message), message_type(type) {};
 		ck_message(ck_message_type type) : message_type(type) {};
+		ck_message(ck_vobject::vobject* object, ck_message_type type = CK_OBJECT) : script_object(object), message_type(type) {};
 
 		
 		virtual ~ck_message() throw();

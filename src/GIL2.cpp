@@ -95,6 +95,9 @@ void GIL::spawn_thread(std::function<void ()> body) {
 	// bla-bla-bla
 	// ...
 	// GIL::instance()->notify_sync_lock();
+	// +README: http://www.modernescpp.com/index.php/thread-safe-initialization-of-data
+	// Rethrowing errors to main thread
+	// +README: hhttps://stackoverflow.com/questions/233127/how-can-i-propagate-exceptions-between-threads
 };
 
 void GIL::lock_for_condition(std::function<bool ()> condition_lambda) {};

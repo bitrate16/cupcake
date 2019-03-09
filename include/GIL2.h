@@ -161,7 +161,6 @@ namespace ck_core {
 		// On start, GIL global instance is assigned to it and then 
 		// body function is called.
 		// After body finishes, thread is being removed from threads list.
-		// +README: http://www.modernescpp.com/index.php/thread-safe-initialization-of-data
 		void spawn_thread(std::function<void ()> body);
 		
 		// Locks current thread (current = current_ckthread())

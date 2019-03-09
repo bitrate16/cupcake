@@ -120,6 +120,9 @@ namespace ck_core {
 		// Pop stack [top] or throw stack_corruption
 		inline ck_vobject::vobject* vpop();
 		
+		// Returns [top] witout pop
+		inline ck_vobject::vobject* vpeek();
+		
 		// Push stack [top]
 		// XXX: Overflow check
 		inline void vpush(ck_vobject::vobject*);
@@ -135,6 +138,10 @@ namespace ck_core {
 		
 		// Returns line number of pointer to command
 		int lineno();
+		
+		// if (scopes.size() == 0 || scopes.back() == nullptr)
+		//	throw ck_message(ck_message_type::CK_STACK_CORRUPTED);		
+		inline void validate_scope();
 		
 	public:
 		

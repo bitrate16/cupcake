@@ -56,6 +56,21 @@ wostream& ck_exceptions::operator<<(wostream& os, const ck_message& m) {
 			os << "ck_message: CK_STACK_CORRUPTED" << endl;
 			break;
 		}
+		
+		case ck_message_type::CK_TYPE_ERROR: {
+			os << "ck_message: CK_TYPE_ERROR: " << m.native_string << endl;
+			break;
+		}
+		
+		case ck_message_type::CK_INVALID_STATE: {
+			os << "ck_message: CK_INVALID_STATE: " << m.native_string << endl;
+			break;
+		}
+		
+		case ck_message_type::CK_OBJECT: {
+			os << "ck_message: CM_OBJECT" << endl;
+			break;
+		}
 	}
 	
 	return os;

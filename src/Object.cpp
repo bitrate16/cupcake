@@ -24,6 +24,12 @@ vobject* Object::create_proto() {
 };
 
 
+Object::Object(std::map<std::wstring, ck_vobject::vobject*>& objec) {
+	objects = objec;
+	
+	put(wstring(L"proto"), ObjectProto);
+};
+
 Object::Object() {
 	put(wstring(L"proto"), ObjectProto);
 };

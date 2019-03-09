@@ -15,6 +15,7 @@ namespace ck_objects {
 		
 	public:
 		
+		Array(const std::vector<ck_vobject::vobject*>&);
 		Array();
 		virtual ~Array();
 		

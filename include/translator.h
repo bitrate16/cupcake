@@ -20,8 +20,8 @@ namespace ck_bytecodes {
 	const int DEFINE_VAR           = 21; // Define variable vith [top] value in current scope
 	const int REF_CALL             = 24; // a.b() or a['b']()
 	const int VSTACK_DUP           = 25; // Duplicate top of the stack
-	const int LOAD_MEMBER          = 26; // stack.next_to_top().get_member(stack.pop())
-	const int LOAD_FIELD           = 27; // stack.pop().get_field(name)
+	const int LOAD_MEMBER          = 26; // top:[key, ref]
+	const int LOAD_FIELD           = 27; // top:[ref]
 	const int CALL                 = 28; // var() or (<expression>)()
 	const int OPERATOR             = 29; // operate with b = stack.top and a = stack.next_to_top as a <opt> b
 	const int STORE_VAR            = 30; // scope.store(name)
