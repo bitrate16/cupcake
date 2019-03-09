@@ -88,15 +88,15 @@ namespace ck_translator {
 	
 	// Wrapper for ck bytecodes
 	struct ck_bytecode {
-		std::vector<unsigned char> lineno_table;
+		std::vector<int> lineno_table;
 		std::vector<unsigned char> bytemap;
 	};
 	
 	void translate(ck_bytecode& bytecode, ck_ast::ASTNode* n);
 	
-	void translate(std::vector<unsigned char>& lineno_table, std::vector<unsigned char>& bytemap, ck_ast::ASTNode* n);
+	void translate(std::vector<unsigned char>& bytemap, std::vector<int>& lineno_table, ck_ast::ASTNode* n);
 	
 	void print(std::vector<unsigned char>& bytemap, int off = 0, int offset = -1, int limit = -1);
 	
-	void print_lineno_table(std::vector<unsigned char>& lineno_table);
+	void print_lineno_table(std::vector<int>& lineno_table);
 };

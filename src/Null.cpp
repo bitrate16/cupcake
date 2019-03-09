@@ -60,7 +60,7 @@ bool Null::remove(ck_vobject::vscope* scope, const std::wstring& name) {
 	return 0;
 };
 
-vobject* Null::call(ck_vobject::vscope* scope, std::vector<vobject*> args) {
+vobject* Null::call(ck_vobject::vscope* scope, const std::vector<vobject*> args) {
 	throw ck_message(L"Null is not callable", ck_message_type::CK_UNSUPPORTED_OPERATION);
 };
 

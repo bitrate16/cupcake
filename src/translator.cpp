@@ -144,7 +144,7 @@ void pop_address(vector<unsigned char>& bytemap, int jmp_1, int jmp_2) {
 int last_lineno = 0;
 int last_lineno_addr = 0;
 
-void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, ASTNode* n) {
+void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n) {
 	if (!n)
 		return;
 	
@@ -152,10 +152,10 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 	// XXX: Use Line Number Table
 	if (n->lineno != last_lineno) {
 		last_lineno = n->lineno;
-		
 		last_lineno_addr = bytemap.size();
-		push(lineno_table, sizeof(int), &last_lineno);        // Record: [lineno|start]
-		push(lineno_table, sizeof(int), &last_lineno_addr);
+		
+		lineno_table.push_back(last_lineno);        // Record: [lineno|start]
+		lineno_table.push_back(last_lineno_addr);
 		
 		push_byte(bytemap, ck_bytecodes::LINENO);
 		push(bytemap, sizeof(int), &last_lineno);
@@ -1834,10 +1834,10 @@ void visit(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, 
 };
 
 void ck_translator::translate(ck_bytecode& bytecode, ASTNode* n) {
-	translate(bytecode.lineno_table, bytecode.bytemap, n);
+	translate(bytecode.bytemap, bytecode.lineno_table, n);
 };
 
-void ck_translator::translate(vector<unsigned char>& bytemap, vector<unsigned char>& lineno_table, ASTNode* n) {
+void ck_translator::translate(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n) {
 	// lineno_table - Table of Line Numbers
 	// Provides range of commands mapped to a single line number
 	// [lineno, start_cmd]
@@ -1851,9 +1851,9 @@ void ck_translator::translate(vector<unsigned char>& bytemap, vector<unsigned ch
 	push_byte(bytemap, ck_bytecodes::HALT);
 	
 	last_lineno = -1;
-	push(lineno_table, sizeof(int), &last_lineno);
+	lineno_table.push_back(last_lineno);
 	last_lineno_addr = bytemap.size();
-	push(lineno_table, sizeof(int), &last_lineno_addr);
+	lineno_table.push_back(last_lineno_addr);
 };
 
 bool read(vector<unsigned char>& bytemap, int& index, int size, void* p) {
@@ -2186,6 +2186,8 @@ void ck_translator::print(vector<unsigned char>& bytemap, int off, int offset, i
 				
 				print(bytemap, off + 1, k, sizeof_block);
 				k += sizeof_block;
+				
+				break;
 			}
 		
 			case ck_bytecodes::VSTATE_POP_TRY: {
@@ -2235,11 +2237,10 @@ void ck_translator::print(vector<unsigned char>& bytemap, int off, int offset, i
 	}
 };
 
-void ck_translator::print_lineno_table(vector<unsigned char>& lineno_table) {
+void ck_translator::print_lineno_table(vector<int>& lineno_table) {
 	for (int i = 0; i < lineno_table.size();) {
-		int lineno, start;
-		read(lineno_table, i, sizeof(int), &lineno);
-		read(lineno_table, i, sizeof(int), &start);
+		int lineno = lineno_table[i++];
+		int start  = lineno_table[i++];
 		
 		wcout << "lineno [" << lineno << "], start [" << start << ']' << endl;
 	}

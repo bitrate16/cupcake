@@ -103,6 +103,24 @@ namespace ck_sfile {
 			return f;
 		};
 		
+		inline bool has_parent() const {
+			return !absolute_path || path.size() != 0;
+		};
+		
+		sfile get_parent(const sfile& parent_path) const {
+			if (!has_parent())
+				return sfile();
+			
+			sfile f = *this;
+			if (path.size() == 0) 
+				f = sfile(parent_path, f);
+			
+			if (f.path.size() != 0)
+				f.path.pop_back();
+			
+			return f;
+		};
+		
 		
 		// Returns path entry reference
 		// GETTER

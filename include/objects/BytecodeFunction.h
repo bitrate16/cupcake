@@ -3,21 +3,25 @@
 #include <vector>
 #include <cwchar>
 
-#include "Object.h"
+#include "vobject.h"
+#include "vscope.h"
+#include "script.h"
 
 namespace ck_objects {	
 
-	class Bool : public ck_vobject::vobject {
+	class BytecodeFunction : public ck_vobject::vobject {
 		
 	protected:
 		
-		// Ъенв Пыф23и
-		bool val;
+		// Creation scope
+		ck_vobject::vscope* scope;
+		ck_core::ck_script* script;
+		std::vector<std::wstring> argn;
 		
 	public:
 		
-		Bool(bool value = 0);
-		virtual ~Bool();
+		BytecodeFunction(ck_vobject::vscope* definition_scope, ck_core::ck_script* script, const std::vector<std::wstring>& argn);
+		virtual ~BytecodeFunction();
 		
 		virtual vobject* get     (ck_vobject::vscope*, const std::wstring&);
 		virtual void     put     (ck_vobject::vscope*, const std::wstring&, vobject*);
@@ -29,6 +33,9 @@ namespace ck_objects {
 		virtual void gc_finalize();
 		
 		
+		// Apply arguments tu the function and return scope
+		ck_vobject::vscope* apply(const std::vector<ck_vobject::vobject*>&);
+		
 		// Returns value
 		virtual long long int_value();
 		
@@ -36,9 +43,12 @@ namespace ck_objects {
 		virtual std::wstring string_value();
 		
 		// Called on interpreter start to initialize prototype
-		static vobject* create_proto();
+		static ck_vobject::vobject* create_proto();
 	};
 	
+	// Defined on any call to BytecodeFunction::instance().
+	static BytecodeFunction* BytecodeFunctionInstance = nullptr;
+	
 	// Defined on interpreter start.
-	static Object* BoolProto = nullptr;
+	static Object* BytecodeFunctionProto = nullptr;
 };

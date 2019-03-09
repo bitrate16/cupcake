@@ -17,6 +17,7 @@
 #include "objects/Bool.h"
 #include "objects/Null.h"
 #include "objects/Undefined.h"
+#include "objects/BytecodeFunction.h"
 
 
 using namespace std;
@@ -309,7 +310,7 @@ void ck_executer::exec_bytecode() {
 			}
 			
 			case ck_bytecodes::REF_CALL: {
-				throw ck_message(L"Incomplete code " + to_wstring(__LINE__), ck_message_type::CK_UNSUPPORTED_OPERATION);
+				throw ck_message(L"Incomplete code, line: " + to_wstring(__LINE__), ck_message_type::CK_UNSUPPORTED_OPERATION);
 				int i; 
 				read(sizeof(int), &i);
 				wcout << "> REF_CALL [" << i << ']' << endl;
@@ -317,7 +318,7 @@ void ck_executer::exec_bytecode() {
 			}
 			
 			case ck_bytecodes::CALL: {
-				throw ck_message(L"Incomplete code " + to_wstring(__LINE__), ck_message_type::CK_UNSUPPORTED_OPERATION);
+				throw ck_message(L"Incomplete code, line: " + to_wstring(__LINE__), ck_message_type::CK_UNSUPPORTED_OPERATION);
 				int i; 
 				read(sizeof(int), &i);
 				wcout << "> CALL [" << i << ']' << endl;
@@ -325,7 +326,7 @@ void ck_executer::exec_bytecode() {
 			}
 			
 			case ck_bytecodes::OPERATOR: {
-				throw ck_message(L"Incomplete code " + to_wstring(__LINE__), ck_message_type::CK_UNSUPPORTED_OPERATION);
+				throw ck_message(L"Incomplete code, line: " + to_wstring(__LINE__), ck_message_type::CK_UNSUPPORTED_OPERATION);
 				unsigned char i; 
 				read(sizeof(unsigned char), &i);
 				wcout << "> OPERATOR [" << (int) i << ']' << endl;
@@ -425,7 +426,7 @@ void ck_executer::exec_bytecode() {
 			}
 		
 			case ck_bytecodes::UNARY_OPERATOR: {
-				throw ck_message(L"Incomplete code " + to_wstring(__LINE__), ck_message_type::CK_UNSUPPORTED_OPERATION);
+				throw ck_message(L"Incomplete code, line: " + to_wstring(__LINE__), ck_message_type::CK_UNSUPPORTED_OPERATION);
 				
 				unsigned char i; 
 				read(sizeof(unsigned char), &i);
@@ -559,11 +560,15 @@ void ck_executer::exec_bytecode() {
 			}
 			
 			case ck_bytecodes::PUSH_CONST_FUNCTION: {
-				throw ck_message(L"Incomplete code " + to_wstring(__LINE__), ck_message_type::CK_UNSUPPORTED_OPERATION);
+				
+				// Check for scope
+				validate_scope();		
 				
 				int argc; 
 				read(sizeof(int), &argc);
 				wcout << "> PUSH_CONST_FUNCTION (" << argc << ") (";
+				
+				vector<wstring> argn;
 				
 				for (int i = 0; i < argc; ++i) {
 					int ssize = 0;
@@ -574,6 +579,8 @@ void ck_executer::exec_bytecode() {
 					cstr[ssize] = 0;
 					wcout << cstr;
 					
+					argn.push_back(cstr);
+					
 					if (i != argc-1)
 						wcout << ", ";
 				}
@@ -581,20 +588,61 @@ void ck_executer::exec_bytecode() {
 				int sizeof_block; 
 				read(sizeof(int), &sizeof_block);
 				
-				wcout << ") [" << sizeof_block << "]:" << endl;
+				wcout << ") [" << sizeof_block << "]" << endl;
+				
+				ck_script* script = new ck_script();
+				script->directory = scripts.back()->directory;
+				script->filename  = scripts.back()->filename;
+				
+				// Copy range of bytecodes
+				
+				script->bytecode.bytemap = vector<unsigned char>(scripts.back()->bytecode.bytemap.begin() + pointer, scripts.back()->bytecode.bytemap.begin() + pointer + sizeof_block);
+				
+				// int lineno_a = lineno();
+				// int lineno_b = lineno();
+				
+				// Copy range of lineno table
+				
+				for (int i = 0; i < scripts.back()->bytecode.lineno_table.size();) {
+					int lineno = scripts.back()->bytecode.lineno_table[i++];
+					int byteof = scripts.back()->bytecode.lineno_table[i++];
+					
+					if (pointer >= byteof || pointer + sizeof_block >= byteof) {
+						script->bytecode.lineno_table.push_back(lineno);
+						script->bytecode.lineno_table.push_back((byteof - pointer) < 0 ? 0 : byteof - pointer); // Offset roll back
+					}
+				}
+				
+				// Append last marker
+				script->bytecode.lineno_table.push_back(-1);
+				script->bytecode.lineno_table.push_back(sizeof_block);
+				
+				/*
+				wcout << "Function Bytecode: " << endl;
+				ck_translator::print(script->bytecode.bytemap);
+				wcout << endl;
+				
+				wcout << "Function Lineno Table: " << endl;
+				ck_translator::print_lineno_table(script->bytecode.lineno_table);
+				wcout << endl;
+				*/				
 				
 				pointer += sizeof_block;
+				
+				vpush(new BytecodeFunction(scopes.back(), script, argn));
+				
+				break;
 			}
 		
 			case ck_bytecodes::VSTATE_POP_TRY: {
-				throw ck_message(L"Incomplete code " + to_wstring(__LINE__), ck_message_type::CK_UNSUPPORTED_OPERATION);
+				throw ck_message(L"Incomplete code, line: " + to_wstring(__LINE__), ck_message_type::CK_UNSUPPORTED_OPERATION);
 				
 				wcout << "> VSTATE_POP_TRY" << endl;
 				break;
 			}
 
 			case ck_bytecodes::VSTATE_PUSH_TRY: {
-				throw ck_message(L"Incomplete code " + to_wstring(__LINE__), ck_message_type::CK_UNSUPPORTED_OPERATION);
+				throw ck_message(L"Incomplete code, line: " + to_wstring(__LINE__), ck_message_type::CK_UNSUPPORTED_OPERATION);
 				
 				unsigned char type;
 				read(sizeof(unsigned char), &type);
@@ -690,10 +738,6 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 		throw(ck_exceptions::ck_message_type::NATIVE_EXCEPTION);
 	} 
 	
-	// Restore previous state
-	if (script_id != scripts.size()) 
-		throw ck_message(L"execution stack failture" , ck_message_type::CK_INVALID_STATE);
-	
 	// Restore all scopes
 	for (int i = scopes.size() - 1; i > windows.back().scope_id; --i) {
 		if (scopes[i] && (scope == nullptr || i != windows.back().scope_id))
@@ -701,6 +745,10 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 		
 		scopes.pop_back();
 	}
+	
+	// Restore scripts
+	for (int i = scripts.size() - 1; i > script_id; --i) 
+		scripts.pop_back();
 	
 	// Restore all try frames
 	for (int i = try_stack.size() - 1; i > windows.back().try_id; --i) 
@@ -719,8 +767,8 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 	return;
 };
 
-ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj) { 
-	throw ck_message(L"Incomplete code " + to_wstring(__LINE__), ck_message_type::CK_UNSUPPORTED_OPERATION); 
+ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, const std::vector<ck_vobject::vobject*>& args) { 
+	throw ck_message(L"Incomplete code, line: " + to_wstring(__LINE__), ck_message_type::CK_UNSUPPORTED_OPERATION); 
 };
 
 void ck_executer::goto_address(int bytecode_address) {

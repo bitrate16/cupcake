@@ -62,10 +62,11 @@ bool Object::remove(vscope* scope, const wstring& name) {
 	return 0;
 };
 
-vobject* Object::call(vscope* scope, vector<vobject*> args) {
+vobject* Object::call(vscope* scope, const vector<vobject*> args) {
 	// XXX: Construct object from input
 	throw ck_message(L"Object is not callable", ck_message_type::CK_UNSUPPORTED_OPERATION);
 };
+
 
 void Object::gc_mark() {
 	if (gc_reachable)
@@ -123,5 +124,15 @@ bool Object::remove(const wstring& name) {
 		return 0;
 	objects.erase(pos);
 	return 1;
+};
+
+// Must return integer representation of an object
+long long Object::int_value() { 
+	return (int) (intptr_t) this; 
+};
+
+// Must return string representation of an object
+std::wstring Object::string_value() { 
+	return std::wstring(L"[Object ") + std::to_wstring((int) (intptr_t) this) + std::wstring(L"]"); 
 };
 

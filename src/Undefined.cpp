@@ -60,7 +60,7 @@ bool Undefined::remove(ck_vobject::vscope* scope, const std::wstring& name) {
 	return 0;
 };
 
-vobject* Undefined::call(ck_vobject::vscope* scope, std::vector<vobject*> args) {
+vobject* Undefined::call(ck_vobject::vscope* scope, const std::vector<vobject*> args) {
 	throw ck_message(L"Undefined is not callable", ck_message_type::CK_UNSUPPORTED_OPERATION);
 };
 
@@ -74,5 +74,5 @@ long long Undefined::int_value() {
 };
 
 wstring Undefined::string_value() {
-	return L"null";
+	return L"undefined";
 };

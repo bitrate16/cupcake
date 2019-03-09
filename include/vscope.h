@@ -20,7 +20,7 @@ namespace ck_vobject {
 		void     put     (vscope*, const std::wstring&, vobject*);
 		bool     contains(vscope*, const std::wstring&);
 		bool     remove  (vscope*, const std::wstring&);
-		vobject* call    (vscope*, std::vector<vobject*>);
+		vobject* call    (vscope*, const std::vector<vobject*>);
 		
 		// Returns pointer to the root scope
 		vscope* get_root();

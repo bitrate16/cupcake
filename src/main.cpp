@@ -22,6 +22,8 @@ using namespace ck_vobject;
 
 // make && valgrind --leak-check=full --track-origins=yes ./test
 
+// About passing vector without reference: https://stackoverflow.com/questions/15120264/when-is-a-vector-copied-when-is-a-reference-passed
+
 int main(int argc, const char** argv) {
 	FILE *f = fopen("test.ck", "r");
 	string mbfilename("test.ck");
@@ -48,8 +50,11 @@ int main(int argc, const char** argv) {
 	
 	wcout << "Bytecodes: " << endl;
 	print(scr->bytecode.bytemap);
+	wcout << endl;
+				
 	wcout << "Lineno Table: " << endl;
 	print_lineno_table(scr->bytecode.lineno_table);
+	wcout << endl;
 	
 	delete n;
 	

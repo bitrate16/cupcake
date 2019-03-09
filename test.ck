@@ -1,3 +1,6 @@
-var a = 10;
+function(a) { 
 
-a['kek'] = 2;
+return 12; 
+
+
+return;}
