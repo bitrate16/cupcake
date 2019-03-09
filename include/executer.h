@@ -27,6 +27,9 @@ namespace ck_core {
 		int window_id = -1;
 		// Address of next command
 		int pointer = -1;
+		
+		// Name of the function
+		std::wstring name;
 	};
 	
 	// Single execution stack frame.
@@ -161,7 +164,8 @@ namespace ck_core {
 		// 1. obj is typeof native_function and supports direct call
 		// 2. obj is any other type and does not support direct call. Then obj.::vobject::call() is called.
 		// Ref will be assigned to scope::self
-		ck_vobject::vobject* call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>&);
+		// Name is used in traceback (empty for none)
+		ck_vobject::vobject* call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>&, const std::wstring& name);
 		
 		// Jumps on the address of bytecode map
 		void goto_address(int bytecode_address);

@@ -336,8 +336,8 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 			// arg0
 			// ....
 			// argN
-			// ref  <-- may be nothing
-			// func <-- you are here
+			// ref  <-- reference to object or nothing
+			// key  <-- member key or nothing
 			
 			int argc = 0;
 			ASTNode* t = n->left->next;
@@ -347,16 +347,16 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 				++argc;
 			}
 			
-			if (n->left->type == FIELD) { // REF_CALL_FIELD [name]
+			if (n->left->type == FIELD) { // CALL_FIELD [name]
 			
 				VISIT(n->left->left);  // -> ref
-				push_byte(bytemap, ck_bytecodes::VSTACK_DUP);
 				
 				// STACK:
 				// ref
-				// ref
 				
-				push_byte(bytemap, ck_bytecodes::LOAD_FIELD);
+				push_byte(bytemap, ck_bytecodes::CALL_FIELD);
+			
+				push(bytemap, sizeof(int), &argc);
 				
 				wstring& s = *(wstring*) n->left->objectlist->object;
 				int size = s.size();
@@ -369,46 +369,62 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 				}
 				
 				// STACK:
-				// ref
-				// val
-				
-				push_byte(bytemap, ck_bytecodes::REF_CALL);
-				
-				// STACK:
 				// return
-			} else if (n->left->type == MEMBER) { // REF_CALL_MEMBER [name]
+			} else if (n->left->type == MEMBER) { // CALL_MEMBER
 				
 				VISIT(n->left->left); // -> ref
-				push_byte(bytemap, ck_bytecodes::VSTACK_DUP);
 				
 				// STACK:
 				// ref
-				// ref
 				
-				VISIT(n->left->right);       // -> obj
+				VISIT(n->left->right);       // -> key
 				
 				// STACK:
-				// ref
 				// ref
 				// key
 				
-				push_byte(bytemap, ck_bytecodes::LOAD_MEMBER);
-				
-				// STACK:
-				// ref
-				// val
-				
-				push_byte(bytemap, ck_bytecodes::REF_CALL);
+				push_byte(bytemap, ck_bytecodes::CALL_MEMBER);
+			
+				push(bytemap, sizeof(int), &argc);
 				
 				// STACK:
 				// return
+			} else if (n->left->type == NAME) {
+				
+				// STACK:
+				
+				push_byte(bytemap, ck_bytecodes::CALL_NAME);
+			
+				push(bytemap, sizeof(int), &argc);
+				
+				wstring& s = *(wstring*) n->left->objectlist->object;
+				int size = s.size();
+				
+				push(bytemap, sizeof(int), &size);
+				
+				for (int i = 0; i < size; ++i) {
+					wchar_t c = s[i];
+					push(bytemap, sizeof(wchar_t), &c);
+				}
+				
+				// STACK:
+				// return
+				
 			} else {
 				
 				VISIT(n->left);
+				
+				// STACK:
+				// obj
+				
 				push_byte(bytemap, ck_bytecodes::CALL);
+			
+				push(bytemap, sizeof(int), &argc);
+				
+				// STACK:
+				// return
 			}
 			
-			push(bytemap, sizeof(int), &argc);
 			break;
 		}
 		
@@ -2009,17 +2025,45 @@ void ck_translator::print(vector<unsigned char>& bytemap, int off, int offset, i
 				break;
 			}
 			
-			case ck_bytecodes::REF_CALL: {
-				int i; 
-				read(bytemap, k, sizeof(int), &i);
-				wcout << "> REF_CALL [" << i << ']' << endl;
-				break;
-			}
-			
 			case ck_bytecodes::CALL: {
 				int i; 
 				read(bytemap, k, sizeof(int), &i);
 				wcout << "> CALL [" << i << ']' << endl;
+				break;
+			}
+			
+			case ck_bytecodes::CALL_MEMBER: {
+				int i; 
+				read(bytemap, k, sizeof(int), &i);
+				wcout << "> CALL_MEMBER [" << i << ']' << endl;
+				break;
+			}
+			
+			case ck_bytecodes::CALL_NAME: {
+				int i; 
+				read(bytemap, k, sizeof(int), &i);
+				
+				int size;
+				read(bytemap, k, sizeof(int), &size);
+				wchar_t cstr[size+1];
+				read(bytemap, k, sizeof(wchar_t) * size, cstr);
+				cstr[size] = 0;
+				
+				wcout << "> CALL_NAME [" << i << "] [" << cstr << "]" << endl;
+				break;
+			}
+			
+			case ck_bytecodes::CALL_FIELD: {
+				int i; 
+				read(bytemap, k, sizeof(int), &i);
+				
+				int size;
+				read(bytemap, k, sizeof(int), &size);
+				wchar_t cstr[size+1];
+				read(bytemap, k, sizeof(wchar_t) * size, cstr);
+				cstr[size] = 0;
+				
+				wcout << "> CALL_FIELD [" << i << "] [" << cstr << "]" << endl;
 				break;
 			}
 			

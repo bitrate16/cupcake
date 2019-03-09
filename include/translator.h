@@ -18,11 +18,9 @@ namespace ck_bytecodes {
 	const int PUSH_CONST_ARRAY     = 19; // Push Array
 	const int PUSH_CONST_OBJECT    = 20; // Push Object
 	const int DEFINE_VAR           = 21; // Define variable vith [top] value in current scope
-	const int REF_CALL             = 24; // a.b() or a['b']()
 	const int VSTACK_DUP           = 25; // Duplicate top of the stack
 	const int LOAD_MEMBER          = 26; // top:[key, ref]
 	const int LOAD_FIELD           = 27; // top:[ref]
-	const int CALL                 = 28; // var() or (<expression>)()
 	const int OPERATOR             = 29; // operate with b = stack.top and a = stack.next_to_top as a <opt> b
 	const int STORE_VAR            = 30; // scope.store(name)
 	const int STORE_FIELD          = 31; // top:[value, ref]
@@ -44,6 +42,11 @@ namespace ck_bytecodes {
 	const int PUSH_CONST_FUNCTION  = 47; // Push BytecodeFunction
 	const int VSTATE_PUSH_TRY      = 48; // Push try frame
 	const int VSTATE_POP_TRY       = 49; // Pop try frame
+	
+	const int CALL                 = 50; // (<expression>)()  top:[fun, args]
+	const int CALL_NAME            = 51; // var_name()        top:[args]
+	const int CALL_FIELD           = 22; // foo.var_name()    top:[ref, args]
+	const int CALL_MEMBER          = 23; // foo["member"]()   top:[key, ref, args]
 	
 	const int OPT_ADD     = 1;
 	const int OPT_SUB     = 2;
