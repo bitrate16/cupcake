@@ -13,6 +13,7 @@
 #include <typeinfo>
 
 #include "GC.h"
+#include "vscope.h"
 
 using namespace ck_core;
 using namespace ck_vobject;
@@ -41,31 +42,3 @@ long long vobject::int_value() {
 std::wstring vobject::string_value() { 
 	return std::wstring(L"[vobject ") + std::to_wstring((int) (intptr_t) this) + std::wstring(L"]"); 
 };
-		
-
-// S C O P E
-
-vscope::vscope(vscope* parent) : vobject::vobject() { this->parent = parent; };
-vscope::~vscope() {};
-
-vobject* vscope::get     (vscope* scope, const std::wstring& name) { return nullptr; };
-void     vscope::put     (vscope* scope, const std::wstring& name, vobject* obj) {};
-bool     vscope::contains(vscope* scope, const std::wstring& name) {};
-bool     vscope::remove  (vscope* scope, const std::wstring& name) {};
-vobject* vscope::call    (vscope* scope, std::vector<vobject*> args) { return nullptr; };
-
-void vscope::declare(const std::wstring& scope, vobject* obj) {};
-
-vscope* vscope::get_root() {
-	vscope* t = this;
-	while (t->parent)
-		t = t->parent;
-	return t;
-};
-
-
-void vscope::root() {};
-void vscope::unroot() {};
-
-void vscope::gc_mark() { ck_core::gc_object::gc_reachable = 1; };
-void vscope::gc_finalize() {};

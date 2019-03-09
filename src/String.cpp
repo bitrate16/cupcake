@@ -92,10 +92,7 @@ void String::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* o
 		throw ck_message(L"can not change const string", ck_message_type::CK_UNSUPPORTED_OPERATION);
 	
 	// Else put variable by name
-	if (Object::contains(name))
-		Object::put(name, object);
-	else if(StringProto)
-		StringProto->put(scope, name, object);
+	Object::put(name, object);
 };
 
 bool String::contains(ck_vobject::vscope* scope, const std::wstring& name) {

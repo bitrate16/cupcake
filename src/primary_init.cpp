@@ -1,5 +1,6 @@
 #include "primary_init.h"
 
+#include "vscope.h"
 #include "objects/Object.h"
 #include "objects/Array.h"
 #include "objects/String.h"
@@ -15,14 +16,15 @@ using namespace ck_vobject;
 void ck_objects::primary_init(vscope* scope) {
 	
 	// Define root prototypes
-	scope->declare(L"String",    String::create_proto());
-	scope->declare(L"Array",     Array ::create_proto());
-	scope->declare(L"Object",    Object::create_proto());
-	scope->declare(L"Int",       Object::create_proto());
-	scope->declare(L"Double",    Object::create_proto());
-	scope->declare(L"Bool",      Object::create_proto());
-	scope->declare(L"Null",      Object::create_proto());
-	scope->declare(L"Undefined", Object::create_proto());
+	scope->put(L"vscope",    vscope   ::create_proto());
+	scope->put(L"String",    String   ::create_proto());
+	scope->put(L"Array",     Array    ::create_proto());
+	scope->put(L"Object",    Object   ::create_proto());
+	scope->put(L"Int",       Int      ::create_proto());
+	scope->put(L"Double",    Double   ::create_proto());
+	scope->put(L"Bool",      Bool     ::create_proto());
+	scope->put(L"Null",      Null     ::create_proto());
+	scope->put(L"Undefined", Undefined::create_proto());
 	
 	// Define other objects and fields
 };

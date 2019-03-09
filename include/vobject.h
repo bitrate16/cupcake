@@ -7,6 +7,7 @@
 
 
 namespace ck_vobject {	
+
 	class vscope;
 	class vobject : public ck_core::gc_object {
 		
@@ -35,38 +36,6 @@ namespace ck_vobject {
 		
 		// Must return string representation of an object
 		virtual std::wstring string_value();
-	};
-	
-	class vscope : public vobject {
-			
-	public:
-	
-		vscope* parent;
-		
-		vscope(vscope* parent = nullptr);
-		~vscope();
-		
-		vobject* get     (vscope*, const std::wstring&);
-		void     put     (vscope*, const std::wstring&, vobject*);
-		bool     contains(vscope*, const std::wstring&);
-		bool     remove  (vscope*, const std::wstring&);
-		vobject* call    (vscope*, std::vector<vobject*>);
-		
-		// Force declare variable in this scope.
-		void declare(const std::wstring& name, vobject* obj = nullptr);
-		
-		// Returns pointer to the root scope
-		vscope* get_root();
-		
-		// G C _ O P T I O N S 
-		
-		// Makes scope being gc_root
-		void root();
-		// Unmakes scope being gc_root
-		void unroot();
-		
-		virtual void gc_mark();
-		virtual void gc_finalize();
 	};
 	
 		// XXX: check for working

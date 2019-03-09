@@ -51,6 +51,11 @@ wostream& ck_exceptions::operator<<(wostream& os, const ck_message& m) {
 			os << "ck_message: RUNTIME_ERROR: " << m.native_string << endl;
 			break;
 		}
+		
+		case ck_message_type::CK_STACK_CORRUPTED: {
+			os << "ck_message: CK_STACK_CORRUPTED" << endl;
+			break;
+		}
 	}
 	
 	return os;

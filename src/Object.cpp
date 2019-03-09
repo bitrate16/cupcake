@@ -41,10 +41,7 @@ vobject* Object::get(vscope* scope, const wstring& name) {
 };
 
 void Object::put(vscope* scope, const wstring& name, vobject* object) {
-	if (contains(name))
-		put(name, object);
-	else if(ObjectProto != this && ObjectProto)
-		ObjectProto->put(scope, name, object);
+	put(name, object);
 };
 
 bool Object::contains(vscope* scope, const wstring& name) {
@@ -71,7 +68,8 @@ void Object::gc_mark() {
 	gc_reach();
 	
 	for (const auto& any : objects) 
-		any.second->gc_mark();
+		if (any.second && any.second->gc_reachable)
+			any.second->gc_mark();
 };
 
 void Object::gc_finalize() {};

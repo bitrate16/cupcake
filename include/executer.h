@@ -115,6 +115,27 @@ namespace ck_core {
 		void exec_bytecode();
 		bool is_eof();
 		
+		// Objects stack manipulation
+		
+		// Pop stack [top] or throw stack_corruption
+		inline ck_vobject::vobject* vpop();
+		
+		// Push stack [top]
+		// XXX: Overflow check
+		inline void vpush(ck_vobject::vobject*);
+		
+		// Swap [top] and [top-1] or throw stack_corruption
+		inline void vswap();
+		
+		// Swap [top-1] and [top-2] or throw stack_corruption
+		inline void vswap1();
+		
+		// Swap [top-2] and [top-3] or throw stack_corruption
+		inline void vswap2();
+		
+		// Returns line number of pointer to command
+		int lineno();
+		
 	public:
 		
 		ck_executer();

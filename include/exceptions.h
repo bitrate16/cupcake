@@ -28,7 +28,9 @@ namespace ck_exceptions {
 		CK_UNSUPPORTED_OPERATION,
 		// Any king of ck runtime errors
 		// Message expected in wstring
-		CK_RUNTIME_ERROR
+		CK_RUNTIME_ERROR,
+		// Thrown on executer stack corruption
+		CK_STACK_CORRUPTED
 	};
 	
 	class ck_message {

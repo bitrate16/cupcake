@@ -93,10 +93,7 @@ void Array::put(vscope* scope, const wstring& name, vobject* object) {
 	}
 	
 	// Else put variable by name
-	if (Object::contains(name))
-		Object::put(name, object);
-	else if(ArrayProto)
-		ArrayProto->put(scope, name, object);
+	Object::put(name, object);
 };
 
 // index < 0 ~ bound to [0, size] -> contains
@@ -174,10 +171,11 @@ void Array::gc_mark() {
 	gc_reach();
 	
 	for (const auto& any : objects) 
-		any.second->gc_mark();
+		if (any.second && any.second->gc_reachable)
+			any.second->gc_mark();
 	
 	for (int i = 0; i < elements.size(); ++i)
-		if (elements[i])
+		if (elements[i] || elements[i]->gc_reachable)
 			elements[i]->gc_mark();
 };
 

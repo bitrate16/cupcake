@@ -6,6 +6,7 @@
 #include "sfile.h"
 #include "GIL2.h"
 #include "primary_init.h"
+#include "vscope.h"
 
 using namespace std;
 using namespace ck_token;
@@ -44,6 +45,10 @@ int main(int argc, const char** argv) {
 	scr->directory = get_current_working_dir();
 	scr->filename  = wstring(mbfilename.begin(), mbfilename.end());
 	translate(scr->bytecode.bytemap, scr->bytecode.lineno_table, n);
+	wcout << "Bytecodes: " << endl;
+	print(scr->bytecode.bytemap);
+	wcout << "Lineno Table: " << endl;
+	print_lineno_table(scr->bytecode.lineno_table);
 	delete n;
 	
 	

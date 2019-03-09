@@ -7,9 +7,22 @@
 #include "script.h"
 #include "translator.h"
 
+#include "vscope.h"
+#include "objects/Object.h"
+#include "objects/Array.h"
+#include "objects/String.h"
+#include "objects/Int.h"
+#include "objects/Double.h"
+#include "objects/Bool.h"
+#include "objects/Null.h"
+#include "objects/Undefined.h"
+
+
 using namespace std;
 using namespace ck_core;
 using namespace ck_vobject;
+using namespace ck_objects;
+using namespace ck_exceptions;
 
 
 // C K _ E X E C U T E R _ G C _ O B J E C T
@@ -62,6 +75,56 @@ inline bool ck_executer::is_eof() {
 	return !scripts.back() || pointer >= scripts.back()->bytecode.bytemap.size() || scripts.back()->bytecode.bytemap[pointer] == ck_bytecodes::HALT;
 };
 
+ck_vobject::vobject* ck_executer::vpop() {
+	if (objects.size() == 0)
+		throw ck_message(ck_message_type::CK_STACK_CORRUPTED);
+	
+	vobject* t = objects.back();
+	objects.pop_back();
+	
+	return t;
+};
+
+void ck_executer::vpush(ck_vobject::vobject* o) {	
+	objects.push_back(o);
+};
+
+void ck_executer::vswap() {
+	if (objects.size() < 2)
+		throw ck_message(ck_message_type::CK_STACK_CORRUPTED);
+	
+	std::iter_swap(objects.end(), objects.end() - 1);
+};
+
+void ck_executer::vswap1() {
+	if (objects.size() < 3)
+		throw ck_message(ck_message_type::CK_STACK_CORRUPTED);
+	
+	std::iter_swap(objects.end() - 1, objects.end() - 2);
+};
+
+void ck_executer::vswap2() {
+	if (objects.size() < 4)
+		throw ck_message(ck_message_type::CK_STACK_CORRUPTED);
+	
+	std::iter_swap(objects.end() - 2, objects.end() - 3);
+};
+
+int ck_executer::lineno() {
+	if (scripts.back()->bytecode.lineno_table.size() == 0)
+		return 0;
+	
+	if (pointer >= scripts.back()->bytecode.bytemap.size()) 
+		return scripts.back()->bytecode.lineno_table.rbegin()[1];
+	
+	for (int i = 0; i < scripts.back()->bytecode.lineno_table.size() - 2; i += 2) {
+		if (i >= scripts.back()->bytecode.lineno_table[i + 1] && i < scripts.back()->bytecode.lineno_table[i + 3])
+			return scripts.back()->bytecode.lineno_table[i];
+	}
+	
+	return -1;
+};
+
 void ck_executer::exec_bytecode() {	
 	while (!is_eof()) {
 		
@@ -81,45 +144,51 @@ void ck_executer::exec_bytecode() {
 			case ck_bytecodes::PUSH_CONST_INT: {
 				long long i; 
 				read(sizeof(long long), &i);
+				vpush(new Int(i));
 				wcout << "> PUSH_CONST[int]: " << i << endl;
 				break;
 			}
-			/*
+			
 			case ck_bytecodes::PUSH_CONST_DOUBLE: {
 				double i; 
-				read(bytemap, k, sizeof(double), &i);
+				read(sizeof(double), &i);
+				vpush(new Double(i));
 				wcout << "> PUSH_CONST[double]: " << i << endl;
 				break;
 			}
 			
 			case ck_bytecodes::PUSH_CONST_BOOLEAN: {
 				bool i; 
-				read(bytemap, k, sizeof(bool), &i);
+				read(sizeof(bool), &i);
+				vpush(new Bool(i));
 				wcout << "> PUSH_CONST[boolean]: " << i << endl;
 				break;
 			}
 			
 			case ck_bytecodes::PUSH_CONST_NULL: {
+				vpush(Null::instance());
 				wcout << "> PUSH_CONST: null" << endl;
 				break;
 			}
 			
 			case ck_bytecodes::PUSH_CONST_UNDEFINED: {
+				vpush(Undefined::instance());
 				wcout << "> PUSH_CONST: undefined" << endl;
 				break;
 			}
 			
 			case ck_bytecodes::PUSH_CONST_STRING: {
 				int size;
-				read(bytemap, k, sizeof(int), &size);
+				read(sizeof(int), &size);
 				wchar_t cstr[size+1];
-				read(bytemap, k, sizeof(wchar_t) * size, cstr);
+				read(sizeof(wchar_t) * size, cstr);
 				cstr[size] = 0;
 				
+				vpush(new String(cstr));
 				wcout << "> PUSH_CONST[string]: \"" << cstr << '"' << endl;
 				break;
 			}
-			
+			/*
 			case ck_bytecodes::LOAD_VAR: {
 				int size;
 				read(bytemap, k, sizeof(int), &size);
@@ -127,6 +196,8 @@ void ck_executer::exec_bytecode() {
 				read(bytemap, k, sizeof(wchar_t) * size, cstr);
 				cstr[size] = 0;
 				
+				// Scope should return nullptr if value does not exist.
+				vobject* o = scopes.back().get();
 				wcout << "> LOAD_VAR: " << cstr << endl;
 				break;
 			}
@@ -414,6 +485,9 @@ void ck_executer::exec_bytecode() {
 				break;
 			}
 		*/
+		
+			// Respond to GIL requests
+			GIL::instance()->accept_lock();
 		}
 	}
 };
@@ -446,7 +520,7 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 	if (argn != nullptr && argv != nullptr) {
 		int argc = argn->size() < argv->size() ? argn->size() : argv->size();
 		for (int i = 0; i < argc; ++i)
-			new_scope->declare((*argn)[i], (*argv)[i]);
+			new_scope->put((*argn)[i], (*argv)[i]);
 	}
 	
 	scopes.push_back(new_scope);
