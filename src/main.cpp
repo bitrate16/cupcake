@@ -7,6 +7,7 @@
 #include "GIL2.h"
 #include "primary_init.h"
 #include "vscope.h"
+#include "ASTPrinter.h"
 
 using namespace std;
 using namespace ck_token;
@@ -48,7 +49,9 @@ int main(int argc, const char** argv) {
 	scr->filename  = wstring(mbfilename.begin(), mbfilename.end());
 	translate(scr->bytecode.bytemap, scr->bytecode.lineno_table, n);
 	
-	/*
+	wcout << "AST:" << endl;
+	printAST(n);
+	
 	wcout << "Bytecodes: " << endl;
 	print(scr->bytecode.bytemap);
 	wcout << endl;
@@ -56,6 +59,10 @@ int main(int argc, const char** argv) {
 	wcout << "Lineno Table: " << endl;
 	print_lineno_table(scr->bytecode.lineno_table);
 	wcout << endl;
+	
+	/*
+	for (int i = 0; i < scr->bytecode.bytemap.size(); ++i)
+		wcout << "[" << i << "] " << (int) scr->bytecode.bytemap[i] << endl;
 	*/
 	
 	delete n;
@@ -70,7 +77,7 @@ int main(int argc, const char** argv) {
 	try {
 		GIL::executer_instance()->execute(scr, scope);
 	} catch (const ck_message& msg) {
-		wcout << msg << endl;
+		wcout << "Unhandled error: " << msg << endl;
 		// XXX: High level elevated exception. Should exit, or process it via system.defexceptionhandler()
 	}
 	
@@ -80,5 +87,6 @@ int main(int argc, const char** argv) {
 	delete gil;
 	delete scr;
 	
+	// wcout << "MAIN EXITED" << endl;
 	return 0;
 };

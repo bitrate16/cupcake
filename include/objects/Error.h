@@ -45,6 +45,8 @@ namespace ck_objects {
 		virtual void gc_finalize();
 		
 		
+		void print_backtrace();
+		
 		virtual long long int_value();
 		
 		// Returns string

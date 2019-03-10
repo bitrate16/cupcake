@@ -359,12 +359,6 @@ void printAST(ck_ast::ASTNode *localroot) { // XXX: how to save line numbers?
 			printAST(localroot->right);
 			break;
 			
-		case ck_token::ASSIGN_BITNOT:
-			printAST(localroot->left);
-			wprintf(L"~= ");
-			printAST(localroot->right);
-			break;
-			
 		case ck_token::ASSIGN_BITXOR:
 			printAST(localroot->left);
 			wprintf(L"^= ");
@@ -505,9 +499,9 @@ void printAST(ck_ast::ASTNode *localroot) { // XXX: how to save line numbers?
 			putwchar(';');
 			break;
 			
-		case ck_token::RAISE:
+		case ck_token::THROW:
 			wprintf(L"raise");
-			if (localroot->left) {
+			if (localroot->left->type != ck_token::EMPTY) {
 				wprintf(L" ");
 				printAST(localroot->left);
 			}

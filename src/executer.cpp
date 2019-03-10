@@ -137,59 +137,205 @@ int ck_executer::lineno() {
 	
 	return -1;
 };
+		
+void ck_executer::store_frame(std::vector<stack_frame>& stack, int stack_id, const std::wstring& name, bool own_scope) {
+	
+	if (stack_id == call_stack_id && stack.size() == call_stack_limit)
+		throw ck_message(L"call stack overflow", ck_message_type::CK_STACK_OVERFLOW);
+	else if (stack_id == try_stack_id && stack.size() == try_stack_limit)
+		throw ck_message(L"try stack overflow", ck_message_type::CK_STACK_OVERFLOW);
+	else if (stack_id == window_stack_id && stack.size() == window_stack_limit)
+		throw ck_message(L"window stack overflow", ck_message_type::CK_STACK_OVERFLOW);
+		
+	// Create stack_window and save executer state
+	stack_frame frame;
+	frame.window_id = window_stack.size() - 1;
+	frame.try_id    = try_stack.size()    - 1;
+	frame.call_id   = call_stack.size()   - 1;
+	frame.script_id = scripts.size()      - 1;
+	frame.scope_id  = scopes.size()       - 1;
+	frame.object_id = objects.size()      - 1;
+	frame.own_scope = own_scope;
+	frame.name      = name;
+	frame.pointer   = pointer;
+	
+	/*if (stack_id == call_stack_id)
+		++frame.call_id;
+	else if (stack_id == try_stack_id)
+		++frame.try_id;
+	else if (stack_id == window_stack_id)
+		++frame.window_id;*/
+	
+	stack.push_back(frame);
+};
 
-void ck_executer::follow_exception(const ck_message& msg) {
-	if (try_stack.size() == 0)
-		throw msg;
+void ck_executer::restore_frame(std::vector<stack_frame>& stack, int stack_id, int restored_frame_id) {
 	
-	// Restore context
+	/*if (stack_id == call_stack_id)
+		wcout << "RESTORE CALL" << endl;
+	else if (stack_id == try_stack_id)
+		wcout << "RESTORE TRY" << endl;
+	else if (stack_id == window_stack_id)
+		wcout << "RESTORE WINDOW" << endl;
+	*/
+	;//wcout << "Check for needence: restored_frame_id = " << restored_frame_id << ", stack.size() - 1 = " << stack.size() - 1 << endl; 
+	if (restored_frame_id > (int) stack.size() - 1)
+		return;
+	;//wcout << "-------------> call   stack id current " << (int)call_stack.size()-1 << endl;
+	;//wcout << "-------------> try    stack id current " << (int)try_stack.size() -1<< endl;
+	;//wcout << "-------------> window stack id current " << (int)window_stack.size()-1 << endl;
+	;//wcout << "-------------> scripts      id current " << (int)scripts.size()-1 << endl;
+	;//wcout << "-------------> scopes       id current " << (int)scopes.size()-1 << endl;
 	
-	// Restore all functional frames
-	for (int i = call_stack.size() - 1; i > try_stack.back().call_id; --i) 
-		call_stack.pop_back();
+	if (stack_id == call_stack_id && stack.size() == 0)
+		throw ck_message(L"call stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
+	else if (stack_id == try_stack_id && stack.size() == 0)
+		throw ck_message(L"try stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
+	else if (stack_id == window_stack_id && stack.size() == 0)
+		throw ck_message(L"window stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
+	
+	int window_id = stack.back().window_id;
+	int try_id    = stack.back().try_id;
+	int call_id   = stack.back().call_id;
+	int script_id = stack.back().script_id;;//wcout << "------------------------ SCRIPT " << script_id << ", val = " << scripts.size() << endl;
+	int scope_id  = stack.back().scope_id;
+	int object_id = stack.back().object_id;
+	int pointer_v = stack.back().pointer;
+	/*
+	if (stack_id == call_stack_id)
+		call_id = restored_frame_id;
+	else if (stack_id == try_stack_id)
+		try_id = restored_frame_id;
+	else if (stack_id == window_stack_id)
+		window_id = restored_frame_id;
+	*/
+	;//wcout << "-------------> call   stack id expected " << call_id   << endl;
+	;//wcout << "-------------> try    stack id expected " << try_id    << endl;
+	;//wcout << "-------------> window stack id expected " << window_id << endl;
+	;//wcout << "-------------> scripts      id expected " << script_id << endl;
+	;//wcout << "-------------> scopes       id expected " << scope_id << endl;
 	
 	// Restore windows
-	for (int i = windows.size() - 1; i > try_stack.back().window_id; --i) 
-		windows.pop_back();
+	for (int i = window_stack.size() - 1; i > window_id; --i) {
+		// Pop scopes that are used by windows
+		if (window_stack.back().scope_id >= 0 && window_stack.back().scope_id < scopes.size()) 
+			if (scopes[window_stack.back().scope_id]) {
+				if (window_stack.back().own_scope)
+						scopes[window_stack.back().scope_id]->unroot();
+				
+				scopes[window_stack.back().scope_id] = nullptr;
+			}
+		
+		window_stack.pop_back();
+	}
 	
-	// Check for valid script
-	if (try_stack.back().script_id+1 != scripts.size())
-		throw msg;
+	// Restore try frames
+	// Logically, try does not own any scopes
+	// Only catch block owns a scope, so it has to be popped out later as the rest.
+	for (int i = try_stack.size() - 1; i > try_id; --i) 
+		try_stack.pop_back();
 	
-	// Restore all scopes
-	for (int i = scopes.size() - 1; i > try_stack.back().scope_id; --i) {
-		scopes[i]->unroot();
+	
+	// Restore call frames
+	for (int i = call_stack.size() - 1; i > call_id; --i) {
+		// Pop scopes that are used by call frames
+		if (call_stack.back().scope_id >= 0 && call_stack.back().scope_id < scopes.size()) 
+			if (scopes[call_stack.back().scope_id]) {
+				if (call_stack.back().own_scope)
+						scopes[call_stack.back().scope_id]->unroot();
+				
+				scopes[call_stack.back().scope_id] = nullptr;
+			}
+		
+		call_stack.pop_back();
+	}
+	
+	// Restore scripts
+	for (int i = scripts.size() - 1; i > script_id; --i) 
+		scripts.pop_back();
+	
+	// Restore scopes
+	for (int i = scopes.size() - 1; i > scope_id; --i) {		
+		// Only catch blocks scopes are left. Remove then
+		if (scopes[i])
+			scopes[i]->unroot();
+		
 		scopes.pop_back();
 	}
 	
 	// Restore objects stack
-	for (int i = objects.size() - 1; i > try_stack.back().object_id; --i) 
+	for (int i = objects.size() - 1; i > object_id; --i) 
 		objects.pop_back();
 	
+	// Restore address pointer
+	pointer = pointer_v;
 	
-	int type          = try_stack.back().type;
-	int catch_address = try_stack.back().catch_node;
-	wstring handler   = try_stack.back().handler;
+	//stack.pop_back();
+	
+	;//wcout << "-------------> AFTER" << endl;
+	;//wcout << "-------------> call   stack id result " << (int)call_stack.size()-1 << endl;
+	;//wcout << "-------------> try    stack id result " << (int)try_stack.size() -1<< endl;
+	;//wcout << "-------------> window stack id result " << (int)window_stack.size()-1 << endl;
+	;//wcout << "-------------> scripts      id result " << (int)scripts.size()-1 << endl;
+	;//wcout << "-------------> scopes       id result " << (int)scopes.size()-1 << endl;
+};
+
+void ck_executer::follow_exception(const ck_message& msg) {
+	if (try_stack.size() == 0)
+		throw msg;	
+	
+	int type          = try_stack.back().try_type;
+	int catch_address = try_stack.back().catch_node; ;//wcout << "catch_address = " << catch_address << endl;
+	int window_id     = try_stack.back().window_id;
+	int call_id       = try_stack.back().call_id;
+	int try_id        = try_stack.back().try_id;
+	wstring handler   = try_stack.back().name; ;//wcout << "HANDLER NAME GOING TO EXTECTED TO BE THIS: " << handler << endl;
+	;//wcout << "---CURRENT---> call   stack id current  " << (int)call_stack.size()-1   << endl;
+	;//wcout << "---CURRENT---> try    stack id current  " << (int)try_stack.size() -1    << endl;
+	;//wcout << "---CURRENT---> win    stack id current  " << (int)window_stack.size() -1    << endl;
+	;//wcout << "=============> call   stack id expected " << call_id   << endl;
+	;//wcout << "=============> try    stack id expected " << try_id    << endl;
+	;//wcout << "=============> win    stack id expected " << window_id    << endl;
+	;//wcout << "===AAAAAAAAA=> call_stack_try id        " << call_stack.back().try_id    << endl;
+	;//wcout << "====AAAAAA===> window_stack_try id      " << window_stack.back().try_id    << endl;
+	;//wcout << "==BBBBBBBAAA=> call_stack_call id       " << call_stack.back().call_id    << endl;
+	;//wcout << "====AABBBBB==> window_stack_call id     " << window_stack.back().call_id    << endl  << endl;
+	;//wcout << "call: call_id = " << call_id << ", call_stack.size() - 1 = " << call_stack.size() - 1 << endl;
+	// Check for valid call
+	if (call_stack.size() != 0 && call_stack.back().try_id == try_stack.size()-1) { ;//wcout << "exit by call exit" << endl;
+		;//wcout << "CALL ROLLBACK" << endl;
+		restore_frame(call_stack, call_stack_id, call_id - 1);
+		throw msg;
+	}
+	;//wcout << "window: window_id = " << window_id << ", window_stack.size() - 1 = " << window_stack.size() - 1 << endl;
+	// Check for valid script
+	if (window_stack.size() != 0 && window_stack.back().try_id == try_stack.size()-1) { ;//wcout << "exit by window exit" << endl;
+		;//wcout << "WINDOW ROLLBACK" << endl;
+		restore_frame(window_stack, window_stack_id, window_id - 1);
+		throw msg;
+	}
 	
 	// The default behaviour is to pop try_frame out when handling exception.
 	// Normally try_trame should be popped by POP_TRY when try block finishes work without error.
-	try_stack.pop_back();
+	restore_frame(try_stack, try_stack_id, try_stack.size() - 1);
+	;//wcout << "catch_address = " << catch_address << endl;
 	
 	switch(type) {
 		case ck_bytecodes::TRY_NO_ARG:
-		case ck_bytecodes::TRY_NO_CATCH: 
+		case ck_bytecodes::TRY_NO_CATCH:
 			goto_address(catch_address); 
 			break;
 			
-		case ck_bytecodes::TRY_WITH_ARG: {
+		case ck_bytecodes::TRY_WITH_ARG: {;//wcout << "HANDLER NAME EXPECTED TO BE THIS: " << handler << endl;
 			vscope* scope = new vscope(scopes.size() == 0 ? nullptr : scopes.back());
 			scope->root();
-			scope->put(handler, msg.get_type() == ck_message_type::CK_OBJECT ? msg.get_object() : new Error(msg));
+			scope->put(handler, msg.get_type() == ck_message_type::CK_OBJECT ? msg.get_object() : new Error(msg), 0, 1);
 			scopes.push_back(scope);
 			goto_address(catch_address); 
 			break;
 		}
 	}
+	;//wcout << "pointer = " << pointer << endl;
 };
 
 
@@ -199,9 +345,12 @@ void ck_executer::validate_scope() {
 };
 
 void ck_executer::exec_bytecode() {
-	;//wcout << "[" << pointer << "] ";
 	while (!is_eof()) {
-		
+		;//wcout << "[" << pointer << "] ";
+		if (pointer == 67) {
+			;//wcout << " - - - - - - - - - - - - - - call_size = " << call_stack.size() << endl;
+			;//wcout << " - - - - - - - - - - - - - - scripts_size = " << scripts.size() << endl;
+		}
 		switch(scripts.back()->bytecode.bytemap[pointer++]) {
 			case ck_bytecodes::LINENO: {
 				int lineno; 
@@ -465,7 +614,7 @@ void ck_executer::exec_bytecode() {
 				for (int k = 0; k < argc + 1; ++k)
 					objects.pop_back();
 				vpush(obj);
-				
+				;//wcout << "scipts_size = " << scripts.size() << endl;
 				break;
 			}
 			
@@ -932,7 +1081,10 @@ void ck_executer::exec_bytecode() {
 				
 				// No explicit restoration. 
 				// Everything expected to be fine.
-				try_stack.pop_back();
+				// Simply pop the frame
+				int pointer_tmp = pointer;
+				restore_frame(try_stack, try_stack_id, try_stack.size() - 1);
+				pointer = pointer_tmp;
 				
 				;//wcout << "> VSTATE_POP_TRY" << endl;
 				break;
@@ -949,27 +1101,17 @@ void ck_executer::exec_bytecode() {
 				unsigned char type;
 				read(sizeof(unsigned char), &type);
 				
-				if (type == ck_bytecodes::TRY_NO_CATCH) {
-					try_node;
-					int exit;
-					
+				if (type == ck_bytecodes::TRY_NO_CATCH) {					
 					read(sizeof(int), &try_node);
-					read(sizeof(int), &exit);
+					read(sizeof(int), &catch_node);
 					
-					catch_node = exit;
-					
-					;//wcout << "> VSTATE_PUSH_TRY [TRY_NO_CATCH] [" << try_node << "] [" << exit << ']' << endl;
-				} else if (type == ck_bytecodes::TRY_NO_ARG) {
-					try_node;
-					int catch_node;
-					
+					;//wcout << "> VSTATE_PUSH_TRY [TRY_NO_CATCH] [" << try_node << "] [" << catch_node << ']' << endl;
+				} else if (type == ck_bytecodes::TRY_NO_ARG) {			
 					read(sizeof(int), &try_node);
 					read(sizeof(int), &catch_node);
 					
 					;//wcout << "> VSTATE_PUSH_TRY [TRY_NO_ARG] [" << try_node << "] [" << catch_node << ']' << endl;
 				} else {
-					try_node;
-					catch_node;
 					int name_size;
 					
 					read(sizeof(int), &try_node);
@@ -979,27 +1121,20 @@ void ck_executer::exec_bytecode() {
 					wchar_t cstr[name_size+1];
 					read(sizeof(wchar_t) * name_size, cstr);
 					cstr[name_size] = 0;
+					
 					handler_name = cstr;
 					
 					;//wcout << "> VSTATE_PUSH_TRY [TRY_WITH_ARG] (" << cstr << ") [" << try_node << "] [" << catch_node << ']' << endl;
 				}
-				
-				try_stack.push_back(stack_try());
-				try_stack.back().scope_id = scopes.size() - 1;
-				try_stack.back().script_id = scripts.size() - 1;
-				try_stack.back().object_id = objects.size() - 1;
-				try_stack.back().window_id = windows.size() - 1;
-				try_stack.back().call_id = call_stack.size() - 1;
-				try_stack.back().pointer = pointer;
-				try_stack.back().try_node = try_node;
+				;//wcout << "TRY AHNDLER NAME -----------------> " << handler_name << endl;
+				store_frame(try_stack, try_stack_id, handler_name, 0);
+				try_stack.back().try_type = type;
 				try_stack.back().catch_node = catch_node;
-				try_stack.back().type = type;
-				try_stack.back().handler = handler_name;
 				
 				break;
 			}
 			
-			default: throw ck_message(L"invalid bytecode [" + to_wstring(scripts.back()->bytecode.bytemap[pointer++]) + L"]", ck_message_type::CK_INVALID_STATE);
+			default: throw ck_message(L"invalid bytecode [" + to_wstring(scripts.back()->bytecode.bytemap[pointer-1]) + L"]", ck_message_type::CK_INVALID_STATE);
 		}
 		
 		// Respond to GIL requests
@@ -1013,24 +1148,10 @@ void ck_executer::exec_bytecode() {
 
 void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, std::vector<std::wstring>* argn, std::vector<ck_vobject::vobject*>* argv) {
 	
-	if (windows.size() == windows_limit)
+	if (window_stack.size() == window_stack_limit)
 		throw ck_message(L"executer stack overflow", ck_message_type::CK_STACK_OVERFLOW);
 	
-	// Create stack_window and save executer state
-	windows.push_back(stack_window());
-	windows.back().scope_id  = scopes.size()     - 1;
-	windows.back().script_id = scripts.size()    - 1;
-	windows.back().call_id   = call_stack.size() - 1;
-	windows.back().try_id    = try_stack.size()  - 1;
-	windows.back().object_id = objects.size()    - 1;
-	windows.back().window_id = windows.size()    - 1;
-	windows.back().pointer   = pointer;
-	
-	int window_id = windows.size() - 1;
-	
-	// Push script instance to the bottom
-	scripts.push_back(scr);
-	
+	// Apply new scope
 	if (scope == nullptr) {
 		scope = new vscope();
 		scope->root();
@@ -1042,162 +1163,141 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 			scope->put((*argn)[i], (*argv)[i]);
 	}
 	
+	// Push scope
 	scopes.push_back(scope);
+	
+	// Push call frame and mark own scope
+	store_frame(window_stack, window_stack_id, L"", 1);
+	
+	// Save expected call id
+	int window_id = window_stack.size() - 1;
+	
+	// Push script instance to the bottom
+	scripts.push_back(scr);
 	
 	// Reset pointer to 0 and start
 	pointer = 0;
 	
+	// Do some useless shit again
 	while (1) {
-		try {
+		try {;//wcout << "scopes.size() = " << scopes.size() << endl;
+		;//wcout << "pointer = " << pointer << endl;
 			exec_bytecode();
+			
+			// Reached bytecode end
 			break;
-		} catch(const ck_exceptions::ck_message& msg) { 
-			follow_exception(msg);
+			
+		} catch(const ck_exceptions::ck_message& msg) { //;wcout << "HANDLE_EXCEPTION_EXECUTER" << endl;
+			// Aft
+			;//wcout << "HANDLED_EXCEPTION_EXECUTER" << endl;
+			if (msg.get_type() == ck_message_type::CK_OBJECT)
+				follow_exception(msg);
+			else
+				follow_exception(new Error(msg));
 		} catch (const std::exception& ex) {
-			follow_exception(ex);
+			follow_exception(new Error(ck_message(ex)));
 		} catch (...) {
-			follow_exception(ck_message(ck_exceptions::ck_message_type::NATIVE_EXCEPTION));
+			follow_exception(new Error(ck_message(ck_exceptions::ck_message_type::NATIVE_EXCEPTION)));
 		} 
 	}
 	
-	// Restore windows
-	for (int i = windows.size() - 1; i > window_id; --i) 
-		windows.pop_back();
+	// Try to restore scope
+	restore_frame(window_stack, window_stack_id, window_id);
 	
-	// Restore scripts
-	for (int i = scripts.size() - 1; i > windows.back().script_id; --i) 
-		scripts.pop_back();
-	
-	// Restore all scopes
-	for (int i = scopes.size() - 1; i > windows.back().scope_id; --i) {
-		if (scopes[i] && (scope == nullptr || i != windows.back().scope_id))
-			scopes[i]->unroot();
-		
-		scopes.pop_back();
-	}
-	
-	// Restore all try frames
-	for (int i = try_stack.size() - 1; i > windows.back().try_id; --i) 
-		try_stack.pop_back();
-	
-	// Restore all functional frames
-	for (int i = call_stack.size() - 1; i > windows.back().call_id; --i) 
-		call_stack.pop_back();
-	
-	// Restore objects stack
-	for (int i = objects.size() - 1; i > windows.back().object_id; --i) 
-		objects.pop_back();
-	
-	pointer = windows.back().pointer;
-	windows.pop_back();
 	return;
 };
 
 ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>& args, const std::wstring& name) { 
 
 	if (obj == nullptr)
-		throw ck_message(wstring(L"undefined call to ") + name, ck_message_type::CK_TYPE_ERROR);		
-		
-	if (call_stack.size() == call_stack_limit)
-		throw ck_message(L"call stack overflow", ck_message_type::CK_STACK_OVERFLOW);
-		
-	// Create stack_window and save executer state
-	call_stack.push_back(stack_frame());
-	call_stack.back().scope_id  = scopes.size()     - 1;
-	call_stack.back().script_id = scripts.size()    - 1;
-	call_stack.back().call_id   = call_stack.size() - 1;
-	call_stack.back().try_id    = try_stack.size()  - 1;
-	call_stack.back().object_id = objects.size()    - 1;
-	call_stack.back().window_id = windows.size()    - 1;
-	call_stack.back().name      = name;
-	call_stack.back().pointer   = pointer;
+		throw ck_message(wstring(L"undefined call to ") + name, ck_message_type::CK_TYPE_ERROR);
 	
-	int call_id = call_stack.size() - 1;
+	// Construct scope
 	vscope* scope = nullptr;
 	
 	if (obj->is_typeof<BytecodeFunction>()) {
 		// Apply new scope
 		scope = ((BytecodeFunction*) obj)->apply(args);
-		// Apply script
-		scripts.push_back(((BytecodeFunction*) obj)->get_script());
 	} else
 		scope = new vscope(scopes.size() == 0 ? nullptr : scopes.back());
 	
 	if (ref != nullptr)
 		scope->put(L"__self", ref);
-	
+	;//wcout << "call scopes.size() 1 = " << scopes.size() << endl;
+	// Push scope
 	scope->root();
 	scopes.push_back(scope);
+	;//wcout << "call scopes.size() 2 = " << scopes.size() << endl;
+	
+	// Push call frame and mark own scope
+	store_frame(call_stack, call_stack_id, name, 1);
+	
+	// Apply script
+	if (obj->is_typeof<BytecodeFunction>())
+		scripts.push_back(((BytecodeFunction*) obj)->get_script());
+	
+	// Save expected call id
+	int call_id = call_stack.size() - 1;
+	
+	// Do some useless shit
 	
 	if (obj->is_typeof<BytecodeFunction>()) {
 		// Reset pointer to 0 and start
 		pointer = 0;
 		
-		try {
-			exec_bytecode();
-		} catch(const ck_exceptions::ck_message& msg) { 
-			if (msg.get_type() == ck_message_type::CK_RETURN)
-				obj = msg.get_object();
-			else
-				throw msg;
-		} catch (const std::exception& ex) {
-			throw ck_message(ex); // Rethrow
-		}  catch (...) {
-			throw ck_message(ck_exceptions::ck_message_type::NATIVE_EXCEPTION);  // Rethrow
-		} 
+		while (1) {
+			try {
+				exec_bytecode();
+				
+				// Correct function finish
+				obj = Undefined::instance();
+				
+				break;
+				
+			} catch(const ck_exceptions::ck_message& msg) { 
+				if (msg.get_type() == ck_message_type::CK_RETURN) { ;//wcout << "HANDLE_RETURN_FUNCTION" << endl;
+					obj = msg.get_object();//wcout << obj->string_value() << endl;
+					break;
+				} else { //;wcout << "HANDLE_EXCEPTION_FUNCTION" << endl;
+					if (msg.get_type() == ck_message_type::CK_OBJECT)
+						follow_exception(msg);
+					else
+						follow_exception(new Error(msg));
+					//;wcout << "HANDLED_EXCEPTION_FUNCTION" << endl;
+				}
+			} catch (const std::exception& ex) {
+				follow_exception(new Error(ck_message(ex)));
+			} catch (...) {
+				follow_exception(new Error(ck_message(ck_exceptions::ck_message_type::NATIVE_EXCEPTION)));
+			} 
+		}
 	} else {
 		try {
 			obj = obj->call(scope, args);
 		} catch(const ck_exceptions::ck_message& msg) { 
 			if (msg.get_type() == ck_message_type::CK_RETURN)
 				obj = msg.get_object();
+			else if (msg.get_type() == ck_message_type::CK_OBJECT)
+				follow_exception(msg);
 			else
-				throw msg;
+				follow_exception(new Error(msg));
 		} catch (const std::exception& ex) {
-			throw ck_message(ex);  // Rethrow
-		}  catch (...) {
-			throw ck_message(ck_exceptions::ck_message_type::NATIVE_EXCEPTION);  // Rethrow
-		}
+			follow_exception(new Error(ck_message(ex)));
+		} catch (...) {
+			follow_exception(new Error(ck_message(ck_exceptions::ck_message_type::NATIVE_EXCEPTION)));
+		} 
 	}
+	;//wcout << "BEFORE CALL POP" << endl;
+	// Try to restore scope
+	restore_frame(call_stack, call_stack_id, call_id);
+	;//wcout << "AFTER CALL POP" << endl;
+	;//wcout << "call scopes.size() 3 = " << scopes.size() << endl;
+	scopes.pop_back();
 	
-	// Restore all functional frames
-	for (int i = call_stack.size() - 1; i > call_id; --i) 
-		call_stack.pop_back();
-	
-	// Restore windows
-	for (int i = windows.size() - 1; i > call_stack.back().window_id; --i) 
-		windows.pop_back();
-	
-	// Restore scripts
-	for (int i = scripts.size() - 1; i > call_stack.back().script_id; --i) 
-		scripts.pop_back();
-	
-	// Restore all scopes
-	for (int i = scopes.size() - 1; i > call_stack.back().scope_id; --i) {
-		if (scopes[i] && (scope == nullptr || i != windows.back().scope_id))
-			scopes[i]->unroot();
-		
-		scopes.pop_back();
-	}
-	
-	// Restore all try frames
-	for (int i = try_stack.size() - 1; i > call_stack.back().try_id; --i) 
-		try_stack.pop_back();
-	
-	
-	//// use ck_message instead
-	// Peek return value
-	//if (call_stack.back().object_id > objects.size())
-	//	obj = nullptr;
-	//else
-	//	obj = objects.back();
-	
-	// Restore objects stack
-	for (int i = objects.size() - 1; i > call_stack.back().object_id; --i) 
-		objects.pop_back();
-	
-	pointer = call_stack.back().pointer;
-	call_stack.pop_back();
+	if (obj)
+		;//wcout << "RETURNED: " << obj->string_value() << endl;
+	else
+		;//wcout << "RETURNED: " << "NULL" << endl;
 	return obj;
 };
 
@@ -1209,7 +1309,34 @@ void ck_executer::goto_address(int bytecode_address) {
 };
 
 void ck_executer::clear() {
+	
 	// Delete evereseng
+	
+	for (int i = window_stack.size() - 1; i >= 0; --i) {
+		if (window_stack.back().scope_id >= 0 && window_stack.back().scope_id < scopes.size()) 
+			if (scopes[window_stack.back().scope_id]) {
+				if (window_stack.back().own_scope)
+						scopes[window_stack.back().scope_id]->unroot();
+				
+				scopes[window_stack.back().scope_id] = nullptr;
+			}
+		
+		window_stack.pop_back();
+	}	
+	
+	for (int i = call_stack.size() - 1; i >= 0; --i) {
+		if (call_stack.back().scope_id >= 0 && call_stack.back().scope_id < scopes.size()) 
+			if (scopes[call_stack.back().scope_id]) {
+				if (call_stack.back().own_scope)
+						scopes[call_stack.back().scope_id]->unroot();
+				
+				scopes[call_stack.back().scope_id] = nullptr;
+			}
+		
+		call_stack.pop_back();
+	}
+	
+	try_stack.clear();
 	
 	for (int i = scopes.size() - 1; i >= 0; --i) {
 		if (scopes[i])
@@ -1217,12 +1344,6 @@ void ck_executer::clear() {
 		
 		scopes.pop_back();
 	}
-	
-	for (int i = try_stack.size() - 1; i >= 0; --i) 
-		try_stack.pop_back();
-	
-	for (int i = call_stack.size() - 1; i >= 0; --i) 
-		call_stack.pop_back();
 	
 	for (int i = objects.size() - 1; i >= 0; --i) 
 		objects.pop_back();

@@ -2,6 +2,10 @@
 
 #include <iostream>
 
+#include "GIL2.h"
+#include "executer.h"
+#include "exceptions.h"
+
 #include "vscope.h"
 #include "objects/Object.h"
 #include "objects/Array.h"
@@ -22,8 +26,11 @@ using namespace ck_vobject;
 static vobject* f_print(vscope* scope, const vector<vobject*>& args) {
 	for (int i = 0; i < args.size(); ++i)
 		if (args[i] != nullptr)
-			wcout << args[i]->string_value() << ' ';
-	
+			if (args[i]->is_typeof<Error>())
+				((Error*) args[i])->print_backtrace();
+			else
+				wcout << args[i]->string_value() << ' ';
+	//throw ck_exceptions::ck_message(wstring(L"ololo call to ") , ck_exceptions::ck_message_type::CK_TYPE_ERROR);
 	return nullptr;
 };
 

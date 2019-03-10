@@ -136,6 +136,7 @@ namespace ck_parser {
 	public:	
 		int token  = ck_token::NONE;
 		int lineno = -1;
+		int charno = -1;
 		
 		// integer value
 		long long iv = 0;
@@ -151,6 +152,7 @@ namespace ck_parser {
 		raw_token(raw_token& t) {	
 			token = t.token;
 			lineno = t.lineno;
+			charno = t.charno;
 			iv = t.iv;
 			bv = t.bv;
 			dv = t.dv;
@@ -257,26 +259,27 @@ namespace ck_parser {
 	
 	// Container for single message produced during parsing.
 	class parser_message {
-		parser_message(int type, int lineno, std::wstring message) 
-						: type(type), lineno(lineno), message(message) {};
+		parser_message(int type, int lineno, int charno, std::wstring message) 
+						: type(type), lineno(lineno), charno(charno), message(message) {};
 		
 	public:
 		static const int MSG_WARNING = 0;
 		static const int MSG_ERROR   = 1;
 		int type;
 		int lineno;
+		int charno;
 		std::wstring message;
 		
 		parser_message() {};
 		
 		// Returns new error instance
-		static inline parser_message error(std::wstring m, int lineno = -1) {
-			return parser_message(MSG_ERROR, lineno, m);
+		static inline parser_message error(std::wstring m, int lineno = -1, int charno = -1) {
+			return parser_message(MSG_ERROR, lineno, charno, m);
 		};
 		
 		// Returns new warning instance
-		static inline parser_message warning(std::wstring m, int lineno = -1) {
-			return parser_message(MSG_WARNING, lineno, m);
+		static inline parser_message warning(std::wstring m, int lineno = -1, int charno = -1) {
+			return parser_message(MSG_WARNING, lineno, charno, m);
 		};
 	};
 	
@@ -291,14 +294,14 @@ namespace ck_parser {
 		parser_massages(const std::wstring& _filename) : filename(_filename) {};
 	
 		// Creates and adds new error instance to the container
-		void error(std::wstring m, int lineno = -1) {
-			messages.push_back(parser_message::error(m, lineno));
+		void error(std::wstring m, int lineno = -1, int charno = -1) {
+			messages.push_back(parser_message::error(m, lineno, charno));
 			++contains_error;
 		};
 		
 		// Creates and adds new warning instance to the container
-		void warning(std::wstring m, int lineno = -1) {
-			messages.push_back(parser_message::warning(m, lineno));
+		void warning(std::wstring m, int lineno = -1, int charno = -1) {
+			messages.push_back(parser_message::warning(m, lineno, charno));
 		};
 		
 		// Returns number of errors
@@ -310,9 +313,9 @@ namespace ck_parser {
 		void print() {
 			for (int i = 0; i < messages.size(); ++i) 
 				if (messages[i].type == parser_message::MSG_WARNING) 
-					std::wcout << "warning: " << messages[i].message << ", at <" << filename << ">:[" << messages[i].lineno << ']' << std::endl;
+					std::wcout << "warning: " << messages[i].message << ", at <" << filename << ">:[" << messages[i].lineno << ':' << messages[i].charno << ']' << std::endl;
 				else
-					std::wcout << "error: " << messages[i].message << ", at <" << filename << ">:[" << messages[i].lineno << ']' << std::endl;
+					std::wcout << "error: " << messages[i].message << ", at <" << filename << ">:[" << messages[i].lineno << ':' << messages[i].charno << ']' << std::endl;
 		};
 	};
 	
@@ -380,6 +383,7 @@ namespace ck_parser {
 		
 		int has_error = 0;
 		int lineno = 0;
+		int charno = 0;
 		int has_eof = 0;
 		
 		bool repl = 0;
@@ -390,7 +394,9 @@ namespace ck_parser {
 			this->token = new raw_token();
 			
 			this->token->lineno = 1;
+			this->token->charno = 1;
 			this->lineno = 1;
+			this->charno = 1;
 			
 			next(); next(); next(); next(); next(); 
 		};
@@ -429,6 +435,7 @@ namespace ck_parser {
 				buffer[8] = ck_token::TEOF;
 			else {
 				int c = sw.getc();
+			++charno;
 				
 				if (c == WEOF)
 					buffer[8] = ck_token::TEOF;
@@ -438,6 +445,7 @@ namespace ck_parser {
 			
 			if (buffer[4] == U'\n') {
 				++lineno;
+				charno = 0;
 				return ck_token::TEOL;
 			}
 			
@@ -591,6 +599,8 @@ namespace ck_parser {
 		ck_ast::ASTNode *parse();
 		
 		int lineno();
+		
+		int charno();
 		
 		int eof();
 		

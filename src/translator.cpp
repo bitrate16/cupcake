@@ -143,6 +143,15 @@ void pop_address(vector<unsigned char>& bytemap, int jmp_1, int jmp_2) {
 // Tracking line numbers change
 int last_lineno = 0;
 int last_lineno_addr = 0;
+int jump_address_offset = 0;
+
+int relative_address(vector<unsigned char>& bytemap) {
+	return (int) bytemap.size() + jump_address_offset;
+};
+
+int absolute_address(vector<unsigned char>& bytemap) {
+	return bytemap.size();
+};
 
 void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n) {
 	if (!n)
@@ -1158,13 +1167,13 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 			vector<int> jmp_1; // <-- loop start replacement
 			vector<int> jmp_2; // <-- loop end replacement
 			
-			int loop_start = bytemap.size();
+			int loop_start = relative_address(bytemap);
 			
 			VISIT(n->left);
 			push_byte(bytemap, ck_bytecodes::JMP_IF_ZERO);
 			
 			// Expect loop end to be inserted later
-			jmp_2.push_back(bytemap.size());
+			jmp_2.push_back(absolute_address(bytemap));
 			push(bytemap, sizeof(int), &loop_start);
 			
 			// Start trackiing all placement templates
@@ -1174,7 +1183,7 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 			push_byte(bytemap, ck_bytecodes::JMP);
 			push(bytemap, sizeof(int), &loop_start);
 			
-			pop_address(bytemap, loop_start, bytemap.size());
+			pop_address(bytemap, loop_start, relative_address(bytemap));
 			
 			break;
 		}
@@ -1218,7 +1227,7 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 			
 				// Preserve address for jump to the end
 				push_byte(bytemap, ck_bytecodes::JMP);
-				at.jmp_2->push_back(bytemap.size());
+				at.jmp_2->push_back(absolute_address(bytemap));
 				int dummy = 13;
 				push(bytemap, sizeof(int), &dummy);
 			}
@@ -1252,7 +1261,7 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 					
 				// Preserve address for jump to the end
 				push_byte(bytemap, ck_bytecodes::JMP);
-				at.jmp_1->push_back(bytemap.size());
+				at.jmp_1->push_back(absolute_address(bytemap));
 				int dummy = 13;
 				push(bytemap, sizeof(int), &dummy);
 			}
@@ -1273,6 +1282,7 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 				else
 					push_byte(bytemap, ck_bytecodes::PUSH_CONST_UNDEFINED);
 				
+				/*
 				// Clear all block's scopes
 				int num_blocks = 0;
 				for (int i = placement_address.size() - 1; i >= 0; --i)
@@ -1288,6 +1298,7 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 						push_byte(bytemap, ck_bytecodes::VSTATE_POP_SCOPES);
 						push(bytemap, sizeof(int), &num_blocks);
 					}
+					*/
 				
 				push_byte(bytemap, ck_bytecodes::RETURN_VALUE);
 			}
@@ -1309,9 +1320,7 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 			// [argc]
 			// [arg names]
 			// [size of block]
-			// [block
-			// PUSH_UNDEFINED
-			// RETURN_VALUE]
+			// [block]
 			
 			push_byte(bytemap, ck_bytecodes::PUSH_CONST_FUNCTION);
 			push(bytemap, sizeof(int), &argc);
@@ -1329,21 +1338,27 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 				}	
 			}
 			
-			int size_of_block = 0;
-			int start_of_size = bytemap.size();
+			int size_of_block = 13;
+			int start_of_size = absolute_address(bytemap);
 			push(bytemap, sizeof(int), &size_of_block);
-			int start_of_block = bytemap.size();
+			int start_of_block = relative_address(bytemap);
 			
 			push_address(BREAK_PLACEMENT_FUNCTION, 0, nullptr, nullptr);
 			
+			// Function is subscriptable and have to has it's own address range
+			int function = relative_address(bytemap);
+			jump_address_offset -= function;
+			
 			VISIT(n->left);
 			
-			push_byte(bytemap, ck_bytecodes::PUSH_CONST_UNDEFINED);
-			push_byte(bytemap, ck_bytecodes::RETURN_VALUE);
+			// push_byte(bytemap, ck_bytecodes::PUSH_CONST_UNDEFINED);
+			// push_byte(bytemap, ck_bytecodes::RETURN_VALUE);
 			
 			pop_address(bytemap, 0, 0);
 			
-			int end_of_block = bytemap.size();
+			jump_address_offset += function;
+			
+			int end_of_block = relative_address(bytemap);
 			size_of_block = end_of_block - start_of_block;
 			
 			for (int i = 0; i < sizeof(int); ++i) 
@@ -1379,42 +1394,42 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 			// .loop_end:
 		
 			// :II:
-			int loop_start = bytemap.size();
+			int loop_start = relative_address(bytemap);
 			push_address(BREAK_PLACEMENT_LOOP, loop_start, &jmp_1, &jmp_2);
 			VISIT(n->right);
 			
-			int loop_condition = bytemap.size();
+			int loop_condition = relative_address(bytemap);
 			VISIT(n->left); // <-- Expressions only, no break/continue/return are expected.
 			
-			int loop_end = bytemap.size();
+			int loop_end = 13;
 			push_byte(bytemap, ck_bytecodes::JMP_IF_ZERO);
-			jmp_2.push_back(bytemap.size());
+			jmp_2.push_back(absolute_address(bytemap));
 			push(bytemap, sizeof(int), &loop_end);
 			
 			push_byte(bytemap, ck_bytecodes::JMP);
 			push(bytemap, sizeof(int), &loop_start);
 			
-			loop_end = bytemap.size();
+			loop_end = relative_address(bytemap);
 			pop_address(bytemap, loop_condition, loop_end);
 		
 			/*
 			// :I:
-			int loop_body = bytemap.size();
+			int loop_body = relative_address(bytemap);
 			push_byte(bytemap, ck_bytecodes::JMP);
-			int loop_body_jmp_addr = bytemap.size();
+			int loop_body_jmp_addr = relative_address(bytemap);
 			push(bytemap, sizeof(int), &loop_body);
 			
-			int loop_start = bytemap.size();
+			int loop_start = relative_address(bytemap);
 			
 			VISIT(n->left);
 			push_byte(bytemap, ck_bytecodes::JMP_IF_ZERO);
 			
 			// Expect loop end to be inserted later
-			jmp_2.push_back(bytemap.size());
+			jmp_2.push_back(relative_address(bytemap));
 			push(bytemap, sizeof(int), &loop_start);
 			
 			// Save JMP .loop_block
-			loop_body = bytemap.size();
+			loop_body = relative_address(bytemap);
 			for (int i = 0; i < sizeof(int); ++i) 
 				bytemap[i + loop_body_jmp_addr] = ((unsigned char*) &loop_body)[i];
 			
@@ -1426,7 +1441,7 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 			push_byte(bytemap, ck_bytecodes::JMP);
 			push(bytemap, sizeof(int), &loop_start);
 			
-			pop_address(bytemap, loop_start, bytemap.size());
+			pop_address(bytemap, loop_start, relative_address(bytemap));
 			*/
 			
 			break;
@@ -1449,25 +1464,25 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 				
 				VISIT(n->left);
 				
-				int else_node = bytemap.size();
+				int else_node = 13;
 				push_byte(bytemap, ck_bytecodes::JMP_IF_ZERO);
-				int else_node_jump = bytemap.size();
+				int else_node_jump = absolute_address(bytemap);
 				push(bytemap, sizeof(int), &else_node);
 				
 				VISIT(n->left->next);
 				
-				int end = bytemap.size();
+				int end = 13;
 				push_byte(bytemap, ck_bytecodes::JMP);
-				int end_jump = bytemap.size();
+				int end_jump = absolute_address(bytemap);
 				push(bytemap, sizeof(int), &end);
 				
-				else_node = bytemap.size();
+				else_node = relative_address(bytemap);
 				for (int i = 0; i < sizeof(int); ++i) 
 					bytemap[i + else_node_jump] = ((unsigned char*) &else_node)[i];
 				
 				VISIT(n->left->next->next);
 				
-				end = bytemap.size();
+				end = relative_address(bytemap);
 				for (int i = 0; i < sizeof(int); ++i) 
 					bytemap[i + end_jump] = ((unsigned char*) &end)[i];
 			} else {
@@ -1481,14 +1496,14 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 				
 				VISIT(n->left);
 				
-				int end = bytemap.size();
+				int end = 13;
 				push_byte(bytemap, ck_bytecodes::JMP_IF_ZERO);
-				int end_jump = bytemap.size();
+				int end_jump = absolute_address(bytemap);
 				push(bytemap, sizeof(int), &end);
 				
 				VISIT(n->left->next);
 				
-				end = bytemap.size();
+				end = relative_address(bytemap);
 				for (int i = 0; i < sizeof(int); ++i) 
 					bytemap[i + end_jump] = ((unsigned char*) &end)[i];
 			}
@@ -1540,7 +1555,7 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 			// JMP .loop_increment
 			// .end:
 			
-			int loop_start = bytemap.size();
+			int loop_start = relative_address(bytemap);
 			
 			// Placement for loop
 			push_address(BREAK_PLACEMENT_LOOP, loop_start, &jmp_1, &jmp_2);
@@ -1554,7 +1569,7 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 			else
 				push_byte(bytemap, ck_bytecodes::NOP);
 			
-			int loop_condition = bytemap.size();
+			int loop_condition = relative_address(bytemap);
 			
 			if (n->left->next->type != EMPTY)
 				VISIT(n->left->next);
@@ -1567,16 +1582,16 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 			
 			int end = 13;
 			push_byte(bytemap, ck_bytecodes::JMP_IF_ZERO);
-			int end_addr = bytemap.size();
+			int end_addr = absolute_address(bytemap);
 			jmp_2.push_back(end_addr);
 			push(bytemap, sizeof(int), &end);
 			
 			int loop_block = 13;
 			push_byte(bytemap, ck_bytecodes::JMP);
-			int loop_block_jump = bytemap.size();
+			int loop_block_jump = absolute_address(bytemap);
 			push(bytemap, sizeof(int), &loop_block);
 			
-			int loop_increment = bytemap.size();
+			int loop_increment = relative_address(bytemap);
 			
 			if (n->left->next->next->type != EMPTY) {
 				VISIT(n->left->next->next);
@@ -1589,7 +1604,7 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 			push_byte(bytemap, ck_bytecodes::JMP);
 			push(bytemap, sizeof(int), &loop_condition);
 			
-			loop_block = bytemap.size();
+			loop_block = relative_address(bytemap);
 			for (int i = 0; i < sizeof(int); ++i) 
 				bytemap[i + loop_block_jump] = ((unsigned char*) &loop_block)[i];
 			
@@ -1606,7 +1621,7 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 			push_byte(bytemap, ck_bytecodes::JMP);
 			push(bytemap, sizeof(int), &loop_increment);
 			
-			end = bytemap.size();			
+			end = relative_address(bytemap);			
 			
 			// Pop block
 			pop_address(bytemap, 0, 0);
@@ -1652,23 +1667,23 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 			
 			int else_node = 13;
 			push_byte(bytemap, ck_bytecodes::JMP_IF_ZERO);
-			int else_node_jump = bytemap.size();
+			int else_node_jump = absolute_address(bytemap);
 			push(bytemap, sizeof(int), &else_node);
 			
 			VISIT(n->left->next);
 			
 			int end = 13;
 			push_byte(bytemap, ck_bytecodes::JMP);
-			int end_jump = bytemap.size();
+			int end_jump = absolute_address(bytemap);
 			push(bytemap, sizeof(int), &end);
 			
-			else_node = bytemap.size();
+			else_node = relative_address(bytemap);
 			for (int i = 0; i < sizeof(int); ++i) 
 				bytemap[i + else_node_jump] = ((unsigned char*) &else_node)[i];
 			
 			VISIT(n->left->next->next);
 			
-			end = bytemap.size();
+			end = relative_address(bytemap);
 			for (int i = 0; i < sizeof(int); ++i) 
 				bytemap[i + end_jump] = ((unsigned char*) &end)[i];
 			
@@ -1698,14 +1713,14 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 				push(bytemap, sizeof(unsigned char), &type);
 				
 				int try_node = 13;
-				int try_node_jump = bytemap.size();
+				int try_node_jump = absolute_address(bytemap);
 				push(bytemap, sizeof(int), &try_node);
 				
 				int end = 13;
-				int end_jump = bytemap.size();
+				int end_jump = absolute_address(bytemap);
 				push(bytemap, sizeof(int), &end);
 				
-				try_node = bytemap.size();
+				try_node = relative_address(bytemap);
 				for (int i = 0; i < sizeof(int); ++i) 
 					bytemap[i + try_node_jump] = ((unsigned char*) &try_node)[i];
 				
@@ -1713,7 +1728,7 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 				
 				push_byte(bytemap, ck_bytecodes::VSTATE_POP_TRY);
 				
-				end = bytemap.size();
+				end = relative_address(bytemap);
 				for (int i = 0; i < sizeof(int); ++i) 
 					bytemap[i + end_jump] = ((unsigned char*) &end)[i];
 			} else if (n->objectlist == nullptr) {
@@ -1735,14 +1750,14 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 				push(bytemap, sizeof(unsigned char), &type);
 				
 				int try_node = 13;
-				int try_node_jump = bytemap.size();
+				int try_node_jump = absolute_address(bytemap);
 				push(bytemap, sizeof(int), &try_node);
 				
 				int catch_node = 13;
-				int catch_node_jump = bytemap.size();
+				int catch_node_jump = absolute_address(bytemap);
 				push(bytemap, sizeof(int), &catch_node);
 				
-				try_node = bytemap.size();
+				try_node = relative_address(bytemap);
 				for (int i = 0; i < sizeof(int); ++i) 
 					bytemap[i + try_node_jump] = ((unsigned char*) &try_node)[i];
 				
@@ -1752,16 +1767,16 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 				
 				int end = 13;
 				push_byte(bytemap, ck_bytecodes::JMP);
-				int end_jump = bytemap.size();
+				int end_jump = absolute_address(bytemap);
 				push(bytemap, sizeof(int), &end);
 				
-				catch_node = bytemap.size();
+				catch_node = relative_address(bytemap);
 				for (int i = 0; i < sizeof(int); ++i) 
 					bytemap[i + catch_node_jump] = ((unsigned char*) &catch_node)[i];
 				
 				VISIT(n->right);
 				
-				end = bytemap.size();
+				end = relative_address(bytemap);
 				for (int i = 0; i < sizeof(int); ++i) 
 					bytemap[i + end_jump] = ((unsigned char*) &end)[i];
 			} else {
@@ -1784,11 +1799,11 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 				push(bytemap, sizeof(unsigned char), &type);
 				
 				int try_node = 13;
-				int try_node_jump = bytemap.size();
+				int try_node_jump = absolute_address(bytemap);
 				push(bytemap, sizeof(int), &try_node);
 				
 				int catch_node = 13;
-				int catch_node_jump = bytemap.size();
+				int catch_node_jump = absolute_address(bytemap);
 				push(bytemap, sizeof(int), &catch_node);
 				
 				wstring& s = *(wstring*) n->objectlist->object;
@@ -1801,7 +1816,7 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 					push(bytemap, sizeof(wchar_t), &c);
 				}
 				
-				try_node = bytemap.size();
+				try_node = relative_address(bytemap);
 				for (int i = 0; i < sizeof(int); ++i) 
 					bytemap[i + try_node_jump] = ((unsigned char*) &try_node)[i];
 				
@@ -1811,10 +1826,10 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 				
 				int end = 13;
 				push_byte(bytemap, ck_bytecodes::JMP);
-				int end_jump = bytemap.size();
+				int end_jump = absolute_address(bytemap);
 				push(bytemap, sizeof(int), &end);
 				
-				catch_node = bytemap.size();
+				catch_node = relative_address(bytemap);
 				for (int i = 0; i < sizeof(int); ++i) 
 					bytemap[i + catch_node_jump] = ((unsigned char*) &catch_node)[i];
 				
@@ -1830,7 +1845,7 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 				
 				push_byte(bytemap, ck_bytecodes::VSTATE_POP_SCOPE);
 				
-				end = bytemap.size();
+				end = relative_address(bytemap);
 				for (int i = 0; i < sizeof(int); ++i) 
 					bytemap[i + end_jump] = ((unsigned char*) &end)[i];
 			}
@@ -1885,7 +1900,7 @@ void ck_translator::print(vector<unsigned char>& bytemap, int off, int offset, i
 	}
 	
 	for (int k = (offset == -1) ? 0 : offset; k < ((length == -1) ? bytemap.size() : offset + length);) {
-		wcout << '[' << setw(int_offset) << k << setw(-1) << "] ";
+		wcout << '[' << setw(int_offset) << k-(offset == -1 ? 0 : offset) << setw(-1) << "] ";
 		
 		for (int i = 0; i < off; ++i)
 			wcout << (wchar_t) U'>';

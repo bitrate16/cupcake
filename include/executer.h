@@ -22,71 +22,38 @@ namespace ck_core {
 		
 		stack_frame() {};
 		
+		// Set to 1 if call owns this scope.
+		bool own_scope = -1;
+		
 		// Index of last scope in the executer scopes array.
 		int scope_id = -1;
+		
 		// Index of script that this frame refers to.
 		int script_id = -1;
+		
 		// Index oflast vobject on object stack
 		int object_id = -1;
+		
 		// Index of last stack_try frame.
 		int try_id = -1;
+		
 		// Index of last stack_frame frame.
 		int call_id = -1;
+		
 		// Index of enclosing window
 		int window_id = -1;
+		
 		// Address of next command
 		int pointer = -1;
+		
+		// Type of storen try/catch
+		char try_type = -1;
+		
+		// Address of catch node in try/catch
+		int catch_node = -1;
 		
 		// Name of the function
 		std::wstring name;
-	};
-	
-	// Single execution stack frame.
-	struct stack_try {
-		
-		stack_try() {};
-		
-		// Index of last scope in the executer scopes array.
-		int scope_id = -1;
-		// Index of script that this frame refers to.
-		int script_id = -1;
-		// Index oflast vobject on object stack
-		int object_id = -1;
-		// Index of enclosing window
-		int window_id = -1;
-		// Index of last stack_frame frame.
-		int call_id = -1;
-		// Address of next command
-		int pointer = -1;
-		// Address of try_node
-		int try_node = -1;
-		// Address of catch node
-		int catch_node = -1;
-		// Type of try/catch statement.
-		int type;
-		// Handler variable name.
-		std::wstring handler;
-	};
-	
-	// Single execution script frame.
-	struct stack_window {
-		
-		stack_window() {};
-		
-		// Index of last scope in the executer scopes array.
-		int scope_id = -1;
-		// Index of script that this frame refers to.
-		int script_id = -1;
-		// Index of last stack_try frame.
-		int try_id = -1;
-		// Index of last stack_frame frame.
-		int call_id = -1;
-		// Index oflast vobject on object stack
-		int object_id = -1;
-		// Index of enclosing window
-		int window_id = -1;
-		// Address of next command
-		int pointer = -1;
 	};
 	
 	// Performs marking all ck_executer objects in current thread onn each GC step.
@@ -116,17 +83,21 @@ namespace ck_core {
 		std::vector<ck_vobject::vobject*> objects;
 		
 		// Limit size for each stack		
-		int call_stack_limit = 65536;
-		int try_stack_limit  = 65536;
-		int windows_limit    = 65536;
+		int call_stack_limit   = 65536;
+		int try_stack_limit    = 65536;
+		int window_stack_limit = 65536;
 		
-		// Stack for each functional call (on call_object)
+		// Id's of stacks		
+		const int call_stack_id    = 13;
+		const int try_stack_id     = 19;
+		const int window_stack_id  = 29;
+		
+		// New frame being inserted on object_call()
 		std::vector<stack_frame> call_stack;
-		// Stack for each try/catch
-		std::vector<stack_try>    try_stack;
-		// Stack for each script instance to split different instances (on execute)
-		// ???: maybe merge with call_stack?
-		std::vector<stack_window>   windows;
+		// New frame being inserted on try{}catch(){}
+		std::vector<stack_frame> try_stack;
+		// New frame being inserted on execute()
+		std::vector<stack_frame> window_stack;
 		
 		// Points to the current command address.
 		int pointer = 0;
@@ -166,6 +137,12 @@ namespace ck_core {
 		// peek closest try_frame and follow it's catch block by jumping on it.
 		// If no frames left, rethrow message up.
 		void follow_exception(const ck_exceptions::ck_message& msg);
+		
+		// Store stack frame
+		void store_frame(std::vector<stack_frame>& stack, int stack_id, const std::wstring& name, bool own_scope);
+		
+		// Store stack frame
+		void restore_frame(std::vector<stack_frame>& stack, int stack_id, int restored_frame_id);
 		
 	public:
 		

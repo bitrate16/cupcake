@@ -29,9 +29,7 @@ NativeFunction::NativeFunction(ck_vobject::vobject* (*wrapper) (ck_vobject::vsco
 	call_wrapper = wrapper;
 };
 
-NativeFunction::~NativeFunction() {
-	exit(1);
-};
+NativeFunction::~NativeFunction() {};
 
 
 vobject* NativeFunction::get(ck_vobject::vscope* scope, const std::wstring& name) {

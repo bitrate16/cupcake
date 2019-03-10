@@ -68,7 +68,7 @@ wostream& ck_exceptions::operator<<(wostream& os, const ck_message& m) {
 		}
 		
 		case ck_message_type::CK_OBJECT: {
-			os << "ck_message: CM_OBJECT" << endl;
+			os << "ck_message: CK_OBJECT" << endl;
 			break;
 		}
 		

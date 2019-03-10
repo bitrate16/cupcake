@@ -218,6 +218,18 @@ void Error::gc_finalize() {
 };
 
 
+void Error::print_backtrace() {
+	wcout << "Error: " << message << endl;
+	for (int i = 0; i < backtrace.size(); ++i) {
+		wcout << " at File <" << backtrace[i].filename << "> line " << backtrace[i].lineno;
+		
+		if (backtrace[i].function.size() != 0)
+			wcout << " " << backtrace[i].function << "()" << endl;
+		else
+			wcout << endl;
+	}
+};
+
 long long Error::int_value() {
 	return (int) (intptr_t) this; 
 };

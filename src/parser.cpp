@@ -210,6 +210,8 @@ int to_upper(int c) {
 
 int tokenizer::next_token() {
 	token->lineno = lineno;
+	token->charno = charno;
+	
 	if (has_error) 
 		return put(TERR);
 	if (eof()) 
@@ -257,16 +259,18 @@ int tokenizer::next_token() {
 				}
 			}
 
-			if (!closed) TOKENIZER_ERROR(L"block comment expected to be closed", lineno)
+			if (!closed) TOKENIZER_ERROR(L"block comment expected to be closed", lineno, charno)
 		}
 	}
 
 	if (get(0) == TEOF) {
 		token->lineno = lineno;
+		token->charno = charno;
 		return put(TEOF);
 	}
 
 	token->lineno = lineno;
+	token->charno = charno;
 	
 	/* K E Y W O R D S */ 
 	if (alpha(c)) {
@@ -340,7 +344,7 @@ int tokenizer::next_token() {
 
 		c = next();
 		while (c != TEOF) {
-			if (c == TEOL || c == TEOF) TOKENIZER_ERROR(L"string expected to be closed", lineno)
+			if (c == TEOL || c == TEOF) TOKENIZER_ERROR(L"string expected to be closed", lineno, charno)
 			if (c == quote)
 				break;
 			if (c == '\\') {
@@ -376,7 +380,7 @@ int tokenizer::next_token() {
 						if (c1 >= '0' && c1 <= '9')
 							cp = c1 - '0';
 						if (cp == -1 && !point) 
-							TOKENIZER_ERROR(std::wstring(L"expected hexadecimal character code point ") + (wchar_t) cp + std::wstring(L" [") + (wchar_t) cp + std::wstring(L"]"), lineno)
+							TOKENIZER_ERROR(std::wstring(L"expected hexadecimal character code point ") + (wchar_t) cp + std::wstring(L" [") + (wchar_t) cp + std::wstring(L"]"), lineno, charno)
 						if (cp == -1)
 							break;
 						++point;
@@ -396,7 +400,7 @@ int tokenizer::next_token() {
 						if (c1 >= '0' && c1 <= '9')
 							cp = c1 - '0';
 						if (cp == -1 && !point) 
-							TOKENIZER_ERROR(std::wstring(L"expected hexadecimal character code point ") + (wchar_t) cp + std::wstring(L" [") + (wchar_t) cp + std::wstring(L"]"), lineno)
+							TOKENIZER_ERROR(std::wstring(L"expected hexadecimal character code point ") + (wchar_t) cp + std::wstring(L" [") + (wchar_t) cp + std::wstring(L"]"), lineno, charno)
 						if (cp == -1)
 							break;
 						++point;
@@ -404,7 +408,7 @@ int tokenizer::next_token() {
 						c1 = next();
 					}
 				} else
-					TOKENIZER_ERROR(std::wstring(L"unexpected character after escape point ") + (wchar_t) c1 + std::wstring(L" [") + (wchar_t) c1 + std::wstring(L"]"), lineno)
+					TOKENIZER_ERROR(std::wstring(L"unexpected character after escape point ") + (wchar_t) c1 + std::wstring(L" [") + (wchar_t) c1 + std::wstring(L"]"), lineno, charno)
 			} else
 				svref += (wchar_t) c;
 			c = next();
@@ -438,47 +442,47 @@ int tokenizer::next_token() {
 		c1 = get(1);
 		while (c != TEOF) {
 			if (scientific)
-				TOKENIZER_ERROR(L"double can't be parsed after scientific notation", lineno)
+				TOKENIZER_ERROR(L"double can't be parsed after scientific notation", lineno, charno)
 			else if (c == '.') {
 				if (hasPoint)
-					TOKENIZER_ERROR(L"double can't have more than one point", lineno)
+					TOKENIZER_ERROR(L"double can't have more than one point", lineno, charno)
 				// if (base != 10)
 				//	return tokenizer_error(lineno, "double can't be not decimal");
 				if (!digit(c1))
-					TOKENIZER_ERROR(L"unexpected fraction of double nomber", lineno)
+					TOKENIZER_ERROR(L"unexpected fraction of double nomber", lineno, charno)
 				type = DOUBLE;
 				hasPoint = true;
 				svref += '.';
 			} else if ((c == 'x' || c == 'X') && base == 10) {
 				if (type == DOUBLE)
-					TOKENIZER_ERROR(L"double can't be not decimal", lineno)
+					TOKENIZER_ERROR(L"double can't be not decimal", lineno, charno)
 				// if (base != 10)
 				//	return tokenizer_error(lineno, "one token.iv can't have multiple numerical bases");
 				if (svref != L"0")
-					TOKENIZER_ERROR(L"base notation starts with 0", lineno)
+					TOKENIZER_ERROR(L"base notation starts with 0", lineno, charno)
 				svref = L"";
 				base = 16;
 			} else if ((c == 'o' || c == 'O') && base == 10) {
 				if (type == DOUBLE)
-					TOKENIZER_ERROR(L"double can't be not decimal", lineno)
+					TOKENIZER_ERROR(L"double can't be not decimal", lineno, charno)
 				// if (base != 10)
 				//	return tokenizer_error(lineno, "one token.iv can't have multiple numerical bases");
 				if (svref != L"0")
-					TOKENIZER_ERROR(L"base notation starts with 0", lineno)
+					TOKENIZER_ERROR(L"base notation starts with 0", lineno, charno)
 				svref = L"";
 				base = 8;
 			} else if ((c == 'b' || c == 'B') && base == 10) {
 				if (type == DOUBLE)
-					TOKENIZER_ERROR(L"double can't be not decimal", lineno)
+					TOKENIZER_ERROR(L"double can't be not decimal", lineno, charno)
 				// if (base != 10)
 				//	return tokenizer_error(lineno, "integer can't have multiple numerical bases");
 				if (svref != L"0")
-					TOKENIZER_ERROR(L"base notation starts with 0", lineno)
+					TOKENIZER_ERROR(L"base notation starts with 0", lineno, charno)
 				svref = L"";
 				base = 2;
 			} else if ((c == 'e' || c == 'E') && base != 16) {
 				if (base != 10)
-					TOKENIZER_ERROR(L"double can't be not decimal", lineno)
+					TOKENIZER_ERROR(L"double can't be not decimal", lineno, charno)
 				type = DOUBLE;
 				// Start reading scientific notation
 				// double + E + (+ or -) + integer
@@ -495,9 +499,9 @@ int tokenizer::next_token() {
 					c = next();
 				}
 				if (integer == L"")
-					TOKENIZER_ERROR(L"expected exponent in scientific notation", lineno)
+					TOKENIZER_ERROR(L"expected exponent in scientific notation", lineno, charno)
 				if (alpha(c))
-					TOKENIZER_ERROR(L"unexpected character in scientific notation", lineno)
+					TOKENIZER_ERROR(L"unexpected character in scientific notation", lineno, charno)
 				svref += integer;
 				scientific = true;
 				break;
@@ -518,7 +522,7 @@ int tokenizer::next_token() {
 				svref += (wchar_t) c;
 			else if (alpha(c) || (base == 8 && '8' <= c && c <= '9')
 							  || (base == 2 && '3' <= c && c <= '9'))
-				TOKENIZER_ERROR(std::wstring(L"unexpected character in number ") + (wchar_t) c + std::wstring(L" [") + (wchar_t) c + std::wstring(L"]"), lineno)
+				TOKENIZER_ERROR(std::wstring(L"unexpected character in number ") + (wchar_t) c + std::wstring(L" [") + (wchar_t) c + std::wstring(L"]"), lineno, charno)
 			else
 				break;
 
@@ -648,7 +652,7 @@ int tokenizer::next_token() {
 	if (match('#', '='))
 		return put(ASSIGN_HASH);
 	
-	TOKENIZER_ERROR(std::wstring(L"unexpected character '") + (wchar_t) c + std::wstring(L"' [") + std::to_wstring(c) + std::wstring(L"]"), lineno)
+	TOKENIZER_ERROR(std::wstring(L"unexpected character '") + (wchar_t) c + std::wstring(L"' [") + std::to_wstring(c) + std::wstring(L"]"), lineno, charno)
 };
 
 
@@ -698,7 +702,7 @@ bool parser::match(int token) {
 
 ASTNode *parser::primaryexp() {
 	if (match(TEOF)) 
-		PARSER_ERROR_RETURN(L"EOF Expression", get(0)->lineno);
+		PARSER_ERROR_RETURN(L"EOF Expression", get(0)->lineno, get(0)->charno);
 	
 	if (match(INTEGER)) {
 		
@@ -793,7 +797,7 @@ ASTNode *parser::primaryexp() {
 
 		if (!match(RP)) {
 			delete exp;
-			PARSER_ERROR_RETURN(L"Expected )", get(0)->lineno);
+			PARSER_ERROR_RETURN(L"Expected )", get(0)->lineno, get(0)->charno);
 		}
 		
 		return exp;
@@ -831,12 +835,12 @@ ASTNode *parser::primaryexp() {
 			
 			if (match(TEOF)) {
 				delete array;
-				PARSER_ERROR_RETURN(L"Expected ]", get(0)->lineno);
+				PARSER_ERROR_RETURN(L"Expected ]", get(0)->lineno, get(0)->charno);
 			}
 			if (!match(COMMA)) {
 				if (!match(RB)) {
 					delete array;
-					PARSER_ERROR_RETURN(L"Expected ]", get(0)->lineno);
+					PARSER_ERROR_RETURN(L"Expected ]", get(0)->lineno, get(0)->charno);
 				} else
 					break;
 			}
@@ -864,7 +868,7 @@ ASTNode *parser::primaryexp() {
 		while (true) {
 		if (!(match(NAME) || match(STRING))) {
 				delete object;
-				PARSER_ERROR_RETURN(L"Expected name or string", get(0)->lineno);
+				PARSER_ERROR_RETURN(L"Expected name or string", get(0)->lineno, get(0)->charno);
 			}
 			
 			std::wstring *name = new std::wstring(get(-1)->sv);
@@ -872,7 +876,7 @@ ASTNode *parser::primaryexp() {
 			if (!match(COLON)) {
 				delete name;
 				delete object;
-				PARSER_ERROR_RETURN(L"Expected :", get(0)->lineno);
+				PARSER_ERROR_RETURN(L"Expected :", get(0)->lineno, get(0)->charno);
 			}
 			
 			ASTNode *elem = expression();
@@ -887,12 +891,12 @@ ASTNode *parser::primaryexp() {
 			
 			if (match(TEOF)) {
 				delete object;
-				PARSER_ERROR_RETURN(L"Expected }", get(0)->lineno);
+				PARSER_ERROR_RETURN(L"Expected }", get(0)->lineno, get(0)->charno);
 			}
 			if (!match(COMMA)) {
 				if (!match(RC)) {
 					delete object;
-					PARSER_ERROR_RETURN(L"Expected }", get(0)->lineno);
+					PARSER_ERROR_RETURN(L"Expected }", get(0)->lineno, get(0)->charno);
 				} else
 					break;
 			}
@@ -917,19 +921,19 @@ ASTNode *parser::primaryexp() {
 				while (true) {
 					if (!match(NAME)) {
 						delete function;
-						PARSER_ERROR_RETURN(L"Expected name", get(0)->lineno);
+						PARSER_ERROR_RETURN(L"Expected name", get(0)->lineno, get(0)->charno);
 					}
 					
 					function->addLastObject(new std::wstring(get(-1)->sv));
 					
 					if (match(TEOF)) {
 						delete function;
-						PARSER_ERROR_RETURN(L"Expected )", get(0)->lineno);
+						PARSER_ERROR_RETURN(L"Expected )", get(0)->lineno, get(0)->charno);
 					}
 					if (!match(COMMA)) {
 						if (!match(RP)) {
 							delete function;
-							PARSER_ERROR_RETURN(L"Expected )", get(0)->lineno);
+							PARSER_ERROR_RETURN(L"Expected )", get(0)->lineno, get(0)->charno);
 						} else
 							break;
 					}
@@ -966,7 +970,8 @@ ASTNode *parser::primaryexp() {
 		default:
 			error_str += token_to_string(get(0)->token);
 	}
-	PARSER_ERROR_RETURN(error_str, get(0)->lineno)
+	
+	PARSER_ERROR_RETURN(error_str, get(0)->lineno, get(0)->charno)
 };
 
 ASTNode *parser::member_expression() {
@@ -999,7 +1004,7 @@ ASTNode *parser::member_expression() {
 				
 				if (!match(RB)) {
 					delete exp;
-					PARSER_ERROR_RETURN(L"Expected ]", get(0)->lineno);
+					PARSER_ERROR_RETURN(L"Expected ]", get(0)->lineno, get(0)->charno);
 				}
 				
 				break;
@@ -1017,7 +1022,7 @@ ASTNode *parser::member_expression() {
 				
 				if (!match(NAME)) {
 					delete exp;
-					PARSER_ERROR_RETURN(L"Expected name", get(0)->lineno);
+					PARSER_ERROR_RETURN(L"Expected name", get(0)->lineno, get(0)->charno);
 				}
 				node->addLastObject(new std::wstring(get(-1)->sv));
 				
@@ -1049,12 +1054,12 @@ ASTNode *parser::member_expression() {
 					
 					if (match(TEOF)) {
 						delete exp;
-						PARSER_ERROR_RETURN(L"Expected )", get(0)->lineno);
+						PARSER_ERROR_RETURN(L"Expected )", get(0)->lineno, get(0)->charno);
 					}
 					if (!match(COMMA)) {
 						if (!match(RP)) {
 							delete exp;
-							PARSER_ERROR_RETURN(L"Expected )", get(0)->lineno);
+							PARSER_ERROR_RETURN(L"Expected )", get(0)->lineno, get(0)->charno);
 						} else
 							break;
 					}
@@ -1109,7 +1114,7 @@ ASTNode *parser::unary_expression() {
 			return expr;			
 		} else {
 			delete exp;
-			PARSER_ERROR_RETURN(L"Left side of the increment expected to be field", get(0)->lineno);
+			PARSER_ERROR_RETURN(L"Left side of the increment expected to be field", get(0)->lineno, get(0)->charno);
 		}
 	} else {
 		// EXP | EXP ++
@@ -1132,7 +1137,7 @@ ASTNode *parser::unary_expression() {
 				return expr;
 			} else {
 				delete exp;
-				PARSER_ERROR_RETURN(L"Right side of the increment expected to be field", get(0)->lineno);
+				PARSER_ERROR_RETURN(L"Right side of the increment expected to be field", get(0)->lineno, get(0)->charno);
 			}
 		} return exp;
 	}
@@ -1481,7 +1486,7 @@ ASTNode *parser::condition_expression() {
 	
 	if (!match(COLON)) {
 		delete condition_exp;
-		PARSER_ERROR_RETURN(L"Expected :", get(0)->lineno);
+		PARSER_ERROR_RETURN(L"Expected :", get(0)->lineno, get(0)->charno);
 	}
 	
 	ASTNode *false_exp = assign_expression();
@@ -1546,7 +1551,7 @@ ASTNode *parser::assign_expression() {
 			assign_exp = new ASTNode(get(-1)->lineno, get(-1)->token);
 		else {
 			delete condition_exp;
-			PARSER_ERROR_RETURN(L"Left side of the assignment expected to be field", get(0)->lineno);
+			PARSER_ERROR_RETURN(L"Left side of the assignment expected to be field", get(0)->lineno, get(0)->charno);
 		}
 	} else 
 		return condition_exp;
@@ -1571,13 +1576,13 @@ ASTNode *parser::expression() {
 ASTNode *parser::checkNotNullExpression() {
 	ASTNode *n = expression();
 	if (n == NULL && !error_)
-		PARSER_ERROR_RETURN(L"NULL-pointer expression", get(0)->lineno);
+		PARSER_ERROR_RETURN(L"NULL-pointer expression", get(0)->lineno, get(0)->charno);
 	return n;
 };
 
 bool parser::checkNullExpression(ASTNode *exp) {
 	if (exp == NULL && !error_) {
-		PARSER_ERROR_RETURN(L"NULL-pointer expression", get(0)->lineno);
+		PARSER_ERROR_RETURN(L"NULL-pointer expression", get(0)->lineno, get(0)->charno);
 		return 1;
 	}
 	return 0;
@@ -1588,7 +1593,7 @@ ASTNode *parser::initializerstatement() {
 	// Initilizer statement used by FOR initializer
 	
 	if (match(TEOF))
-		PARSER_ERROR_RETURN(L"EOF Statement", get(0)->lineno);
+		PARSER_ERROR_RETURN(L"EOF Statement", get(0)->lineno, get(0)->charno);
 	
 	if (error_)
 		return NULL;
@@ -1650,7 +1655,7 @@ ASTNode *parser::initializerstatement() {
 			
 			if (!match(NAME)) {
 				delete definenode;
-				PARSER_ERROR_RETURN(L"Expected name", get(0)->lineno);
+				PARSER_ERROR_RETURN(L"Expected name", get(0)->lineno, get(0)->charno);
 			}
 			
 			std::wstring *name = new std::wstring(get(-1)->sv);
@@ -1745,7 +1750,7 @@ ASTNode *parser::statement() {
 	// Parse statement & consume all semicolons after it
 	
 	if (match(TEOF))
-		PARSER_ERROR_RETURN(L"EOF Statement", get(0)->lineno);
+		PARSER_ERROR_RETURN(L"EOF Statement", get(0)->lineno, get(0)->charno);
 	
 	if (error_)
 		return NULL;
@@ -1760,7 +1765,7 @@ ASTNode *parser::statement() {
 ASTNode *parser::statement_with_semicolons() {
 	
 	if (match(TEOF))
-		PARSER_ERROR_RETURN(L"EOF Statement", get(0)->lineno);
+		PARSER_ERROR_RETURN(L"EOF Statement", get(0)->lineno, get(0)->charno);
 	
 	if (error_)
 		return NULL;
@@ -1793,7 +1798,7 @@ ASTNode *parser::statement_with_semicolons() {
 		
 		if (lp && !match(RP)) {
 			delete ifelse;
-			PARSER_ERROR_RETURN(L"Expected )", get(0)->lineno);
+			PARSER_ERROR_RETURN(L"Expected )", get(0)->lineno, get(0)->charno);
 		}
 		
 		// Parse if & else nodes
@@ -1834,14 +1839,14 @@ ASTNode *parser::statement_with_semicolons() {
 		
 		if (lp && !match(RP)) {
 			delete switchcase;
-			PARSER_ERROR_RETURN(L"Expected )", get(0)->lineno);
+			PARSER_ERROR_RETURN(L"Expected )", get(0)->lineno, get(0)->charno);
 		}
 		
 		if (match(SEMICOLON));
 		else {
 			if (!match(LC)) {
 				delete switchcase;
-				PARSER_ERROR_RETURN(L"Expected {", get(0)->lineno);
+				PARSER_ERROR_RETURN(L"Expected {", get(0)->lineno, get(0)->charno);
 			}
 			
 			bool matched_default = 0;
@@ -1869,7 +1874,7 @@ ASTNode *parser::statement_with_semicolons() {
 					
 					if (!match(COLON)) {
 						delete switchcase;
-						PARSER_ERROR_RETURN(L"Expected :", get(0)->lineno);
+						PARSER_ERROR_RETURN(L"Expected :", get(0)->lineno, get(0)->charno);
 					}
 					
 					while (true) {
@@ -1879,7 +1884,7 @@ ASTNode *parser::statement_with_semicolons() {
 						}
 						if (match(TEOF)) {
 							delete switchcase;
-							PARSER_ERROR_RETURN(L"Expected }", get(0)->lineno);
+							PARSER_ERROR_RETURN(L"Expected }", get(0)->lineno, get(0)->charno);
 						}
 						if (get(0)->token == CASE || get(0)->token == DEFAULT || get(0)->token == RC)
 							break;
@@ -1894,13 +1899,13 @@ ASTNode *parser::statement_with_semicolons() {
 				
 					if (matched_default) {
 						delete switchcase;
-						PARSER_ERROR_RETURN(L"Duplicate default case", get(0)->lineno);
+						PARSER_ERROR_RETURN(L"Duplicate default case", get(0)->lineno, get(0)->charno);
 					}
 					matched_default = 1;
 					
 					if (!match(COLON)) {
 						delete switchcase;
-						PARSER_ERROR_RETURN(L"Expected :", get(0)->lineno);
+						PARSER_ERROR_RETURN(L"Expected :", get(0)->lineno, get(0)->charno);
 					}
 					
 					ASTNode *defaultnode = new ASTNode(lineno, DEFAULT);
@@ -1913,7 +1918,7 @@ ASTNode *parser::statement_with_semicolons() {
 						}
 						if (match(TEOF)) {
 							delete switchcase;
-							PARSER_ERROR_RETURN(L"Expected }", get(0)->lineno);
+							PARSER_ERROR_RETURN(L"Expected }", get(0)->lineno, get(0)->charno);
 						}
 						if (get(0)->token == CASE || get(0)->token == DEFAULT || get(0)->token == RC)
 							break;
@@ -1924,7 +1929,7 @@ ASTNode *parser::statement_with_semicolons() {
 			
 			if (!match(RC)) {
 				delete switchcase;
-				PARSER_ERROR_RETURN(L"Expected }", get(0)->lineno);
+				PARSER_ERROR_RETURN(L"Expected }", get(0)->lineno, get(0)->charno);
 			}
 		}
 		
@@ -1950,7 +1955,7 @@ ASTNode *parser::statement_with_semicolons() {
 		
 		if (lp && !match(RP)) {
 			delete whileloop;
-			PARSER_ERROR_RETURN(L"Expected )", get(0)->lineno);
+			PARSER_ERROR_RETURN(L"Expected )", get(0)->lineno, get(0)->charno);
 		}
 		
 		// Parse if & else nodes
@@ -1973,7 +1978,7 @@ ASTNode *parser::statement_with_semicolons() {
 		if (!match(WHILE)) {
 			delete doloop;
 			delete body;
-			PARSER_ERROR_RETURN(L"Expected while", get(0)->lineno);
+			PARSER_ERROR_RETURN(L"Expected while", get(0)->lineno, get(0)->charno);
 		}
 		
 		int lp = match(LP);
@@ -1991,7 +1996,7 @@ ASTNode *parser::statement_with_semicolons() {
 		
 		if (lp && !match(RP)) {
 			delete doloop;
-			PARSER_ERROR_RETURN(L"Expected )", get(0)->lineno);
+			PARSER_ERROR_RETURN(L"Expected )", get(0)->lineno, get(0)->charno);
 		}
 		
 		return doloop;
@@ -2010,7 +2015,7 @@ ASTNode *parser::statement_with_semicolons() {
 		
 		if (!match(LP)) {
 			delete forloop;
-			PARSER_ERROR_RETURN(L"Expected )", get(0)->lineno);
+			PARSER_ERROR_RETURN(L"Expected )", get(0)->lineno, get(0)->charno);
 		}
 		
 		if (!match(SEMICOLON)) {
@@ -2019,7 +2024,7 @@ ASTNode *parser::statement_with_semicolons() {
 			
 			if (!match(SEMICOLON)) {
 				delete forloop;
-				PARSER_ERROR_RETURN(L"Expected ;", get(0)->lineno);
+				PARSER_ERROR_RETURN(L"Expected ;", get(0)->lineno, get(0)->charno);
 			}
 		} else {
 			ASTNode *empty = new ASTNode(-1, EMPTY);
@@ -2037,7 +2042,7 @@ ASTNode *parser::statement_with_semicolons() {
 			
 			if (!match(SEMICOLON)) {
 				delete forloop;
-				PARSER_ERROR_RETURN(L"Expected ;", get(0)->lineno);
+				PARSER_ERROR_RETURN(L"Expected ;", get(0)->lineno, get(0)->charno);
 			}
 		} else {
 			ASTNode *empty = new ASTNode(-1, EMPTY);
@@ -2055,7 +2060,7 @@ ASTNode *parser::statement_with_semicolons() {
 
 			if (!match(RP)) {
 				delete forloop;
-				PARSER_ERROR_RETURN(L"Expected )", get(0)->lineno);
+				PARSER_ERROR_RETURN(L"Expected )", get(0)->lineno, get(0)->charno);
 			}
 		} else {
 			ASTNode *empty = new ASTNode(-1, EMPTY);
@@ -2081,7 +2086,7 @@ ASTNode *parser::statement_with_semicolons() {
 			}
 			if (match(TEOF)) {
 				delete blocknode;
-				PARSER_ERROR_RETURN(L"Expected }", get(0)->lineno);
+				PARSER_ERROR_RETURN(L"Expected }", get(0)->lineno, get(0)->charno);
 			}
 			if (match(RC))
 				break;
@@ -2134,10 +2139,7 @@ ASTNode *parser::statement_with_semicolons() {
 		
 		ASTNode *thrownode = new ASTNode(get(-1)->lineno, THROW);
 		
-		if (peekStatementWithoutSemicolon()) {
-			ASTNode *empty = new ASTNode(-1, EMPTY);
-			thrownode->addChild(empty);
-		} else {
+		if (!peekStatementWithoutSemicolon() && get(0)->token != SEMICOLON) {
 			ASTNode *exp = checkNotNullExpression();
 			
 			// Check for NULL expressin and ommit memory leak
@@ -2146,8 +2148,10 @@ ASTNode *parser::statement_with_semicolons() {
 				return NULL;
 			}
 			thrownode->addChild(exp);
+		} else {
+			ASTNode *empty = new ASTNode(-1, EMPTY);
+			thrownode->addChild(empty);
 		}
-		
 		return thrownode;
 	}
 	
@@ -2165,7 +2169,7 @@ ASTNode *parser::statement_with_semicolons() {
 			if (match(LP)) {
 				if (!match(NAME)) {
 					delete tryexpect;
-					PARSER_ERROR_RETURN(L"Expected name", get(0)->lineno);
+					PARSER_ERROR_RETURN(L"Expected name", get(0)->lineno, get(0)->charno);
 				}
 				
 				std::wstring *name = new std::wstring(get(-1)->sv);
@@ -2173,7 +2177,7 @@ ASTNode *parser::statement_with_semicolons() {
 				if (!match(RP)) {
 					delete name;
 					delete tryexpect;
-					PARSER_ERROR_RETURN(L"Expected )", get(0)->lineno);
+					PARSER_ERROR_RETURN(L"Expected )", get(0)->lineno, get(0)->charno);
 				}
 				
 				tryexpect->addLastObject(name);
@@ -2228,7 +2232,7 @@ ASTNode *parser::parse() {
 	
 	if (error_) {
 		delete root;
-		PARSER_ERROR_RETURN(L"parsing error", get(0)->lineno);
+		PARSER_ERROR_RETURN(L"parsing error", get(0)->lineno, get(0)->charno);
 		return NULL;
 	}
 	
@@ -2237,6 +2241,10 @@ ASTNode *parser::parse() {
 
 int parser::lineno() {
 	return get(0)->lineno;
+};
+
+int parser::charno() {
+	return get(0)->charno;
 };
 
 int parser::eof() {
