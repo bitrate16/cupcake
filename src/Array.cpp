@@ -11,11 +11,16 @@ using namespace ck_vobject;
 using namespace ck_objects;
 using namespace ck_core;
 
+
+static vobject* call_handler(vscope* scope, const vector<vobject*>& args) {
+	return new Array(args);
+};
+
 vobject* Array::create_proto() {
 	if (ArrayProto != nullptr)
 		return ArrayProto;
 	
-	ArrayProto = new Object();
+	ArrayProto = new CallablePrototype(call_handler);
 	GIL::gc_instance()->attach_root(ArrayProto);
 	
 	// ...
@@ -24,16 +29,17 @@ vobject* Array::create_proto() {
 };
 
 
-Array::Array(const std::vector<ck_vobject::vobject*>& array) {
-	elements = array;
+Array::Array() {
+	if (ArrayProto == nullptr)
+		Array::create_proto();
 	
 	Object::put(wstring(L"proto"), ArrayProto);
 };
 
-
-Array::Array() {
-	Object::put(wstring(L"proto"), ArrayProto);
+Array::Array(const std::vector<ck_vobject::vobject*>& array) : Array() {
+	elements = array;
 };
+
 		
 Array::~Array() {
 	
@@ -178,11 +184,11 @@ void Array::gc_mark() {
 	gc_reach();
 	
 	for (const auto& any : objects) 
-		if (any.second && any.second->gc_reachable)
+		if (any.second && !any.second->gc_reachable)
 			any.second->gc_mark();
 	
 	for (int i = 0; i < elements.size(); ++i)
-		if (elements[i] || elements[i]->gc_reachable)
+		if (elements[i] && !elements[i]->gc_reachable)
 			elements[i]->gc_mark();
 };
 

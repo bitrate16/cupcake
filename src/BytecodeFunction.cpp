@@ -13,11 +13,16 @@ using namespace ck_vobject;
 using namespace ck_objects;
 using namespace ck_core;
 
+
+static vobject* call_handler(vscope* scope, const vector<vobject*>& args) {
+	throw ck_message(L"BytecodeFunction construct uncomplete", ck_message_type::CK_UNSUPPORTED_OPERATION);
+};
+
 vobject* BytecodeFunction::create_proto() {
 	if (BytecodeFunctionProto != nullptr)
 		return BytecodeFunctionProto;
 	
-	BytecodeFunctionProto = new Object();
+	BytecodeFunctionProto = new CallablePrototype(call_handler);
 	GIL::gc_instance()->attach_root(BytecodeFunctionProto);
 	
 	// ...
@@ -59,6 +64,13 @@ vscope* BytecodeFunction::apply(const std::vector<ck_vobject::vobject*>& args) {
 	vscope* nscope = new vscope(scope);
 	Array* arguments = new Array(args);
 	nscope->put(L"__arguments", arguments);
+	
+	int min = argn.size();
+	min = min < args.size() ? min : args.size();
+	
+	for (int i = 0; i < min; ++i)
+		nscope->put(argn[i], args[i]);
+	
 	return nscope;
 };
 

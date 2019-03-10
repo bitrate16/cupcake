@@ -6,6 +6,8 @@
 #include "vobject.h"
 #include "vscope.h"
 
+#include "CallablePrototype.h"
+
 namespace ck_objects {	
 
 	class Undefined : public ck_vobject::vobject {
@@ -42,5 +44,5 @@ namespace ck_objects {
 	static Undefined* UndefinedInstance = nullptr;
 	
 	// Defined on interpreter start.
-	static Object* UndefinedProto = nullptr;
+	static CallablePrototype* UndefinedProto = nullptr;
 };

@@ -34,9 +34,9 @@ namespace ck_bytecodes {
 	const int JMP_IF_ZERO          = 39; // Jump to [int] address if top of the stack is not zero. stack.pop()
 	const int JMP                  = 40; // Jump to [int] address.
 	const int HALT                 = 41; // Halts the program
-	const int RAISE_NOARG          = 42; // raise;
-	const int RAISE                = 43; // raise <expression>;
-	const int RAISE_STRING         = 44; // raise from translator. ~Eof
+	const int THROW_NOARG          = 42; // raise;
+	const int THROW                = 43; // raise <expression>;
+	const int THROW_STRING         = 44; // raise from translator. ~Eof
 	const int VSTATE_POP_SCOPES    = 45; // Pop N scopes from scope list
 	const int RETURN_VALUE         = 46; // Return value
 	const int PUSH_CONST_FUNCTION  = 47; // Push BytecodeFunction
@@ -82,6 +82,8 @@ namespace ck_bytecodes {
 	const int OPT_INC     = 17;	
 	const int OPT_DEC     = 18;
 	
+	// Expects POP_TRY when finishing try block.
+	// POP_TRY antomatically executed on jumping to catch block.
 	const int TRY_NO_CATCH = 1;
 	const int TRY_NO_ARG   = 2;
 	const int TRY_WITH_ARG = 3;

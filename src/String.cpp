@@ -12,11 +12,22 @@ using namespace ck_vobject;
 using namespace ck_objects;
 using namespace ck_core;
 
+
+static vobject* call_handler(vscope* scope, const vector<vobject*>& args) {
+	if (args.size() == 0)
+		return new String();
+	
+	if (args[0]->is_typeof<String>())
+		return new String(((String*) args[0])->value());
+		
+	return new String(args[0]->string_value());
+};
+
 vobject* String::create_proto() {
 	if (StringProto != nullptr)
 		return StringProto;
 	
-	StringProto = new Object();
+	StringProto = new CallablePrototype(call_handler);
 	GIL::gc_instance()->attach_root(StringProto);
 	
 	// ...
@@ -26,19 +37,18 @@ vobject* String::create_proto() {
 
 
 String::String() {
+	if (StringProto == nullptr)
+		String::create_proto();
+	
 	Object::put(wstring(L"proto"), StringProto);
 };
 
-String::String(const std::wstring* s) {
+String::String(const std::wstring* s) : String() {
 	str = *s;
-	
-	Object::put(wstring(L"proto"), StringProto);
 };
 
-String::String(const std::wstring& s) {
+String::String(const std::wstring& s) : String() {
 	str = s;
-	
-	Object::put(wstring(L"proto"), StringProto);
 };
 
 String::~String() {

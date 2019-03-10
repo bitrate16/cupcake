@@ -16,6 +16,112 @@ using namespace ck_parser;
 using namespace ck_ast;
 
 
+std::wstring ck_parser::token_to_string(int token) {
+	switch(token) {
+		 case IF            : return L"if";
+		 case ELSE          : return L"else";
+		 case SWITCH        : return L"switch";
+		 case CASE          : return L"case";
+		 case DEFAULT       : return L"default";
+		 case BREAK         : return L"break";
+		 case CONTINUE      : return L"continue";
+		 case RETURN        : return L"return";
+		 case WHILE         : return L"while";
+		 case DO            : return L"do";
+		 case FOR           : return L"for";
+		 case IN            : return L"in";
+		 case FUNCTION      : return L"function";
+		 case VAR           : return L"var";
+		 case TRY           : return L"try";
+		 case CATCH         : return L"catch";
+		 case THROW         : return L"throw";
+		 case CONST         : return L"const";
+		 case SAFE          : return L"safe";
+		 case LOCAL         : return L"local";
+		 case TRUE          : return L"true";
+		 case FALSE         : return L"false";
+		 case SELF          : return L"sefl";
+		 case THIS          : return L"this";
+		 case WITH          : return L"with";
+		 case ASSIGN        : return L"assign";
+		 case HOOK          : return L"?";
+		 case COLON         : return L":";
+		 case DOT           : return L".";
+		 case COMMA         : return L",";
+		 case SEMICOLON     : return L";";
+		 case LP            : return L"(";
+		 case RP            : return L")";
+		 case LB            : return L"[";
+		 case RB            : return L"]";
+		 case LC            : return L"{";
+		 case RC            : return L"}";
+		 case EQ            : return L"==";
+		 case NEQ           : return L"!=";
+		 case OR            : return L"||";
+		 case AND           : return L"&&";
+		 case BITOR         : return L"|";
+		 case BITAND        : return L"&";
+		 case BITXOR        : return L"^";
+		 case GT            : return L">";
+		 case GE            : return L">=";
+		 case LT            : return L"<";
+		 case LE            : return L"<=";
+		 case BITRSH        : return L">>";
+		 case BITLSH        : return L"<<";
+		 case BITURSH       : return L">>>";
+		 case PLUS          : return L"+";
+		 case MINUS         : return L"-";
+		 case MUL           : return L"*";
+		 case DIV           : return L"/";
+		 case DIR           : return L"\\";
+		 case MOD           : return L"%";
+		 case HASH          : return L"#";
+		 case NOT           : return L"!";
+		 case BITNOT        : return L"~";
+		 case INC           : return L"++";
+		 case DEC           : return L"--";
+		 case ASSIGN_ADD    : return L"+=";
+		 case ASSIGN_SUB    : return L"-=";
+		 case ASSIGN_MUL    : return L"*=";
+		 case ASSIGN_DIV    : return L"/=";
+		 case ASSIGN_BITRSH : return L">>=";
+		 case ASSIGN_BITLSH : return L"<<=";
+		 case ASSIGN_BITURSH: return L">>>=";
+		 case ASSIGN_DIR    : return L"\\=";
+		 case ASSIGN_PATH   : return L"\\\\=";
+		 case ASSIGN_MOD    : return L"%=";
+		 case ASSIGN_BITOR  : return L"|=";
+		 case ASSIGN_BITAND : return L"&=";
+		 case ASSIGN_BITXOR : return L"^=";
+		 case PATH          : return L"\\\\";
+		 case PUSH          : return L"=>";
+		 case ARROW         : return L"->";
+		 case DOG           : return L"@";
+		 case ASSIGN_HASH   : return L"#=";
+		 case PRE_INC       : return L"++";
+		 case PRE_DEC       : return L"--";
+		 case POS_INC       : return L"++";
+		 case POS_DEC       : return L"--";
+		 case POS           : return L"-";
+		 case NEG           : return L"+";
+		 case TEOF          : return L"@EOF";
+		 case TEOL          : return L"@EOL";
+		 case TERR          : return L"@ERROR";
+		 case NONE          : return L"@NONE";
+		 case FIELD         : return L"@FIELD";
+		 case MEMBER        : return L"@MEMBER";
+		 case CALL          : return L"@CALL";
+		 case EMPTY         : return L"@EMPTY";
+		 case BLOCK         : return L"@BLOCK";
+		 case DEFINE        : return L"@DEFINE";
+		 case EXPRESSION    : return L"@EXPRESSION";
+		 case ASTROOT       : return L"@ASTROOT";
+		 case CONDITION     : return L"@CONDITION";		 
+		 default: return L"";
+	}
+};
+
+
 // S T R E A M _ W R A P P E R
 
 // Returns next redden character.
@@ -187,8 +293,8 @@ int tokenizer::next_token() {
 			return put(TRY);
 		if (svref == L"catch")
 			return put(CATCH);
-		if (svref == L"raise")
-			return put(RAISE);
+		if (svref == L"throw")
+			return put(THROW);
 		if (svref == L"if")
 			return put(IF);
 		if (svref == L"else")
@@ -834,7 +940,33 @@ ASTNode *parser::primaryexp() {
 		return function;
 	}
 	
-	PARSER_ERROR_RETURN(std::wstring(L"unexpected token type ") + std::to_wstring(get(0)->token), get(0)->lineno)
+	std::wstring error_str = L"unexpected token type " + std::to_wstring(get(0)->token) + L": ";
+	switch (get(0)->token) {
+		case INTEGER:
+			error_str += std::to_wstring(get(0)->iv);
+			break;
+		case DOUBLE:
+			error_str += std::to_wstring(get(0)->dv);
+			break;
+		case BOOLEAN:
+			error_str += get(0)->bv ? L"true" : L"false";
+			break;
+		case STRING:
+			error_str += L"\"" + get(0)->sv + L"\"";
+			break;
+		case NAME:
+			error_str += get(0)->sv;
+			break;
+		case TNULL:
+			error_str += L"null";
+			break;
+		case UNDEFINED:
+			error_str += L"undefined";
+			break;
+		default:
+			error_str += token_to_string(get(0)->token);
+	}
+	PARSER_ERROR_RETURN(error_str, get(0)->lineno)
 };
 
 ASTNode *parser::member_expression() {
@@ -1595,7 +1727,7 @@ bool parser::peekStatementWithoutSemicolon() {
 			||
 			get(0)->token == RETURN
 			||
-			get(0)->token == RAISE
+			get(0)->token == THROW
 			||
 			get(0)->token == TRY
 			||
@@ -1995,28 +2127,28 @@ ASTNode *parser::statement_with_semicolons() {
 		return returnnode;
 	}
 	
-	else if (match(RAISE)) {
+	else if (match(THROW)) {
 		
 		// FREAME:
 		// value / EMPTY
 		
-		ASTNode *raisenode = new ASTNode(get(-1)->lineno, RAISE);
+		ASTNode *thrownode = new ASTNode(get(-1)->lineno, THROW);
 		
 		if (peekStatementWithoutSemicolon()) {
 			ASTNode *empty = new ASTNode(-1, EMPTY);
-			raisenode->addChild(empty);
+			thrownode->addChild(empty);
 		} else {
 			ASTNode *exp = checkNotNullExpression();
 			
 			// Check for NULL expressin and ommit memory leak
 			if (error_) {
-				delete raisenode;
+				delete thrownode;
 				return NULL;
 			}
-			raisenode->addChild(exp);
+			thrownode->addChild(exp);
 		}
 		
-		return raisenode;
+		return thrownode;
 	}
 	
 	else if (match(TRY)) {
@@ -2111,4 +2243,14 @@ int parser::eof() {
 	return // source->eof() || 
 		eof_ || error_;
 };
+
+//      /(|
+//     (  :
+//    __\  \  
+//  (____)  `|\
+// (____)|   | \
+//  (____).__|  \
+//   (___)__.|   \_____
+//
+// I'LL BE BACK...
 

@@ -11,11 +11,16 @@ using namespace ck_vobject;
 using namespace ck_objects;
 using namespace ck_core;
 
+
+static vobject* call_handler(vscope* scope, const vector<vobject*>& args) {
+	return Null::instance();
+};
+
 vobject* Null::create_proto() {
 	if (NullProto != nullptr)
 		return NullProto;
 	
-	NullProto = new Object();
+	NullProto = new CallablePrototype(call_handler);
 	GIL::gc_instance()->attach_root(NullProto);
 	
 	if (NullInstance == nullptr) {

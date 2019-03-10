@@ -4,6 +4,7 @@
 #include <cwchar>
 
 #include "Object.h"
+#include "CallablePrototype.h"
 
 namespace ck_objects {	
 
@@ -35,10 +36,14 @@ namespace ck_objects {
 		// Returns double to string
 		virtual std::wstring string_value();
 		
+		virtual double value() {
+			return val;
+		};
+		
 		// Called on interpreter start to initialize prototype
 		static vobject* create_proto();
 	};
 	
 	// Defined on interpreter start.
-	static Object* DoubleProto = nullptr;
+	static CallablePrototype* DoubleProto = nullptr;
 };

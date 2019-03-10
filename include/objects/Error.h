@@ -3,22 +3,37 @@
 #include <vector>
 #include <cwchar>
 
+#include "../exceptions.h"
+
 #include "Object.h"
 #include "CallablePrototype.h"
 
-namespace ck_objects {	
+namespace ck_objects {
 
-	class Int : public ck_vobject::vobject {
+	class Error : public ck_objects::Object {
+		
+		struct Frame {
+			
+			Frame() {};
+			
+			int lineno;
+			std::wstring filename;
+			std::wstring function;
+		};
 		
 	protected:
+	
+		std::vector<Frame> backtrace;
+		std::wstring message;
 		
-		// Оёо Б3ърпф
-		long long val;
+		void collect_backtrace();
 		
 	public:
 		
-		Int(long long value = 0);
-		virtual ~Int();
+		Error();
+		Error(const std::wstring& str);
+		Error(const ck_exceptions::ck_message& ex);
+		virtual ~Error();
 		
 		virtual vobject* get     (ck_vobject::vscope*, const std::wstring&);
 		virtual void     put     (ck_vobject::vscope*, const std::wstring&, vobject*);
@@ -30,20 +45,15 @@ namespace ck_objects {
 		virtual void gc_finalize();
 		
 		
-		// Returns value
 		virtual long long int_value();
 		
-		// Returns int to string
+		// Returns string
 		virtual std::wstring string_value();
-		
-		virtual long long value() {
-			return val;
-		};
 		
 		// Called on interpreter start to initialize prototype
 		static vobject* create_proto();
 	};
 	
 	// Defined on interpreter start.
-	static CallablePrototype* IntProto = nullptr;
+	static CallablePrototype* ErrorProto = nullptr;
 };

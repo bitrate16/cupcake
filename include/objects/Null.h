@@ -6,6 +6,8 @@
 #include "vobject.h"
 #include "vscope.h"
 
+#include "CallablePrototype.h"
+
 namespace ck_objects {	
 
 	class Null : public ck_vobject::vobject {
@@ -42,5 +44,5 @@ namespace ck_objects {
 	static Null* NullInstance = nullptr;
 	
 	// Defined on interpreter start.
-	static Object* NullProto = nullptr;
+	static CallablePrototype* NullProto = nullptr;
 };

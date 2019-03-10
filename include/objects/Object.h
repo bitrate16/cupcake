@@ -15,7 +15,7 @@ namespace ck_objects {	// WARNING: This and all standard objects uses prototype 
 		
 	public:
 		
-		Object(std::map<std::wstring, ck_vobject::vobject*>&);
+		Object(const std::map<std::wstring, ck_vobject::vobject*>&);
 		Object();
 		virtual ~Object();
 		

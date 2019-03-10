@@ -18,6 +18,7 @@
 #include "objects/Null.h"
 #include "objects/Undefined.h"
 #include "objects/BytecodeFunction.h"
+#include "objects/Error.h"
 
 
 using namespace std;
@@ -37,11 +38,14 @@ ck_executer_gc_object::ck_executer_gc_object(ck_executer* exec_instance) {
 ck_executer_gc_object::~ck_executer_gc_object() {};
 
 void ck_executer_gc_object::gc_mark() {
+	if (!exec_instance)
+		return;
+	
 	for (int i = 0; i < exec_instance->scopes.size(); ++i)
-		if (exec_instance->scopes[i])
+		if (exec_instance->scopes[i] && !exec_instance->scopes[i]->gc_reachable)
 			exec_instance->scopes[i]->gc_mark();
 	for (int i = 0; i < exec_instance->objects.size(); ++i)
-		if (exec_instance->objects[i])
+		if (exec_instance->objects[i] && !exec_instance->objects[i]->gc_reachable)
 			exec_instance->objects[i]->gc_mark();
 };
 
@@ -94,7 +98,7 @@ ck_vobject::vobject* ck_executer::vpeek() {
 	return objects.back();
 };
 
-void ck_executer::vpush(ck_vobject::vobject* o) {	
+void ck_executer::vpush(ck_vobject::vobject* o) {
 	objects.push_back(o);
 };
 
@@ -121,7 +125,7 @@ void ck_executer::vswap2() {
 
 int ck_executer::lineno() {
 	if (scripts.back()->bytecode.lineno_table.size() == 0)
-		return 0;
+		return -1;
 	
 	if (pointer >= scripts.back()->bytecode.bytemap.size()) 
 		return scripts.back()->bytecode.lineno_table.rbegin()[1];
@@ -134,60 +138,116 @@ int ck_executer::lineno() {
 	return -1;
 };
 
+void ck_executer::follow_exception(const ck_message& msg) {
+	if (try_stack.size() == 0)
+		throw msg;
+	
+	// Restore context
+	
+	// Restore all functional frames
+	for (int i = call_stack.size() - 1; i > try_stack.back().call_id; --i) 
+		call_stack.pop_back();
+	
+	// Restore windows
+	for (int i = windows.size() - 1; i > try_stack.back().window_id; --i) 
+		windows.pop_back();
+	
+	// Check for valid script
+	if (try_stack.back().script_id+1 != scripts.size())
+		throw msg;
+	
+	// Restore all scopes
+	for (int i = scopes.size() - 1; i > try_stack.back().scope_id; --i) {
+		scopes[i]->unroot();
+		scopes.pop_back();
+	}
+	
+	// Restore objects stack
+	for (int i = objects.size() - 1; i > try_stack.back().object_id; --i) 
+		objects.pop_back();
+	
+	
+	int type          = try_stack.back().type;
+	int catch_address = try_stack.back().catch_node;
+	wstring handler   = try_stack.back().handler;
+	
+	// The default behaviour is to pop try_frame out when handling exception.
+	// Normally try_trame should be popped by POP_TRY when try block finishes work without error.
+	try_stack.pop_back();
+	
+	switch(type) {
+		case ck_bytecodes::TRY_NO_ARG:
+		case ck_bytecodes::TRY_NO_CATCH: 
+			goto_address(catch_address); 
+			break;
+			
+		case ck_bytecodes::TRY_WITH_ARG: {
+			vscope* scope = new vscope(scopes.size() == 0 ? nullptr : scopes.back());
+			scope->root();
+			scope->put(handler, msg.get_type() == ck_message_type::CK_OBJECT ? msg.get_object() : new Error(msg));
+			scopes.push_back(scope);
+			goto_address(catch_address); 
+			break;
+		}
+	}
+};
+
+
 void ck_executer::validate_scope() {
 	if (scopes.size() == 0 || scopes.back() == nullptr)
 		throw ck_message(L"scopes stack corrupted", ck_message_type::CK_STACK_CORRUPTED);		
 };
 
-void ck_executer::exec_bytecode() {	
+void ck_executer::exec_bytecode() {
+	;//wcout << "[" << pointer << "] ";
 	while (!is_eof()) {
 		
 		switch(scripts.back()->bytecode.bytemap[pointer++]) {
 			case ck_bytecodes::LINENO: {
 				int lineno; 
 				read(sizeof(int), &lineno);
-				wcout << "LINENO: " << lineno << endl;
+				;//wcout << "LINENO: " << lineno << endl;
 				break;
 			}
 			
 			case ck_bytecodes::NOP: {
-				wcout << "> NOP" << endl;
+				;//wcout << "> NOP" << endl;
 				break;
 			}
 			
 			case ck_bytecodes::PUSH_CONST_INT: {
 				long long i; 
 				read(sizeof(long long), &i);
+				;//wcout << "> PUSH_CONST[int]: " << i << endl;
 				vpush(new Int(i));
-				wcout << "> PUSH_CONST[int]: " << i << endl;
 				break;
 			}
 			
 			case ck_bytecodes::PUSH_CONST_DOUBLE: {
 				double i; 
 				read(sizeof(double), &i);
+				;//wcout << "> PUSH_CONST[double]: " << i << endl;
 				vpush(new Double(i));
-				wcout << "> PUSH_CONST[double]: " << i << endl;
 				break;
 			}
 			
 			case ck_bytecodes::PUSH_CONST_BOOLEAN: {
 				bool i; 
 				read(sizeof(bool), &i);
+				;//wcout << "> PUSH_CONST[boolean]: " << i << endl;
 				vpush(new Bool(i));
-				wcout << "> PUSH_CONST[boolean]: " << i << endl;
 				break;
 			}
 			
 			case ck_bytecodes::PUSH_CONST_NULL: {
+				;//wcout << "> PUSH_CONST: null" << endl;
 				vpush(Null::instance());
-				wcout << "> PUSH_CONST: null" << endl;
 				break;
 			}
 			
 			case ck_bytecodes::PUSH_CONST_UNDEFINED: {
+				;//wcout << "> PUSH_CONST: undefined" << endl;
 				vpush(Undefined::instance());
-				wcout << "> PUSH_CONST: undefined" << endl;
 				break;
 			}
 			
@@ -197,9 +257,9 @@ void ck_executer::exec_bytecode() {
 				wchar_t cstr[size+1];
 				read(sizeof(wchar_t) * size, cstr);
 				cstr[size] = 0;
+				;//wcout << "> PUSH_CONST[string]: \"" << cstr << '"' << endl;
 				
 				vpush(new String(cstr));
-				wcout << "> PUSH_CONST[string]: \"" << cstr << '"' << endl;
 				break;
 			}
 			
@@ -209,23 +269,23 @@ void ck_executer::exec_bytecode() {
 				wchar_t cstr[size+1];
 				read(sizeof(wchar_t) * size, cstr);
 				cstr[size] = 0;
+				;//wcout << "> LOAD_VAR: " << cstr << endl;
 				
 				// Check for valid scope
 				validate_scope();
 				
 				// Scope should return nullptr if value does not exist.
-				vobject* o = scopes.back()->get(cstr);
+				vobject* o = scopes.back()->get(cstr, 1);
 				if (o == nullptr)
 					throw ck_message(wstring(L"undefined reference to ") + cstr, ck_message_type::CK_TYPE_ERROR);
 				
 				vpush(o);
-				wcout << "> LOAD_VAR: " << cstr << endl;
 				break;
 			}
 			
 			case ck_bytecodes::VSTACK_POP: {
+				;//wcout << "> VSTACK_POP" << endl;
 				vpop();
-				wcout << "> VSTACK_POP" << endl;
 				break;
 			}
 			
@@ -233,19 +293,19 @@ void ck_executer::exec_bytecode() {
 				int size; 
 				read(sizeof(int), &size);
 				
+				;//wcout << "> PUSH_CONST[array]: [" << size << ']' << endl;
+				
 				vector<vobject*> array;
 				for (int i = 0; i < size; ++i)
 					array.push_back(vpop());
 				vpush(new Array(array));
-				
-				wcout << "> PUSH_CONST[array]: [" << size << ']' << endl;
 				break;
 			}
 			
 			case ck_bytecodes::PUSH_CONST_OBJECT: {
 				int size; 
 				read(sizeof(int), &size);
-				wcout << "> PUSH_CONST[object]: {";
+				;//wcout << "> PUSH_CONST[object]: {";
 				
 				map<wstring, vobject*> objects;
 				
@@ -258,21 +318,21 @@ void ck_executer::exec_bytecode() {
 					
 					objects[cstr] = vpop();
 					
-					wcout << cstr;
+					;//wcout << cstr;
 					if (i != size-1)
-						wcout << ", ";
+						;//wcout << ", ";
 				}
 				
-				vpush(new Object(objects));
+				;//wcout << '}' << endl;
 				
-				wcout << '}' << endl;
+				vpush(new Object(objects));
 				break;
 			}
 			
 			case ck_bytecodes::DEFINE_VAR: {
 				int amount; 
 				read(sizeof(int), &amount);
-				wcout << "> DEFINE_VAR: ";
+				;//wcout << "> DEFINE_VAR: ";
 				
 				for (int i = 0; i < amount; ++i) {
 					int ssize = 0;
@@ -281,7 +341,7 @@ void ck_executer::exec_bytecode() {
 					wchar_t cstr[ssize+1];
 					read(sizeof(wchar_t) * ssize, cstr);
 					cstr[ssize] = 0;
-					wcout << cstr;
+					;//wcout << cstr;
 					
 					unsigned char ops = 0;
 					read(sizeof(unsigned char), &ops);
@@ -291,21 +351,21 @@ void ck_executer::exec_bytecode() {
 					
 					if ((ops & 0b1000) == 0) {
 						scopes.back()->put(cstr, Undefined::instance(), 0, 1);
-						wcout << " = [undefined]";
+						;//wcout << " = [undefined]";
 					} else
 						scopes.back()->put(cstr, vpop(), 0, 1);
 					
 					if (i != amount-1)
-						wcout << ", ";
+						;//wcout << ", ";
 				}
 				
-				wcout << endl;
+				;//wcout << endl;
 				break;
 			}
 		
 			case ck_bytecodes::VSTACK_DUP: {
+				;//wcout << "> VSTACK_DUP" << endl;
 				vpush(vpeek());
-				wcout << "> VSTACK_DUP" << endl;
 				break;
 			}
 			
@@ -316,7 +376,7 @@ void ck_executer::exec_bytecode() {
 				int argc; 
 				read(sizeof(int), &argc);
 				
-				wcout << "> CALL [" << argc << ']' << endl;
+				;//wcout << "> CALL [" << argc << ']' << endl;
 				
 				if (objects.size() < argc + 1)
 					throw ck_message(L"objects stack corrupted", ck_message_type::CK_INVALID_STATE); 
@@ -347,7 +407,7 @@ void ck_executer::exec_bytecode() {
 				read(sizeof(wchar_t) * size, cstr);
 				cstr[size] = 0;
 				
-				wcout << "> CALL_FIELD [" << argc << "] [" << cstr << ']' << endl;
+				;//wcout << "> CALL_FIELD [" << argc << "] [" << cstr << ']' << endl;
 				
 				if (objects.size() < argc + 1)
 					throw ck_message(L"objects stack corrupted", ck_message_type::CK_INVALID_STATE); 
@@ -386,7 +446,7 @@ void ck_executer::exec_bytecode() {
 				read(sizeof(wchar_t) * size, cstr);
 				cstr[size] = 0;
 				
-				wcout << "> CALL_NAME [" << argc << "] [" << cstr << ']' << endl;
+				;//wcout << "> CALL_NAME [" << argc << "] [" << cstr << ']' << endl;
 				
 				if (objects.size() < argc)
 					throw ck_message(L"objects stack corrupted", ck_message_type::CK_INVALID_STATE); 
@@ -399,10 +459,10 @@ void ck_executer::exec_bytecode() {
 				// Copy args
 				vector<vobject*> args;
 				for (int k = 0; k < argc; ++k)
-					args.push_back(objects.rbegin()[k]);
+					args.push_back(objects.rbegin()[k + 1]);
 				
 				vobject* obj = call_object(objects.rbegin()[0], nullptr, args, cstr);
-				for (int k = 0; k < argc; ++k)
+				for (int k = 0; k < argc + 1; ++k)
 					objects.pop_back();
 				vpush(obj);
 				
@@ -424,7 +484,7 @@ void ck_executer::exec_bytecode() {
 				
 				wstring key = objects.rbegin()[0]->string_value();
 				
-				wcout << "> CALL_MEMBER [" << argc << "] [" << key << ']' << endl;
+				;//wcout << "> CALL_MEMBER [" << argc << "] [" << key << ']' << endl;
 				
 				if (objects.rbegin()[1] == nullptr)
 					throw ck_message(wstring(L"undefined reference to ") + key, ck_message_type::CK_TYPE_ERROR);
@@ -491,7 +551,7 @@ void ck_executer::exec_bytecode() {
 					case ck_bytecodes::OPT_BITXOR : fun_name = (L"^"); break;
 				}
 				
-				wcout << "> OPERATOR [" << fun_name << ']' << endl;
+				;//wcout << "> OPERATOR [" << fun_name << ']' << endl;
 				
 				fun = ref->get(scopes.back(), L"__operator" + fun_name);
 				
@@ -530,7 +590,7 @@ void ck_executer::exec_bytecode() {
 				
 				scopes.back()->put(cstr, vpop(), 0, 1);
 				
-				wcout << "> STORE_VAR: " << cstr << endl;
+				;//wcout << "> STORE_VAR: " << cstr << endl;
 				break;
 			}
 			
@@ -552,7 +612,7 @@ void ck_executer::exec_bytecode() {
 				
 				ref->put(scopes.back(), cstr, val);
 				
-				wcout << "> STORE_FIELD: " << cstr << endl;
+				;//wcout << "> STORE_FIELD: " << cstr << endl;
 				break;
 			}
 			
@@ -572,7 +632,7 @@ void ck_executer::exec_bytecode() {
 				
 				ref->put(scopes.back(), key->string_value(), val);
 				
-				wcout << "> STORE_MEMBER " << endl;
+				;//wcout << "> STORE_MEMBER " << endl;
 				break;
 			}
 			
@@ -593,7 +653,7 @@ void ck_executer::exec_bytecode() {
 				
 				vpush(ref->get(scopes.back(), cstr));
 				
-				wcout << "> LOAD_FIELD: " << cstr << endl;
+				;//wcout << "> LOAD_FIELD: " << cstr << endl;
 				break;
 			}
 			
@@ -612,7 +672,7 @@ void ck_executer::exec_bytecode() {
 				
 				vpush(ref->get(scopes.back(), key->string_value()));
 				
-				wcout << "> LOAD_MEMBER " << endl;
+				;//wcout << "> LOAD_MEMBER " << endl;
 				break;
 			}
 		
@@ -644,7 +704,7 @@ void ck_executer::exec_bytecode() {
 					case ck_bytecodes::OPT_DEC   : fun_name = (L"--x"); break;
 				}
 				
-				wcout << "> OPERATOR [" << fun_name << ']' << endl;
+				;//wcout << "> OPERATOR [" << fun_name << ']' << endl;
 				
 				fun = ref->get(scopes.back(), L"__operator" + fun_name);
 				
@@ -671,44 +731,40 @@ void ck_executer::exec_bytecode() {
 			}
 			
 			case ck_bytecodes::VSTACK_SWAP: {
+				;//wcout << "> VSTACK_SWAP" << endl;
 				vswap();
-				
-				wcout << "> VSTACK_SWAP" << endl;
 				break;
 			}
 			
 			case ck_bytecodes::VSTACK_SWAP1: {
+				;//wcout << "> VSTACK_SWAP1" << endl;
 				vswap1();
-				
-				wcout << "> VSTACK_SWAP1" << endl;
 				break;
 			}
 			
 			case ck_bytecodes::VSTACK_SWAP2: {
+				;//wcout << "> VSTACK_SWAP2" << endl;
 				vswap2();
-				
-				wcout << "> VSTACK_SWAP2" << endl;
 				break;
 			}
 			
 			case ck_bytecodes::VSTATE_PUSH_SCOPE: {
+				;//wcout << "> VSTATE_PUSH_SCOPE" << endl;
 				vscope* s = new vscope(scopes.size() == 0 ? nullptr : scopes.back());
 				GIL::gc_instance()->attach_root(s);
 				scopes.push_back(s);
-				
-				wcout << "> VSTATE_PUSH_SCOPE" << endl;
 				break;
 			}
 			
 			case ck_bytecodes::VSTATE_POP_SCOPE: {
+				;//wcout << "> VSTATE_POP_SCOPE" << endl;
+				
 				// Check for scope
 				validate_scope();	
 				
 				vscope* s = scopes.back();
 				GIL::gc_instance()->deattach_root(s);
 				scopes.pop_back();
-				
-				wcout << "> VSTATE_POP_SCOPE" << endl;
 				break;
 			}
 			
@@ -716,11 +772,11 @@ void ck_executer::exec_bytecode() {
 				int i; 
 				read(sizeof(int), &i);
 				
+				;//wcout << "> JMP_IF_ZERO [" << i << ']' << endl;
+				
 				vobject* o = vpop();
 				if (o == nullptr || o->int_value() == 0)
 					goto_address(i);
-				
-				wcout << "> JMP_IF_ZERO [" << i << ']' << endl;
 				break;
 			}
 			
@@ -728,14 +784,14 @@ void ck_executer::exec_bytecode() {
 				int i; 
 				read(sizeof(int), &i);
 				
-				goto_address(i);
+				;//wcout << "> JMP [" << i << ']' << endl;
 				
-				wcout << "> JMP [" << i << ']' << endl;
+				goto_address(i);
 				break;
 			}
 			
 			case ck_bytecodes::HALT: {
-				wcout << "> HALT" << endl;
+				;//wcout << "> HALT" << endl;
 				
 				--pointer;
 				return;
@@ -743,30 +799,30 @@ void ck_executer::exec_bytecode() {
 				break;
 			}
 			
-			case ck_bytecodes::RAISE_NOARG: {
-				wcout << "> RAISE_NOARG" << endl;
+			case ck_bytecodes::THROW_NOARG: {
+				;//wcout << "> THROW_NOARG" << endl;
 				
 				throw ck_message((vobject*) nullptr);
 				
 				break;
 			}
 			
-			case ck_bytecodes::RAISE: {				
-				wcout << "> RAISE" << endl;
+			case ck_bytecodes::THROW: {				
+				;//wcout << "> THROW" << endl;
 				
 				throw ck_message(vpop());
 				
 				break;
 			}
 			
-			case ck_bytecodes::RAISE_STRING: {
+			case ck_bytecodes::THROW_STRING: {
 				int size;
 				read(sizeof(int), &size);
 				wchar_t cstr[size+1];
 				read(sizeof(wchar_t) * size, cstr);
 				cstr[size] = 0;
 				
-				wcout << "> RAISE_STRING: \"" << cstr << '"' << endl;
+				;//wcout << "> THROW_STRING: \"" << cstr << '"' << endl;
 				
 				throw ck_message(new String(cstr));
 				
@@ -776,7 +832,7 @@ void ck_executer::exec_bytecode() {
 			case ck_bytecodes::VSTATE_POP_SCOPES: {
 				int i; 
 				read(sizeof(int), &i);
-				wcout << "> VSTATE_POP_SCOPES [" << i << ']' << endl;
+				;//wcout << "> VSTATE_POP_SCOPES [" << i << ']' << endl;
 				
 				if (scopes.size() < i)
 					throw ck_message(L"scopes stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
@@ -788,7 +844,7 @@ void ck_executer::exec_bytecode() {
 			}
 			
 			case ck_bytecodes::RETURN_VALUE: {
-				wcout << "> RETURN_VALUE" << endl;
+				;//wcout << "> RETURN_VALUE" << endl;
 				
 				throw ck_message(vpop(), ck_message_type::CK_RETURN);
 				
@@ -802,7 +858,7 @@ void ck_executer::exec_bytecode() {
 				
 				int argc; 
 				read(sizeof(int), &argc);
-				wcout << "> PUSH_CONST_FUNCTION (" << argc << ") (";
+				;//wcout << "> PUSH_CONST_FUNCTION (" << argc << ") (";
 				
 				vector<wstring> argn;
 				
@@ -813,18 +869,18 @@ void ck_executer::exec_bytecode() {
 					wchar_t cstr[ssize+1];
 					read(sizeof(wchar_t) * ssize, cstr);
 					cstr[ssize] = 0;
-					wcout << cstr;
+					;//wcout << cstr;
 					
 					argn.push_back(cstr);
 					
 					if (i != argc-1)
-						wcout << ", ";
+						;//wcout << ", ";
 				}
 				
 				int sizeof_block; 
 				read(sizeof(int), &sizeof_block);
 				
-				wcout << ") [" << sizeof_block << "]" << endl;
+				;//wcout << ") [" << sizeof_block << "]" << endl;
 				
 				ck_script* script = new ck_script();
 				script->directory = scripts.back()->directory;
@@ -854,13 +910,13 @@ void ck_executer::exec_bytecode() {
 				script->bytecode.lineno_table.push_back(sizeof_block);
 				
 				/*
-				wcout << "Function Bytecode: " << endl;
+				;//wcout << "Function Bytecode: " << endl;
 				ck_translator::print(script->bytecode.bytemap);
-				wcout << endl;
+				;//wcout << endl;
 				
-				wcout << "Function Lineno Table: " << endl;
+				;//wcout << "Function Lineno Table: " << endl;
 				ck_translator::print_lineno_table(script->bytecode.lineno_table);
-				wcout << endl;
+				;//wcout << endl;
 				*/				
 				
 				pointer += sizeof_block;
@@ -878,14 +934,18 @@ void ck_executer::exec_bytecode() {
 				// Everything expected to be fine.
 				try_stack.pop_back();
 				
-				wcout << "> VSTATE_POP_TRY" << endl;
+				;//wcout << "> VSTATE_POP_TRY" << endl;
 				break;
 			}
 
-			case ck_bytecodes::VSTATE_PUSH_TRY: {
+			case ck_bytecodes::VSTATE_PUSH_TRY: {	
+		
+				if (try_stack.size() == try_stack_limit)
+					throw ck_message(L"try-catch stack overflow", ck_message_type::CK_STACK_OVERFLOW);
+				
 				int try_node = 0;
 				int catch_node = 0;
-				wstring handler_name = 0;
+				wstring handler_name;
 				unsigned char type;
 				read(sizeof(unsigned char), &type);
 				
@@ -896,7 +956,9 @@ void ck_executer::exec_bytecode() {
 					read(sizeof(int), &try_node);
 					read(sizeof(int), &exit);
 					
-					wcout << "> VSTATE_PUSH_TRY [TRY_NO_CATCH] [" << try_node << "] [" << exit << ']' << endl;
+					catch_node = exit;
+					
+					;//wcout << "> VSTATE_PUSH_TRY [TRY_NO_CATCH] [" << try_node << "] [" << exit << ']' << endl;
 				} else if (type == ck_bytecodes::TRY_NO_ARG) {
 					try_node;
 					int catch_node;
@@ -904,7 +966,7 @@ void ck_executer::exec_bytecode() {
 					read(sizeof(int), &try_node);
 					read(sizeof(int), &catch_node);
 					
-					wcout << "> VSTATE_PUSH_TRY [TRY_NO_ARG] [" << try_node << "] [" << catch_node << ']' << endl;
+					;//wcout << "> VSTATE_PUSH_TRY [TRY_NO_ARG] [" << try_node << "] [" << catch_node << ']' << endl;
 				} else {
 					try_node;
 					catch_node;
@@ -919,7 +981,7 @@ void ck_executer::exec_bytecode() {
 					cstr[name_size] = 0;
 					handler_name = cstr;
 					
-					wcout << "> VSTATE_PUSH_TRY [TRY_WITH_ARG] (" << cstr << ") [" << try_node << "] [" << catch_node << ']' << endl;
+					;//wcout << "> VSTATE_PUSH_TRY [TRY_WITH_ARG] (" << cstr << ") [" << try_node << "] [" << catch_node << ']' << endl;
 				}
 				
 				try_stack.push_back(stack_try());
@@ -927,6 +989,7 @@ void ck_executer::exec_bytecode() {
 				try_stack.back().script_id = scripts.size() - 1;
 				try_stack.back().object_id = objects.size() - 1;
 				try_stack.back().window_id = windows.size() - 1;
+				try_stack.back().call_id = call_stack.size() - 1;
 				try_stack.back().pointer = pointer;
 				try_stack.back().try_node = try_node;
 				try_stack.back().catch_node = catch_node;
@@ -943,10 +1006,16 @@ void ck_executer::exec_bytecode() {
 		GIL::instance()->accept_lock();
 		
 		// Perform GC collection ?
+		GIL::gc_instance()->collect();
 	}
 };
 
+
 void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, std::vector<std::wstring>* argn, std::vector<ck_vobject::vobject*>* argv) {
+	
+	if (windows.size() == windows_limit)
+		throw ck_message(L"executer stack overflow", ck_message_type::CK_STACK_OVERFLOW);
+	
 	// Create stack_window and save executer state
 	windows.push_back(stack_window());
 	windows.back().scope_id  = scopes.size()     - 1;
@@ -957,9 +1026,10 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 	windows.back().window_id = windows.size()    - 1;
 	windows.back().pointer   = pointer;
 	
+	int window_id = windows.size() - 1;
+	
 	// Push script instance to the bottom
 	scripts.push_back(scr);
-	int script_id = scripts.size();
 	
 	if (scope == nullptr) {
 		scope = new vscope();
@@ -977,18 +1047,25 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 	// Reset pointer to 0 and start
 	pointer = 0;
 	
-	try {
-		exec_bytecode();
-	} catch(const ck_exceptions::ck_message& msg) { 
-		throw msg;
-	} catch (const std::exception& ex) {
-		throw(ex);
-	}  catch (...) {
-		throw(ck_exceptions::ck_message_type::NATIVE_EXCEPTION);
-	} 
+	while (1) {
+		try {
+			exec_bytecode();
+			break;
+		} catch(const ck_exceptions::ck_message& msg) { 
+			follow_exception(msg);
+		} catch (const std::exception& ex) {
+			follow_exception(ex);
+		} catch (...) {
+			follow_exception(ck_message(ck_exceptions::ck_message_type::NATIVE_EXCEPTION));
+		} 
+	}
+	
+	// Restore windows
+	for (int i = windows.size() - 1; i > window_id; --i) 
+		windows.pop_back();
 	
 	// Restore scripts
-	for (int i = scripts.size() - 1; i > script_id; --i) 
+	for (int i = scripts.size() - 1; i > windows.back().script_id; --i) 
 		scripts.pop_back();
 	
 	// Restore all scopes
@@ -1017,12 +1094,117 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 };
 
 ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>& args, const std::wstring& name) { 
-	throw ck_message(L"Incomplete code, line: " + to_wstring(__LINE__), ck_message_type::CK_UNSUPPORTED_OPERATION); 
+
+	if (obj == nullptr)
+		throw ck_message(wstring(L"undefined call to ") + name, ck_message_type::CK_TYPE_ERROR);		
+		
+	if (call_stack.size() == call_stack_limit)
+		throw ck_message(L"call stack overflow", ck_message_type::CK_STACK_OVERFLOW);
+		
+	// Create stack_window and save executer state
+	call_stack.push_back(stack_frame());
+	call_stack.back().scope_id  = scopes.size()     - 1;
+	call_stack.back().script_id = scripts.size()    - 1;
+	call_stack.back().call_id   = call_stack.size() - 1;
+	call_stack.back().try_id    = try_stack.size()  - 1;
+	call_stack.back().object_id = objects.size()    - 1;
+	call_stack.back().window_id = windows.size()    - 1;
+	call_stack.back().name      = name;
+	call_stack.back().pointer   = pointer;
+	
+	int call_id = call_stack.size() - 1;
+	vscope* scope = nullptr;
+	
+	if (obj->is_typeof<BytecodeFunction>()) {
+		// Apply new scope
+		scope = ((BytecodeFunction*) obj)->apply(args);
+		// Apply script
+		scripts.push_back(((BytecodeFunction*) obj)->get_script());
+	} else
+		scope = new vscope(scopes.size() == 0 ? nullptr : scopes.back());
+	
+	if (ref != nullptr)
+		scope->put(L"__self", ref);
+	
+	scope->root();
+	scopes.push_back(scope);
+	
+	if (obj->is_typeof<BytecodeFunction>()) {
+		// Reset pointer to 0 and start
+		pointer = 0;
+		
+		try {
+			exec_bytecode();
+		} catch(const ck_exceptions::ck_message& msg) { 
+			if (msg.get_type() == ck_message_type::CK_RETURN)
+				obj = msg.get_object();
+			else
+				throw msg;
+		} catch (const std::exception& ex) {
+			throw ck_message(ex); // Rethrow
+		}  catch (...) {
+			throw ck_message(ck_exceptions::ck_message_type::NATIVE_EXCEPTION);  // Rethrow
+		} 
+	} else {
+		try {
+			obj = obj->call(scope, args);
+		} catch(const ck_exceptions::ck_message& msg) { 
+			if (msg.get_type() == ck_message_type::CK_RETURN)
+				obj = msg.get_object();
+			else
+				throw msg;
+		} catch (const std::exception& ex) {
+			throw ck_message(ex);  // Rethrow
+		}  catch (...) {
+			throw ck_message(ck_exceptions::ck_message_type::NATIVE_EXCEPTION);  // Rethrow
+		}
+	}
+	
+	// Restore all functional frames
+	for (int i = call_stack.size() - 1; i > call_id; --i) 
+		call_stack.pop_back();
+	
+	// Restore windows
+	for (int i = windows.size() - 1; i > call_stack.back().window_id; --i) 
+		windows.pop_back();
+	
+	// Restore scripts
+	for (int i = scripts.size() - 1; i > call_stack.back().script_id; --i) 
+		scripts.pop_back();
+	
+	// Restore all scopes
+	for (int i = scopes.size() - 1; i > call_stack.back().scope_id; --i) {
+		if (scopes[i] && (scope == nullptr || i != windows.back().scope_id))
+			scopes[i]->unroot();
+		
+		scopes.pop_back();
+	}
+	
+	// Restore all try frames
+	for (int i = try_stack.size() - 1; i > call_stack.back().try_id; --i) 
+		try_stack.pop_back();
+	
+	
+	//// use ck_message instead
+	// Peek return value
+	//if (call_stack.back().object_id > objects.size())
+	//	obj = nullptr;
+	//else
+	//	obj = objects.back();
+	
+	// Restore objects stack
+	for (int i = objects.size() - 1; i > call_stack.back().object_id; --i) 
+		objects.pop_back();
+	
+	pointer = call_stack.back().pointer;
+	call_stack.pop_back();
+	return obj;
 };
 
 void ck_executer::goto_address(int bytecode_address) {
 	if (bytecode_address < 0 || bytecode_address > scripts.back()->bytecode.bytemap.size())
 		throw ck_message(L"goto out of range [" + to_wstring(bytecode_address) + L"] for range [0, " + to_wstring(scripts.back()->bytecode.bytemap.size()) + L"]" , ck_message_type::CK_INVALID_STATE);
+	
 	pointer = bytecode_address;
 };
 
@@ -1046,3 +1228,4 @@ void ck_executer::clear() {
 		objects.pop_back();
 };
 
+// TO BE CONTINUED...

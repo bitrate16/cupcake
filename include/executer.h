@@ -4,10 +4,15 @@
 #include <string>
 
 #include "GC.h"
+#include "exceptions.h"
 
 namespace ck_vobject {
 	class vobject;
 	class vscope;
+};
+
+namespace ck_objects {
+	class Error;
 };
 
 namespace ck_core {
@@ -23,6 +28,10 @@ namespace ck_core {
 		int script_id = -1;
 		// Index oflast vobject on object stack
 		int object_id = -1;
+		// Index of last stack_try frame.
+		int try_id = -1;
+		// Index of last stack_frame frame.
+		int call_id = -1;
 		// Index of enclosing window
 		int window_id = -1;
 		// Address of next command
@@ -45,6 +54,8 @@ namespace ck_core {
 		int object_id = -1;
 		// Index of enclosing window
 		int window_id = -1;
+		// Index of last stack_frame frame.
+		int call_id = -1;
 		// Address of next command
 		int pointer = -1;
 		// Address of try_node
@@ -95,6 +106,7 @@ namespace ck_core {
 	class ck_script;
 	class ck_executer {
 		
+		friend class ck_objects::Error;
 		friend class ck_executer_gc_object;
 		
 		ck_executer_gc_object* gc_marker;
@@ -102,6 +114,11 @@ namespace ck_core {
 		std::vector<ck_core::ck_script*>  scripts;
 		std::vector<ck_vobject::vscope*>  scopes;
 		std::vector<ck_vobject::vobject*> objects;
+		
+		// Limit size for each stack		
+		int call_stack_limit = 65536;
+		int try_stack_limit  = 65536;
+		int windows_limit    = 65536;
 		
 		// Stack for each functional call (on call_object)
 		std::vector<stack_frame> call_stack;
@@ -145,6 +162,10 @@ namespace ck_core {
 		// if (scopes.size() == 0 || scopes.back() == nullptr)
 		//	throw ck_message(ck_message_type::CK_STACK_CORRUPTED);		
 		inline void validate_scope();
+		
+		// peek closest try_frame and follow it's catch block by jumping on it.
+		// If no frames left, rethrow message up.
+		void follow_exception(const ck_exceptions::ck_message& msg);
 		
 	public:
 		

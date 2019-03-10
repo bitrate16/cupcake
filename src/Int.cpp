@@ -5,17 +5,41 @@
 #include "exceptions.h"
 #include "GIL2.h"
 
+#include "objects/String.h"
+#include "objects/Double.h"
+
 using namespace std;
 using namespace ck_exceptions;
 using namespace ck_vobject;
 using namespace ck_objects;
 using namespace ck_core;
 
+
+static vobject* call_handler(vscope* scope, const vector<vobject*>& args) {
+	if (args.size() == 0)
+		return new Int(0);
+	
+	if (args[0]->is_typeof<String>())
+		try {
+			return new Int(std::stoi(((String*) args[0])->value()));
+		} catch (...) {
+			return new Double(0);
+		}
+	
+	if (args[0]->is_typeof<Double>())
+		return new Int(((Double*) args[0])->value());
+	
+	if (args[0]->is_typeof<Int>())
+		return new Int(((Int*) args[0])->value());
+		
+	return new Int(args[0]->int_value());
+};
+
 vobject* Int::create_proto() {
 	if (IntProto != nullptr)
 		return IntProto;
 	
-	IntProto = new Object();
+	IntProto = new CallablePrototype(call_handler);
 	GIL::gc_instance()->attach_root(IntProto);
 	
 	// ...

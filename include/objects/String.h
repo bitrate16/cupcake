@@ -4,6 +4,7 @@
 #include <cwchar>
 
 #include "Object.h"
+#include "CallablePrototype.h"
 
 namespace ck_objects {	
 
@@ -42,6 +43,10 @@ namespace ck_objects {
 		// Returns string
 		virtual std::wstring string_value();
 		
+		virtual std::wstring& value() {
+			return str;
+		};
+		
 		// Returns length of the string
 		int length();
 		
@@ -60,14 +65,8 @@ namespace ck_objects {
 		
 		// String operations
 		wchar_t charAt(int index);
-		/* {
-			// XXX: Maybe throw range error?
-			if (index < 0 || index >= string.size())
-				return -1;
-			
-			return string[index];
-		};*/
 		
+		// cat two strings
 		std::wstring concatenate(std::wstring&);
 		
 		// Remove all whitespace characters in front of the string
@@ -126,5 +125,5 @@ namespace ck_objects {
 	};
 	
 	// Defined on interpreter start.
-	static Object* StringProto = nullptr;
+	static CallablePrototype* StringProto = nullptr;
 };

@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "Object.h"
+#include "CallablePrototype.h"
 
 namespace ck_objects {	
 
@@ -45,5 +46,5 @@ namespace ck_objects {
 	};
 	
 	// Defined on interpreter start.
-	static Object* ArrayProto = nullptr;
+	static CallablePrototype* ArrayProto = nullptr;
 };

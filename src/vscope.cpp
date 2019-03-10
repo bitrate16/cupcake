@@ -112,17 +112,18 @@ void vscope::unroot() {
 	GIL::gc_instance()->deattach_root(this);
 };
 
-void vscope::gc_mark() { 
+void vscope::gc_mark() {
 	if (gc_reachable)
 		return;
 	
 	gc_reach();
 	
 	for (const auto& any : objects) 
-		if (any.second && any.second->gc_reachable)
+		if (any.second && !any.second->gc_reachable)
 			any.second->gc_mark();
 	
-	parent->gc_mark();
+	if (parent != nullptr)
+		parent->gc_mark();
 };
 
 void vscope::gc_finalize() {};

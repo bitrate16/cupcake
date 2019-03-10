@@ -35,8 +35,8 @@ namespace ck_token {
 	const int FUNCTION       = 58;
 	const int VAR            = 59;
 	const int TRY            = 60;
-	const int CATCH         = 61;
-	const int RAISE          = 62;
+	const int CATCH          = 61;
+	const int THROW          = 62;
 	const int CONST          = 64;
 	const int SAFE           = 65;
 	const int LOCAL          = 67;
@@ -130,6 +130,8 @@ namespace ck_token {
 };
 
 namespace ck_parser {
+	std::wstring token_to_string(int token);
+	
 	class raw_token {
 	public:	
 		int token  = ck_token::NONE;
@@ -175,7 +177,7 @@ namespace ck_parser {
 				case ck_token::VAR : os << "var"; break;
 				case ck_token::TRY : os << "try"; break;
 				case ck_token::CATCH : os << "catch"; break;
-				case ck_token::RAISE : os << "raise"; break;
+				case ck_token::THROW : os << "raise"; break;
 				case ck_token::CONST : os << "const"; break;
 				case ck_token::SAFE : os << "safe"; break;
 				case ck_token::LOCAL : os << "local"; break;

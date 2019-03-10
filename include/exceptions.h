@@ -43,7 +43,9 @@ namespace ck_exceptions {
 		// Thrown by sctipt raise statement or any king of rethrowing vobject*
 		CK_OBJECT, // + vobject
 		// Returning value from script function
-		CK_RETURN // + vobject
+		CK_RETURN, // + vobject
+		// Overflow of one of ck_executer stacks
+		CK_STACK_OVERFLOW // + string
 	};
 	
 	class ck_message {
@@ -56,7 +58,7 @@ namespace ck_exceptions {
 		const char* native_message = nullptr;
 		
 		// CK_STRING: Onlys tring message that is thrown to up
-		std::wstring native_string = nullptr;
+		std::wstring native_string;
 		
 		// Copy of axception
 		std::exception native_exception;
@@ -74,6 +76,29 @@ namespace ck_exceptions {
 		ck_message(ck_message_type type) : message_type(type) {};
 		ck_message(ck_vobject::vobject* object, ck_message_type type = CK_OBJECT) : script_object(object), message_type(type) {};
 
+		inline ck_message_type get_type() const {
+			return message_type;
+		};
+
+		inline const std::wstring& get_string() const {
+			return native_string;
+		};
+
+		inline const char* get_message() const {
+			return native_message;
+		};
+
+		inline const wchar_t* get_wmessage() const {
+			return native_wmessage;
+		};
+
+		inline const std::exception& get_exception() const {
+			return native_exception;
+		};
+		
+		inline ck_vobject::vobject* get_object() const {
+			return script_object;
+		};
 		
 		virtual ~ck_message() throw();
 		

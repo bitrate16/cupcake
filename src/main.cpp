@@ -48,6 +48,7 @@ int main(int argc, const char** argv) {
 	scr->filename  = wstring(mbfilename.begin(), mbfilename.end());
 	translate(scr->bytecode.bytemap, scr->bytecode.lineno_table, n);
 	
+	/*
 	wcout << "Bytecodes: " << endl;
 	print(scr->bytecode.bytemap);
 	wcout << endl;
@@ -55,6 +56,7 @@ int main(int argc, const char** argv) {
 	wcout << "Lineno Table: " << endl;
 	print_lineno_table(scr->bytecode.lineno_table);
 	wcout << endl;
+	*/
 	
 	delete n;
 	
@@ -62,13 +64,12 @@ int main(int argc, const char** argv) {
 	// Initialize GIL, GC and other root components
 	GIL* gil = new GIL(); // <-- all is done inside
 	
-	vscope *scope = new vscope();
-	GIL::gc_instance()->attach_root(scope);
-	ck_objects::primary_init(scope);
+	vscope *scope = ck_objects::primary_init(); // ?? XXX: Use prototype object for all classes
+	scope->root();
 	
 	try {
 		GIL::executer_instance()->execute(scr, scope);
-	} catch (ck_message& msg) {
+	} catch (const ck_message& msg) {
 		wcout << msg << endl;
 		// XXX: High level elevated exception. Should exit, or process it via system.defexceptionhandler()
 	}

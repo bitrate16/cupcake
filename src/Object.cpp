@@ -24,13 +24,16 @@ vobject* Object::create_proto() {
 };
 
 
-Object::Object(std::map<std::wstring, ck_vobject::vobject*>& objec) {
+Object::Object(const std::map<std::wstring, ck_vobject::vobject*>& objec) {
 	objects = objec;
 	
 	put(wstring(L"proto"), ObjectProto);
 };
 
 Object::Object() {
+	// if (ObjectProto == nullptr)
+	// 	Object::create_proto();
+	
 	put(wstring(L"proto"), ObjectProto);
 };
 		
@@ -75,7 +78,7 @@ void Object::gc_mark() {
 	gc_reach();
 	
 	for (const auto& any : objects) 
-		if (any.second && any.second->gc_reachable)
+		if (any.second && !any.second->gc_reachable)
 			any.second->gc_mark();
 };
 

@@ -5,17 +5,33 @@
 #include "exceptions.h"
 #include "GIL2.h"
 
+#include "objects/String.h"
+
 using namespace std;
 using namespace ck_exceptions;
 using namespace ck_vobject;
 using namespace ck_objects;
 using namespace ck_core;
 
+
+static vobject* call_handler(vscope* scope, const vector<vobject*>& args) {
+	if (args.size() == 0)
+		return new Bool(0);
+	
+	if (args[0]->is_typeof<String>())
+		if (((String*) args[0])->value() == L"false")
+			return new Bool(0);
+		else
+			return new Bool(1);
+		
+	return new Bool(args[0]->int_value());
+};
+
 vobject* Bool::create_proto() {
 	if (BoolProto != nullptr)
 		return BoolProto;
 	
-	BoolProto = new Object();
+	BoolProto = new CallablePrototype(call_handler);
 	GIL::gc_instance()->attach_root(BoolProto);
 	
 	// ...

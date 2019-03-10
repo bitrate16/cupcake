@@ -7,6 +7,8 @@
 #include "vscope.h"
 #include "script.h"
 
+#include "CallablePrototype.h"
+
 namespace ck_objects {	
 
 	class BytecodeFunction : public ck_vobject::vobject {
@@ -42,13 +44,12 @@ namespace ck_objects {
 		// Returns int to string
 		virtual std::wstring string_value();
 		
+		inline ck_core::ck_script* get_script() { return script; };
+		
 		// Called on interpreter start to initialize prototype
 		static ck_vobject::vobject* create_proto();
 	};
 	
-	// Defined on any call to BytecodeFunction::instance().
-	static BytecodeFunction* BytecodeFunctionInstance = nullptr;
-	
 	// Defined on interpreter start.
-	static Object* BytecodeFunctionProto = nullptr;
+	static CallablePrototype* BytecodeFunctionProto = nullptr;
 };

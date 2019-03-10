@@ -71,6 +71,11 @@ wostream& ck_exceptions::operator<<(wostream& os, const ck_message& m) {
 			os << "ck_message: CM_OBJECT" << endl;
 			break;
 		}
+		
+		case ck_message_type::CK_STACK_OVERFLOW: {
+			os << "ck_message: CK_STACK_OVERFLOW: " << m.native_string << endl;
+			break;
+		}
 	}
 	
 	return os;
