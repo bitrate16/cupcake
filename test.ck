@@ -15,3 +15,14 @@ try {
 var p = function() { try { return 'MNTR 7EU' } }
 
 print(p())
+
+var r = function() { 
+throw 13
+return 1 }
+
+try{
+r()
+}catch(e) print(e)
+
+while (1)
+	print('trye')

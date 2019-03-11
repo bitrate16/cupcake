@@ -83,9 +83,9 @@ namespace ck_core {
 		std::vector<ck_vobject::vobject*> objects;
 		
 		// Limit size for each stack		
-		int call_stack_limit   = 65536;
-		int try_stack_limit    = 65536;
-		int window_stack_limit = 65536;
+		int call_stack_limit   = 4096;
+		int try_stack_limit    = 4096;
+		int window_stack_limit = 4096;
 		
 		// Id's of stacks		
 		const int call_stack_id    = 13;

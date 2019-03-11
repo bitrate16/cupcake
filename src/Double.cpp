@@ -75,10 +75,6 @@ vobject* Double::call(ck_vobject::vscope* scope, const std::vector<vobject*> arg
 	throw ck_message(L"Double is not callable", ck_message_type::CK_UNSUPPORTED_OPERATION);
 };
 
-void Double::gc_mark() {};
-
-void Double::gc_finalize() {};
-
 
 long long Double::int_value() {
 	return val;

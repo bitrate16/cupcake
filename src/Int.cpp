@@ -75,10 +75,6 @@ vobject* Int::call(ck_vobject::vscope* scope, const std::vector<vobject*> args) 
 	throw ck_message(L"Int is not callable", ck_message_type::CK_UNSUPPORTED_OPERATION);
 };
 
-void Int::gc_mark() {};
-
-void Int::gc_finalize() {};
-
 
 long long Int::int_value() {
 	return val;

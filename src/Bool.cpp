@@ -67,10 +67,6 @@ vobject* Bool::call(ck_vobject::vscope* scope, const std::vector<vobject*> args)
 	throw ck_message(L"Bool is not callable", ck_message_type::CK_UNSUPPORTED_OPERATION);
 };
 
-void Bool::gc_mark() {};
-
-void Bool::gc_finalize() {};
-
 
 long long Bool::int_value() {
 	return val;

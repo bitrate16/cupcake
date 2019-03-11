@@ -21,6 +21,9 @@
 #include "objects/Error.h"
 
 
+// #define DEBUG_OUTPUT
+
+
 using namespace std;
 using namespace ck_core;
 using namespace ck_vobject;
@@ -171,21 +174,17 @@ void ck_executer::store_frame(std::vector<stack_frame>& stack, int stack_id, con
 
 void ck_executer::restore_frame(std::vector<stack_frame>& stack, int stack_id, int restored_frame_id) {
 	
-	/*if (stack_id == call_stack_id)
-		wcout << "RESTORE CALL" << endl;
-	else if (stack_id == try_stack_id)
-		wcout << "RESTORE TRY" << endl;
-	else if (stack_id == window_stack_id)
-		wcout << "RESTORE WINDOW" << endl;
-	*/
-	;//wcout << "Check for needence: restored_frame_id = " << restored_frame_id << ", stack.size() - 1 = " << stack.size() - 1 << endl; 
 	if (restored_frame_id > (int) stack.size() - 1)
 		return;
-	;//wcout << "-------------> call   stack id current " << (int)call_stack.size()-1 << endl;
-	;//wcout << "-------------> try    stack id current " << (int)try_stack.size() -1<< endl;
-	;//wcout << "-------------> window stack id current " << (int)window_stack.size()-1 << endl;
-	;//wcout << "-------------> scripts      id current " << (int)scripts.size()-1 << endl;
-	;//wcout << "-------------> scopes       id current " << (int)scopes.size()-1 << endl;
+
+#ifdef DEBUG_OUTPUT
+	wcout << endl;
+	wcout << "-------------> call   stack id current  " << (int)call_stack.size()-1 << endl;
+	wcout << "-------------> try    stack id current  " << (int)try_stack.size() -1<< endl;
+	wcout << "-------------> window stack id current  " << (int)window_stack.size()-1 << endl;
+	wcout << "-------------> scripts      id current  " << (int)scripts.size()-1 << endl;
+	wcout << "-------------> scopes       id current  " << (int)scopes.size()-1 << endl;
+#endif
 	
 	if (stack_id == call_stack_id && stack.size() == 0)
 		throw ck_message(L"call stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
@@ -197,23 +196,18 @@ void ck_executer::restore_frame(std::vector<stack_frame>& stack, int stack_id, i
 	int window_id = stack.back().window_id;
 	int try_id    = stack.back().try_id;
 	int call_id   = stack.back().call_id;
-	int script_id = stack.back().script_id;;//wcout << "------------------------ SCRIPT " << script_id << ", val = " << scripts.size() << endl;
+	int script_id = stack.back().script_id;
 	int scope_id  = stack.back().scope_id;
 	int object_id = stack.back().object_id;
 	int pointer_v = stack.back().pointer;
-	/*
-	if (stack_id == call_stack_id)
-		call_id = restored_frame_id;
-	else if (stack_id == try_stack_id)
-		try_id = restored_frame_id;
-	else if (stack_id == window_stack_id)
-		window_id = restored_frame_id;
-	*/
-	;//wcout << "-------------> call   stack id expected " << call_id   << endl;
-	;//wcout << "-------------> try    stack id expected " << try_id    << endl;
-	;//wcout << "-------------> window stack id expected " << window_id << endl;
-	;//wcout << "-------------> scripts      id expected " << script_id << endl;
-	;//wcout << "-------------> scopes       id expected " << scope_id << endl;
+	
+#ifdef DEBUG_OUTPUT
+	wcout << "-------------> call   stack id expected " << call_id   << endl;
+	wcout << "-------------> try    stack id expected " << try_id    << endl;
+	wcout << "-------------> window stack id expected " << window_id << endl;
+	wcout << "-------------> scripts      id expected " << script_id << endl;
+	wcout << "-------------> scopes       id expected " << scope_id << endl;
+#endif
 	
 	// Restore windows
 	for (int i = window_stack.size() - 1; i > window_id; --i) {
@@ -270,14 +264,13 @@ void ck_executer::restore_frame(std::vector<stack_frame>& stack, int stack_id, i
 	// Restore address pointer
 	pointer = pointer_v;
 	
-	//stack.pop_back();
-	
-	;//wcout << "-------------> AFTER" << endl;
-	;//wcout << "-------------> call   stack id result " << (int)call_stack.size()-1 << endl;
-	;//wcout << "-------------> try    stack id result " << (int)try_stack.size() -1<< endl;
-	;//wcout << "-------------> window stack id result " << (int)window_stack.size()-1 << endl;
-	;//wcout << "-------------> scripts      id result " << (int)scripts.size()-1 << endl;
-	;//wcout << "-------------> scopes       id result " << (int)scopes.size()-1 << endl;
+#ifdef DEBUG_OUTPUT
+	wcout << "-------------> call   stack id result   " << (int)call_stack.size()-1 << endl;
+	wcout << "-------------> try    stack id result   " << (int)try_stack.size() -1<< endl;
+	wcout << "-------------> window stack id result   " << (int)window_stack.size()-1 << endl;
+	wcout << "-------------> scripts      id result   " << (int)scripts.size()-1 << endl;
+	wcout << "-------------> scopes       id result   " << (int)scopes.size()-1 << endl;
+#endif
 };
 
 void ck_executer::follow_exception(const ck_message& msg) {
@@ -285,32 +278,33 @@ void ck_executer::follow_exception(const ck_message& msg) {
 		throw msg;	
 	
 	int type          = try_stack.back().try_type;
-	int catch_address = try_stack.back().catch_node; ;//wcout << "catch_address = " << catch_address << endl;
+	int catch_address = try_stack.back().catch_node;
 	int window_id     = try_stack.back().window_id;
 	int call_id       = try_stack.back().call_id;
 	int try_id        = try_stack.back().try_id;
-	wstring handler   = try_stack.back().name; ;//wcout << "HANDLER NAME GOING TO EXTECTED TO BE THIS: " << handler << endl;
-	;//wcout << "---CURRENT---> call   stack id current  " << (int)call_stack.size()-1   << endl;
-	;//wcout << "---CURRENT---> try    stack id current  " << (int)try_stack.size() -1    << endl;
-	;//wcout << "---CURRENT---> win    stack id current  " << (int)window_stack.size() -1    << endl;
-	;//wcout << "=============> call   stack id expected " << call_id   << endl;
-	;//wcout << "=============> try    stack id expected " << try_id    << endl;
-	;//wcout << "=============> win    stack id expected " << window_id    << endl;
-	;//wcout << "===AAAAAAAAA=> call_stack_try id        " << call_stack.back().try_id    << endl;
-	;//wcout << "====AAAAAA===> window_stack_try id      " << window_stack.back().try_id    << endl;
-	;//wcout << "==BBBBBBBAAA=> call_stack_call id       " << call_stack.back().call_id    << endl;
-	;//wcout << "====AABBBBB==> window_stack_call id     " << window_stack.back().call_id    << endl  << endl;
-	;//wcout << "call: call_id = " << call_id << ", call_stack.size() - 1 = " << call_stack.size() - 1 << endl;
+	wstring handler   = try_stack.back().name;
+	
+#ifdef DEBUG_OUTPUT
+	wcout << "---CURRENT---> call   stack id current  " << (int)call_stack.size()-1 << endl;
+	wcout << "---CURRENT---> try    stack id current  " << (int)try_stack.size() -1 << endl;
+	wcout << "---CURRENT---> win    stack id current  " << (int)window_stack.size() -1 << endl;
+	wcout << "=============> call   stack id expected " << call_id << endl;
+	wcout << "=============> try    stack id expected " << try_id << endl;
+	wcout << "=============> win    stack id expected " << window_id << endl;
+	wcout << "~~~~~~~~~~~~~> call_stack_try    id     " << call_stack.back().try_id << endl;
+	wcout << "~~~~~~~~~~~~~> window_stack_try  id     " << window_stack.back().try_id << endl;
+	wcout << "~~~~~~~~~~~~~> call_stack_call   id     " << call_stack.back().call_id << endl;
+	wcout << "~~~~~~~~~~~~~> window_stack_call id     " << window_stack.back().call_id << endl << endl;
+#endif
+
 	// Check for valid call
-	if (call_stack.size() != 0 && call_stack.back().try_id == try_stack.size()-1) { ;//wcout << "exit by call exit" << endl;
-		;//wcout << "CALL ROLLBACK" << endl;
+	if (call_stack.size() != 0 && call_stack.back().try_id == try_stack.size()-1) { 
 		restore_frame(call_stack, call_stack_id, call_id - 1);
 		throw msg;
 	}
-	;//wcout << "window: window_id = " << window_id << ", window_stack.size() - 1 = " << window_stack.size() - 1 << endl;
+	
 	// Check for valid script
-	if (window_stack.size() != 0 && window_stack.back().try_id == try_stack.size()-1) { ;//wcout << "exit by window exit" << endl;
-		;//wcout << "WINDOW ROLLBACK" << endl;
+	if (window_stack.size() != 0 && window_stack.back().try_id == try_stack.size()-1) {
 		restore_frame(window_stack, window_stack_id, window_id - 1);
 		throw msg;
 	}
@@ -318,7 +312,6 @@ void ck_executer::follow_exception(const ck_message& msg) {
 	// The default behaviour is to pop try_frame out when handling exception.
 	// Normally try_trame should be popped by POP_TRY when try block finishes work without error.
 	restore_frame(try_stack, try_stack_id, try_stack.size() - 1);
-	;//wcout << "catch_address = " << catch_address << endl;
 	
 	switch(type) {
 		case ck_bytecodes::TRY_NO_ARG:
@@ -326,7 +319,7 @@ void ck_executer::follow_exception(const ck_message& msg) {
 			goto_address(catch_address); 
 			break;
 			
-		case ck_bytecodes::TRY_WITH_ARG: {;//wcout << "HANDLER NAME EXPECTED TO BE THIS: " << handler << endl;
+		case ck_bytecodes::TRY_WITH_ARG: {
 			vscope* scope = new vscope(scopes.size() == 0 ? nullptr : scopes.back());
 			scope->root();
 			scope->put(handler, msg.get_type() == ck_message_type::CK_OBJECT ? msg.get_object() : new Error(msg), 0, 1);
@@ -335,7 +328,6 @@ void ck_executer::follow_exception(const ck_message& msg) {
 			break;
 		}
 	}
-	;//wcout << "pointer = " << pointer << endl;
 };
 
 
@@ -346,28 +338,33 @@ void ck_executer::validate_scope() {
 
 void ck_executer::exec_bytecode() {
 	while (!is_eof()) {
-		;//wcout << "[" << pointer << "] ";
-		if (pointer == 67) {
-			;//wcout << " - - - - - - - - - - - - - - call_size = " << call_stack.size() << endl;
-			;//wcout << " - - - - - - - - - - - - - - scripts_size = " << scripts.size() << endl;
-		}
+#ifdef DEBUG_OUTPUT
+		wcout << "[" << pointer << "] ";
+#endif
+
 		switch(scripts.back()->bytecode.bytemap[pointer++]) {
 			case ck_bytecodes::LINENO: {
 				int lineno; 
 				read(sizeof(int), &lineno);
-				;//wcout << "LINENO: " << lineno << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "LINENO: " << lineno << endl;
+#endif
 				break;
 			}
 			
 			case ck_bytecodes::NOP: {
-				;//wcout << "> NOP" << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> NOP" << endl;
+#endif
 				break;
 			}
 			
 			case ck_bytecodes::PUSH_CONST_INT: {
 				long long i; 
 				read(sizeof(long long), &i);
-				;//wcout << "> PUSH_CONST[int]: " << i << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> PUSH_CONST[int]: " << i << endl;
+#endif
 				vpush(new Int(i));
 				break;
 			}
@@ -375,7 +372,9 @@ void ck_executer::exec_bytecode() {
 			case ck_bytecodes::PUSH_CONST_DOUBLE: {
 				double i; 
 				read(sizeof(double), &i);
-				;//wcout << "> PUSH_CONST[double]: " << i << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> PUSH_CONST[double]: " << i << endl;
+#endif
 				vpush(new Double(i));
 				break;
 			}
@@ -383,19 +382,25 @@ void ck_executer::exec_bytecode() {
 			case ck_bytecodes::PUSH_CONST_BOOLEAN: {
 				bool i; 
 				read(sizeof(bool), &i);
-				;//wcout << "> PUSH_CONST[boolean]: " << i << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> PUSH_CONST[boolean]: " << i << endl;
+#endif
 				vpush(new Bool(i));
 				break;
 			}
 			
 			case ck_bytecodes::PUSH_CONST_NULL: {
-				;//wcout << "> PUSH_CONST: null" << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> PUSH_CONST: null" << endl;
+#endif
 				vpush(Null::instance());
 				break;
 			}
 			
 			case ck_bytecodes::PUSH_CONST_UNDEFINED: {
-				;//wcout << "> PUSH_CONST: undefined" << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> PUSH_CONST: undefined" << endl;
+#endif
 				vpush(Undefined::instance());
 				break;
 			}
@@ -406,7 +411,9 @@ void ck_executer::exec_bytecode() {
 				wchar_t cstr[size+1];
 				read(sizeof(wchar_t) * size, cstr);
 				cstr[size] = 0;
-				;//wcout << "> PUSH_CONST[string]: \"" << cstr << '"' << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> PUSH_CONST[string]: \"" << cstr << '"' << endl;
+#endif
 				
 				vpush(new String(cstr));
 				break;
@@ -418,7 +425,9 @@ void ck_executer::exec_bytecode() {
 				wchar_t cstr[size+1];
 				read(sizeof(wchar_t) * size, cstr);
 				cstr[size] = 0;
-				;//wcout << "> LOAD_VAR: " << cstr << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> LOAD_VAR: " << cstr << endl;
+#endif
 				
 				// Check for valid scope
 				validate_scope();
@@ -433,7 +442,9 @@ void ck_executer::exec_bytecode() {
 			}
 			
 			case ck_bytecodes::VSTACK_POP: {
-				;//wcout << "> VSTACK_POP" << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> VSTACK_POP" << endl;
+#endif
 				vpop();
 				break;
 			}
@@ -442,7 +453,9 @@ void ck_executer::exec_bytecode() {
 				int size; 
 				read(sizeof(int), &size);
 				
-				;//wcout << "> PUSH_CONST[array]: [" << size << ']' << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> PUSH_CONST[array]: [" << size << ']' << endl;
+#endif
 				
 				vector<vobject*> array;
 				for (int i = 0; i < size; ++i)
@@ -454,7 +467,9 @@ void ck_executer::exec_bytecode() {
 			case ck_bytecodes::PUSH_CONST_OBJECT: {
 				int size; 
 				read(sizeof(int), &size);
-				;//wcout << "> PUSH_CONST[object]: {";
+#ifdef DEBUG_OUTPUT
+				wcout << "> PUSH_CONST[object]: {";
+#endif
 				
 				map<wstring, vobject*> objects;
 				
@@ -467,12 +482,16 @@ void ck_executer::exec_bytecode() {
 					
 					objects[cstr] = vpop();
 					
-					;//wcout << cstr;
+#ifdef DEBUG_OUTPUT
+					wcout << cstr;
 					if (i != size-1)
-						;//wcout << ", ";
+						wcout << ", ";
+#endif
 				}
 				
-				;//wcout << '}' << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << '}' << endl;
+#endif
 				
 				vpush(new Object(objects));
 				break;
@@ -481,7 +500,9 @@ void ck_executer::exec_bytecode() {
 			case ck_bytecodes::DEFINE_VAR: {
 				int amount; 
 				read(sizeof(int), &amount);
-				;//wcout << "> DEFINE_VAR: ";
+#ifdef DEBUG_OUTPUT
+				wcout << "> DEFINE_VAR: ";
+#endif
 				
 				for (int i = 0; i < amount; ++i) {
 					int ssize = 0;
@@ -490,7 +511,9 @@ void ck_executer::exec_bytecode() {
 					wchar_t cstr[ssize+1];
 					read(sizeof(wchar_t) * ssize, cstr);
 					cstr[ssize] = 0;
-					;//wcout << cstr;
+#ifdef DEBUG_OUTPUT
+					wcout << cstr;
+#endif
 					
 					unsigned char ops = 0;
 					read(sizeof(unsigned char), &ops);
@@ -500,20 +523,28 @@ void ck_executer::exec_bytecode() {
 					
 					if ((ops & 0b1000) == 0) {
 						scopes.back()->put(cstr, Undefined::instance(), 0, 1);
-						;//wcout << " = [undefined]";
+#ifdef DEBUG_OUTPUT
+						wcout << " = [undefined]";
+#endif
 					} else
 						scopes.back()->put(cstr, vpop(), 0, 1);
 					
+#ifdef DEBUG_OUTPUT
 					if (i != amount-1)
-						;//wcout << ", ";
+						wcout << ", ";
+#endif
 				}
 				
-				;//wcout << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << endl;
+#endif
 				break;
 			}
 		
 			case ck_bytecodes::VSTACK_DUP: {
-				;//wcout << "> VSTACK_DUP" << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> VSTACK_DUP" << endl;
+#endif
 				vpush(vpeek());
 				break;
 			}
@@ -525,7 +556,9 @@ void ck_executer::exec_bytecode() {
 				int argc; 
 				read(sizeof(int), &argc);
 				
-				;//wcout << "> CALL [" << argc << ']' << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> CALL [" << argc << ']' << endl;
+#endif
 				
 				if (objects.size() < argc + 1)
 					throw ck_message(L"objects stack corrupted", ck_message_type::CK_INVALID_STATE); 
@@ -556,7 +589,9 @@ void ck_executer::exec_bytecode() {
 				read(sizeof(wchar_t) * size, cstr);
 				cstr[size] = 0;
 				
-				;//wcout << "> CALL_FIELD [" << argc << "] [" << cstr << ']' << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> CALL_FIELD [" << argc << "] [" << cstr << ']' << endl;
+#endif
 				
 				if (objects.size() < argc + 1)
 					throw ck_message(L"objects stack corrupted", ck_message_type::CK_INVALID_STATE); 
@@ -595,7 +630,9 @@ void ck_executer::exec_bytecode() {
 				read(sizeof(wchar_t) * size, cstr);
 				cstr[size] = 0;
 				
-				;//wcout << "> CALL_NAME [" << argc << "] [" << cstr << ']' << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> CALL_NAME [" << argc << "] [" << cstr << ']' << endl;
+#endif
 				
 				if (objects.size() < argc)
 					throw ck_message(L"objects stack corrupted", ck_message_type::CK_INVALID_STATE); 
@@ -614,7 +651,9 @@ void ck_executer::exec_bytecode() {
 				for (int k = 0; k < argc + 1; ++k)
 					objects.pop_back();
 				vpush(obj);
-				;//wcout << "scipts_size = " << scripts.size() << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "scipts_size = " << scripts.size() << endl;
+#endif
 				break;
 			}
 			
@@ -633,7 +672,9 @@ void ck_executer::exec_bytecode() {
 				
 				wstring key = objects.rbegin()[0]->string_value();
 				
-				;//wcout << "> CALL_MEMBER [" << argc << "] [" << key << ']' << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> CALL_MEMBER [" << argc << "] [" << key << ']' << endl;
+#endif
 				
 				if (objects.rbegin()[1] == nullptr)
 					throw ck_message(wstring(L"undefined reference to ") + key, ck_message_type::CK_TYPE_ERROR);
@@ -700,7 +741,9 @@ void ck_executer::exec_bytecode() {
 					case ck_bytecodes::OPT_BITXOR : fun_name = (L"^"); break;
 				}
 				
-				;//wcout << "> OPERATOR [" << fun_name << ']' << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> OPERATOR [" << fun_name << ']' << endl;
+#endif
 				
 				fun = ref->get(scopes.back(), L"__operator" + fun_name);
 				
@@ -739,7 +782,9 @@ void ck_executer::exec_bytecode() {
 				
 				scopes.back()->put(cstr, vpop(), 0, 1);
 				
-				;//wcout << "> STORE_VAR: " << cstr << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> STORE_VAR: " << cstr << endl;
+#endif
 				break;
 			}
 			
@@ -761,7 +806,9 @@ void ck_executer::exec_bytecode() {
 				
 				ref->put(scopes.back(), cstr, val);
 				
-				;//wcout << "> STORE_FIELD: " << cstr << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> STORE_FIELD: " << cstr << endl;
+#endif
 				break;
 			}
 			
@@ -781,7 +828,9 @@ void ck_executer::exec_bytecode() {
 				
 				ref->put(scopes.back(), key->string_value(), val);
 				
-				;//wcout << "> STORE_MEMBER " << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> STORE_MEMBER " << endl;
+#endif
 				break;
 			}
 			
@@ -802,7 +851,9 @@ void ck_executer::exec_bytecode() {
 				
 				vpush(ref->get(scopes.back(), cstr));
 				
-				;//wcout << "> LOAD_FIELD: " << cstr << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> LOAD_FIELD: " << cstr << endl;
+#endif
 				break;
 			}
 			
@@ -821,7 +872,9 @@ void ck_executer::exec_bytecode() {
 				
 				vpush(ref->get(scopes.back(), key->string_value()));
 				
-				;//wcout << "> LOAD_MEMBER " << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> LOAD_MEMBER " << endl;
+#endif
 				break;
 			}
 		
@@ -853,7 +906,9 @@ void ck_executer::exec_bytecode() {
 					case ck_bytecodes::OPT_DEC   : fun_name = (L"--x"); break;
 				}
 				
-				;//wcout << "> OPERATOR [" << fun_name << ']' << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> OPERATOR [" << fun_name << ']' << endl;
+#endif
 				
 				fun = ref->get(scopes.back(), L"__operator" + fun_name);
 				
@@ -880,25 +935,33 @@ void ck_executer::exec_bytecode() {
 			}
 			
 			case ck_bytecodes::VSTACK_SWAP: {
-				;//wcout << "> VSTACK_SWAP" << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> VSTACK_SWAP" << endl;
+#endif
 				vswap();
 				break;
 			}
 			
 			case ck_bytecodes::VSTACK_SWAP1: {
-				;//wcout << "> VSTACK_SWAP1" << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> VSTACK_SWAP1" << endl;
+#endif
 				vswap1();
 				break;
 			}
 			
 			case ck_bytecodes::VSTACK_SWAP2: {
-				;//wcout << "> VSTACK_SWAP2" << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> VSTACK_SWAP2" << endl;
+#endif
 				vswap2();
 				break;
 			}
 			
 			case ck_bytecodes::VSTATE_PUSH_SCOPE: {
-				;//wcout << "> VSTATE_PUSH_SCOPE" << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> VSTATE_PUSH_SCOPE" << endl;
+#endif
 				vscope* s = new vscope(scopes.size() == 0 ? nullptr : scopes.back());
 				GIL::gc_instance()->attach_root(s);
 				scopes.push_back(s);
@@ -906,7 +969,9 @@ void ck_executer::exec_bytecode() {
 			}
 			
 			case ck_bytecodes::VSTATE_POP_SCOPE: {
-				;//wcout << "> VSTATE_POP_SCOPE" << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> VSTATE_POP_SCOPE" << endl;
+#endif
 				
 				// Check for scope
 				validate_scope();	
@@ -921,7 +986,9 @@ void ck_executer::exec_bytecode() {
 				int i; 
 				read(sizeof(int), &i);
 				
-				;//wcout << "> JMP_IF_ZERO [" << i << ']' << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> JMP_IF_ZERO [" << i << ']' << endl;
+#endif
 				
 				vobject* o = vpop();
 				if (o == nullptr || o->int_value() == 0)
@@ -933,14 +1000,18 @@ void ck_executer::exec_bytecode() {
 				int i; 
 				read(sizeof(int), &i);
 				
-				;//wcout << "> JMP [" << i << ']' << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> JMP [" << i << ']' << endl;
+#endif
 				
 				goto_address(i);
 				break;
 			}
 			
 			case ck_bytecodes::HALT: {
-				;//wcout << "> HALT" << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> HALT" << endl;
+#endif
 				
 				--pointer;
 				return;
@@ -949,15 +1020,19 @@ void ck_executer::exec_bytecode() {
 			}
 			
 			case ck_bytecodes::THROW_NOARG: {
-				;//wcout << "> THROW_NOARG" << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> THROW_NOARG" << endl;
+#endif
 				
 				throw ck_message((vobject*) nullptr);
 				
 				break;
 			}
 			
-			case ck_bytecodes::THROW: {				
-				;//wcout << "> THROW" << endl;
+			case ck_bytecodes::THROW: {		
+#ifdef DEBUG_OUTPUT		
+				wcout << "> THROW" << endl;
+#endif
 				
 				throw ck_message(vpop());
 				
@@ -971,7 +1046,9 @@ void ck_executer::exec_bytecode() {
 				read(sizeof(wchar_t) * size, cstr);
 				cstr[size] = 0;
 				
-				;//wcout << "> THROW_STRING: \"" << cstr << '"' << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> THROW_STRING: \"" << cstr << '"' << endl;
+#endif
 				
 				throw ck_message(new String(cstr));
 				
@@ -981,7 +1058,9 @@ void ck_executer::exec_bytecode() {
 			case ck_bytecodes::VSTATE_POP_SCOPES: {
 				int i; 
 				read(sizeof(int), &i);
-				;//wcout << "> VSTATE_POP_SCOPES [" << i << ']' << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> VSTATE_POP_SCOPES [" << i << ']' << endl;
+#endif
 				
 				if (scopes.size() < i)
 					throw ck_message(L"scopes stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
@@ -993,7 +1072,9 @@ void ck_executer::exec_bytecode() {
 			}
 			
 			case ck_bytecodes::RETURN_VALUE: {
-				;//wcout << "> RETURN_VALUE" << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> RETURN_VALUE" << endl;
+#endif
 				
 				throw ck_message(vpop(), ck_message_type::CK_RETURN);
 				
@@ -1007,7 +1088,9 @@ void ck_executer::exec_bytecode() {
 				
 				int argc; 
 				read(sizeof(int), &argc);
-				;//wcout << "> PUSH_CONST_FUNCTION (" << argc << ") (";
+#ifdef DEBUG_OUTPUT
+				wcout << "> PUSH_CONST_FUNCTION (" << argc << ") (";
+#endif
 				
 				vector<wstring> argn;
 				
@@ -1018,18 +1101,23 @@ void ck_executer::exec_bytecode() {
 					wchar_t cstr[ssize+1];
 					read(sizeof(wchar_t) * ssize, cstr);
 					cstr[ssize] = 0;
-					;//wcout << cstr;
+					
+#ifdef DEBUG_OUTPUT
+					wcout << cstr;
 					
 					argn.push_back(cstr);
 					
 					if (i != argc-1)
-						;//wcout << ", ";
+						wcout << ", ";
+#endif
 				}
 				
 				int sizeof_block; 
 				read(sizeof(int), &sizeof_block);
 				
-				;//wcout << ") [" << sizeof_block << "]" << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << ") [" << sizeof_block << "]" << endl;
+#endif
 				
 				ck_script* script = new ck_script();
 				script->directory = scripts.back()->directory;
@@ -1039,34 +1127,45 @@ void ck_executer::exec_bytecode() {
 				
 				script->bytecode.bytemap = vector<unsigned char>(scripts.back()->bytecode.bytemap.begin() + pointer, scripts.back()->bytecode.bytemap.begin() + pointer + sizeof_block);
 				
-				// int lineno_a = lineno();
-				// int lineno_b = lineno();
-				
 				// Copy range of lineno table
 				
-				for (int i = 0; i < scripts.back()->bytecode.lineno_table.size();) {
+				int i_a = -1;
+				int i_b = -1;
+				for (int i = 0; i < scripts.back()->bytecode.lineno_table.size() - 2; i += 2) {
+					int byteof = scripts.back()->bytecode.lineno_table[i+1];
+					int byteofd = scripts.back()->bytecode.lineno_table[i+3];
+					
+					if (pointer >= byteof && pointer < byteofd) 
+						i_a      = i;
+					if (pointer + sizeof_block >= byteof && pointer + sizeof_block < byteofd)
+						i_b      = i;
+					
+					if (i_a != -1 && i_b != -1)
+						break;
+				}
+				
+				for (int i = i_a; i <= i_b;) {
 					int lineno = scripts.back()->bytecode.lineno_table[i++];
 					int byteof = scripts.back()->bytecode.lineno_table[i++];
 					
-					if (pointer >= byteof || pointer + sizeof_block >= byteof) {
-						script->bytecode.lineno_table.push_back(lineno);
-						script->bytecode.lineno_table.push_back((byteof - pointer) < 0 ? 0 : byteof - pointer); // Offset roll back
-					}
+					script->bytecode.lineno_table.push_back(lineno);
+					script->bytecode.lineno_table.push_back((byteof - pointer) < 0 ? 0 : byteof - pointer);
 				}
+					
 				
 				// Append last marker
 				script->bytecode.lineno_table.push_back(-1);
 				script->bytecode.lineno_table.push_back(sizeof_block);
 				
-				/*
-				;//wcout << "Function Bytecode: " << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "Function Bytecode: " << endl;
 				ck_translator::print(script->bytecode.bytemap);
-				;//wcout << endl;
+				wcout << endl;
 				
-				;//wcout << "Function Lineno Table: " << endl;
+				wcout << "Function Lineno Table: " << endl;
 				ck_translator::print_lineno_table(script->bytecode.lineno_table);
-				;//wcout << endl;
-				*/				
+				wcout << endl;		
+#endif
 				
 				pointer += sizeof_block;
 				
@@ -1086,7 +1185,9 @@ void ck_executer::exec_bytecode() {
 				restore_frame(try_stack, try_stack_id, try_stack.size() - 1);
 				pointer = pointer_tmp;
 				
-				;//wcout << "> VSTATE_POP_TRY" << endl;
+#ifdef DEBUG_OUTPUT
+				wcout << "> VSTATE_POP_TRY" << endl;
+#endif
 				break;
 			}
 
@@ -1105,12 +1206,16 @@ void ck_executer::exec_bytecode() {
 					read(sizeof(int), &try_node);
 					read(sizeof(int), &catch_node);
 					
-					;//wcout << "> VSTATE_PUSH_TRY [TRY_NO_CATCH] [" << try_node << "] [" << catch_node << ']' << endl;
+#ifdef DEBUG_OUTPUT
+					wcout << "> VSTATE_PUSH_TRY [TRY_NO_CATCH] [" << try_node << "] [" << catch_node << ']' << endl;
+#endif
 				} else if (type == ck_bytecodes::TRY_NO_ARG) {			
 					read(sizeof(int), &try_node);
 					read(sizeof(int), &catch_node);
 					
-					;//wcout << "> VSTATE_PUSH_TRY [TRY_NO_ARG] [" << try_node << "] [" << catch_node << ']' << endl;
+#ifdef DEBUG_OUTPUT
+					wcout << "> VSTATE_PUSH_TRY [TRY_NO_ARG] [" << try_node << "] [" << catch_node << ']' << endl;
+#endif
 				} else {
 					int name_size;
 					
@@ -1124,9 +1229,11 @@ void ck_executer::exec_bytecode() {
 					
 					handler_name = cstr;
 					
-					;//wcout << "> VSTATE_PUSH_TRY [TRY_WITH_ARG] (" << cstr << ") [" << try_node << "] [" << catch_node << ']' << endl;
+#ifdef DEBUG_OUTPUT
+					wcout << "> VSTATE_PUSH_TRY [TRY_WITH_ARG] (" << cstr << ") [" << try_node << "] [" << catch_node << ']' << endl;
+#endif
 				}
-				;//wcout << "TRY AHNDLER NAME -----------------> " << handler_name << endl;
+				
 				store_frame(try_stack, try_stack_id, handler_name, 0);
 				try_stack.back().try_type = type;
 				try_stack.back().catch_node = catch_node;
@@ -1180,16 +1287,13 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 	
 	// Do some useless shit again
 	while (1) {
-		try {;//wcout << "scopes.size() = " << scopes.size() << endl;
-		;//wcout << "pointer = " << pointer << endl;
+		try {
 			exec_bytecode();
 			
 			// Reached bytecode end
 			break;
 			
-		} catch(const ck_exceptions::ck_message& msg) { //;wcout << "HANDLE_EXCEPTION_EXECUTER" << endl;
-			// Aft
-			;//wcout << "HANDLED_EXCEPTION_EXECUTER" << endl;
+		} catch(const ck_exceptions::ck_message& msg) { 
 			if (msg.get_type() == ck_message_type::CK_OBJECT)
 				follow_exception(msg);
 			else
@@ -1223,11 +1327,10 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 	
 	if (ref != nullptr)
 		scope->put(L"__self", ref);
-	;//wcout << "call scopes.size() 1 = " << scopes.size() << endl;
+	
 	// Push scope
 	scope->root();
 	scopes.push_back(scope);
-	;//wcout << "call scopes.size() 2 = " << scopes.size() << endl;
 	
 	// Push call frame and mark own scope
 	store_frame(call_stack, call_stack_id, name, 1);
@@ -1255,19 +1358,22 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 				break;
 				
 			} catch(const ck_exceptions::ck_message& msg) { 
-				if (msg.get_type() == ck_message_type::CK_RETURN) { ;//wcout << "HANDLE_RETURN_FUNCTION" << endl;
-					obj = msg.get_object();//wcout << obj->string_value() << endl;
+				if (msg.get_type() == ck_message_type::CK_RETURN) {
+					// Got return value
+					obj = msg.get_object();
 					break;
-				} else { //;wcout << "HANDLE_EXCEPTION_FUNCTION" << endl;
+				} else {
+					// Process exception
 					if (msg.get_type() == ck_message_type::CK_OBJECT)
 						follow_exception(msg);
 					else
 						follow_exception(new Error(msg));
-					//;wcout << "HANDLED_EXCEPTION_FUNCTION" << endl;
 				}
 			} catch (const std::exception& ex) {
+				// Process exception
 				follow_exception(new Error(ck_message(ex)));
 			} catch (...) {
+				// Process exception
 				follow_exception(new Error(ck_message(ck_exceptions::ck_message_type::NATIVE_EXCEPTION)));
 			} 
 		}
@@ -1276,28 +1382,34 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 			obj = obj->call(scope, args);
 		} catch(const ck_exceptions::ck_message& msg) { 
 			if (msg.get_type() == ck_message_type::CK_RETURN)
+				// Got return
 				obj = msg.get_object();
 			else if (msg.get_type() == ck_message_type::CK_OBJECT)
+				// Process exception
 				follow_exception(msg);
 			else
 				follow_exception(new Error(msg));
 		} catch (const std::exception& ex) {
+			// Process exception
 			follow_exception(new Error(ck_message(ex)));
 		} catch (...) {
+			// Process exception
 			follow_exception(new Error(ck_message(ck_exceptions::ck_message_type::NATIVE_EXCEPTION)));
 		} 
 	}
-	;//wcout << "BEFORE CALL POP" << endl;
-	// Try to restore scope
+	
+	// Try to restore frame
 	restore_frame(call_stack, call_stack_id, call_id);
-	;//wcout << "AFTER CALL POP" << endl;
-	;//wcout << "call scopes.size() 3 = " << scopes.size() << endl;
+	
 	scopes.pop_back();
 	
+#ifdef DEBUG_OUTPUT
 	if (obj)
-		;//wcout << "RETURNED: " << obj->string_value() << endl;
+		wcout << "RETURNED: " << obj->string_value() << endl;
 	else
-		;//wcout << "RETURNED: " << "NULL" << endl;
+		wcout << "RETURNED: " << "NULL" << endl;
+#endif
+
 	return obj;
 };
 

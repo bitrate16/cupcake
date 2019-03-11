@@ -69,10 +69,6 @@ vobject* Undefined::call(ck_vobject::vscope* scope, const std::vector<vobject*> 
 	throw ck_message(L"Undefined is not callable", ck_message_type::CK_UNSUPPORTED_OPERATION);
 };
 
-void Undefined::gc_mark() {};
-
-void Undefined::gc_finalize() {};
-
 
 long long Undefined::int_value() {
 	return 0;

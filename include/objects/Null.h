@@ -23,9 +23,6 @@ namespace ck_objects {
 		virtual bool     remove  (ck_vobject::vscope*, const std::wstring&);
 		virtual vobject* call    (ck_vobject::vscope*, const std::vector<vobject*>);
 		
-		virtual void gc_mark();
-		virtual void gc_finalize();
-		
 		
 		// Returns value
 		virtual long long int_value();

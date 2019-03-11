@@ -69,10 +69,6 @@ vobject* Null::call(ck_vobject::vscope* scope, const std::vector<vobject*> args)
 	throw ck_message(L"Null is not callable", ck_message_type::CK_UNSUPPORTED_OPERATION);
 };
 
-void Null::gc_mark() {};
-
-void Null::gc_finalize() {};
-
 
 long long Null::int_value() {
 	return 0;

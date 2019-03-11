@@ -66,7 +66,7 @@ void Error::collect_backtrace() {
 			lineno = script->bytecode.lineno_table.rbegin()[1];
 		
 		for (int i = 0; i < script->bytecode.lineno_table.size() - 2; i += 2) {
-			if (i >= script->bytecode.lineno_table[i + 1] && i < script->bytecode.lineno_table[i + 3]) {
+			if (pointer >= script->bytecode.lineno_table[i + 1] && pointer < script->bytecode.lineno_table[i + 3]) {
 				lineno = script->bytecode.lineno_table[i];
 				break;
 			}
