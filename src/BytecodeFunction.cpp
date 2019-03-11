@@ -69,7 +69,7 @@ vscope* BytecodeFunction::apply(const std::vector<ck_vobject::vobject*>& args) {
 	min = min < args.size() ? min : args.size();
 	
 	for (int i = 0; i < min; ++i)
-		nscope->put(argn[i], args[i]);
+		nscope->put(argn[i], args[i], 0, 1);
 	
 	return nscope;
 };

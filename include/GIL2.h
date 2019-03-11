@@ -59,12 +59,18 @@ namespace ck_core {
 			return locked;
 		};
 		
+		// Returns whenever thared is allowing other threads to acquire GIL lock
 		inline bool locked_state() {
 			return !alive || locked || blocked;
 		};
 		
 		inline std::thread::id get_native_id() {
 			return native_thread_id;
+		};
+	
+		// Set blocked = locked = 0
+		inline void clear_blocks() {
+			blocked = locked = 0;
 		};
 	};
 	
@@ -183,3 +189,29 @@ namespace ck_core {
 		void notify_sync_lock();
 	};
 }
+
+
+
+//              (        (
+//              ( )      ( )          (
+//       (       Y        Y          ( )
+//      ( )     |"|      |"|          Y
+//       Y      | |      | |         |"|
+//      |"|     | |.-----| |---.___  | |
+//      | |  .--| |,~~~~~| |~~~,,,,'-| |
+//      | |-,,~~'-'      '-'       ~~| |._
+//     .| |~                         '-',,'.
+//    /,'-'   ##   #### ####              ~,\
+//   / ;      ##    ##  ##>    _____________;_)
+//   | ;      #### #### ####  `'-._          |
+//   | ;                           '-._      |
+//   |\ ~,,,                      ,,,,,'-.   |
+//   | '-._ ~~,,,            ,,,~~ __.-'~ |  |
+//   |     '-.__ ~~~~~~~~~~~~ __.-'       |__|
+//   |\         `'----------'`           _|
+//   | '=._                         __.=' |
+//   :     '=.__               __.='      |
+//    \         `'==========='`          .'
+// lie '-._                         __.-'
+//         '-.__               __.-'
+//              `'-----------'`

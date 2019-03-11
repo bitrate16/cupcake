@@ -141,6 +141,7 @@ vobject* vscope::get(const std::wstring& name, bool parent_get) {
 		
 bool vscope::put(const std::wstring& name, vobject* object, bool parent_put, bool create_new) {
 	map<wstring, vobject*>::const_iterator pos = objects.find(name);
+	
 	if (pos == objects.end())
 		if (parent_put && parent)
 			if (parent->put(name, object, 1, 0))
@@ -154,6 +155,7 @@ bool vscope::put(const std::wstring& name, vobject* object, bool parent_put, boo
 			return 1;
 		} else
 			return 0;
+
 	objects[name] = object;
 	return 1;
 };

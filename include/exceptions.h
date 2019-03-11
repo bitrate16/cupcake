@@ -21,6 +21,8 @@ namespace ck_exceptions {
 		BAD_ALLOC,
 		// Failed new[]()
 		BAD_ALLOC2,
+		// Just an empty message for temporary storing messages ¯\_(ツ)_/¯
+		CK_EMPTY,
 		
 		// User-friendly:
 		
@@ -28,24 +30,27 @@ namespace ck_exceptions {
 		UNDEFINED_BEHAVIOUR,
 		// catch(exception) rethrow
 		NATIVE_EXCEPTION,  // + exception
+		// Thrown on executer stack corruption
+		CK_STACK_CORRUPTED, // + string
+		// Returning value from script function or vobject::call
+		CK_RETURN, // + vobject
+		// Overflow of one of ck_executer stacks
+		CK_STACK_OVERFLOW, // + string
+		
+		// Absolutely user-friendly:
+		
 		// For example when trying to assign index of string
 		// Message expected in wstring
 		CK_UNSUPPORTED_OPERATION, // + string
 		// Any king of ck runtime errors
 		// Message expected in wstring
 		CK_RUNTIME_ERROR, // + string
-		// Thrown on executer stack corruption
-		CK_STACK_CORRUPTED, // + string
 		// Thrown on invalid operaions on types
 		CK_TYPE_ERROR, // + string
 		// Thrown on invalid state
 		CK_INVALID_STATE, // + string,
 		// Thrown by sctipt raise statement or any king of rethrowing vobject*
-		CK_OBJECT, // + vobject
-		// Returning value from script function
-		CK_RETURN, // + vobject
-		// Overflow of one of ck_executer stacks
-		CK_STACK_OVERFLOW // + string
+		CK_OBJECT // + vobject
 	};
 	
 	class ck_message {
@@ -66,15 +71,26 @@ namespace ck_exceptions {
 		ck_vobject::vobject* script_object;
 		
 	public:		
+	
+		// Empty initializer
+		ck_message() throw() : message_type(CK_EMPTY)     {};
 		
-		ck_message(const wchar_t* message) throw() : native_wmessage(message), message_type(CK_WCMESSAGE) {};
-		ck_message(const char* message) throw() : native_message(message), message_type(CK_CMESSAGE) {};
-		ck_message(const std::wstring& message) throw() : native_string(message), message_type(CK_STRING) {};
-		ck_message(const std::exception& ex) throw() : native_exception(ex), message_type(NATIVE_EXCEPTION) {};
+		// String messages
+		ck_message(const wchar_t* message)      throw() : native_wmessage(message), message_type(CK_WCMESSAGE)     {};
+		ck_message(const char* message)         throw() : native_message(message),  message_type(CK_CMESSAGE)      {};
+		ck_message(const std::wstring& message) throw() : native_string(message),   message_type(CK_STRING)        {};
 		
+		// Rehandling std::exception (unsafe)
+		ck_message(const std::exception& ex)    throw() : native_exception(ex),     message_type(NATIVE_EXCEPTION) {};
+		
+		// Typed message with string
 		ck_message(const std::wstring& message, ck_message_type type) throw() : native_string(message), message_type(type) {};
-		ck_message(ck_message_type type) : message_type(type) {};
-		ck_message(ck_vobject::vobject* object, ck_message_type type = CK_OBJECT) : script_object(object), message_type(type) {};
+		
+		// Typed message
+		ck_message(ck_message_type type) throw() : message_type(type) {};
+		
+		// Typed message with object
+		ck_message(ck_vobject::vobject* object, ck_message_type type = CK_OBJECT) throw() : script_object(object), message_type(type) {};
 
 		inline ck_message_type get_type() const {
 			return message_type;

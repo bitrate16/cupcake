@@ -780,7 +780,7 @@ void ck_executer::exec_bytecode() {
 				// Check for scope
 				validate_scope();		
 				
-				scopes.back()->put(cstr, vpop(), 0, 1);
+				scopes.back()->put(cstr, vpop(), 1, 1);
 				
 #ifdef DEBUG_OUTPUT
 				wcout << "> STORE_VAR: " << cstr << endl;
@@ -1102,10 +1102,10 @@ void ck_executer::exec_bytecode() {
 					read(sizeof(wchar_t) * ssize, cstr);
 					cstr[ssize] = 0;
 					
+					argn.push_back(cstr);
+					
 #ifdef DEBUG_OUTPUT
 					wcout << cstr;
-					
-					argn.push_back(cstr);
 					
 					if (i != argc-1)
 						wcout << ", ";
@@ -1258,6 +1258,8 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 	if (window_stack.size() == window_stack_limit)
 		throw ck_message(L"executer stack overflow", ck_message_type::CK_STACK_OVERFLOW);
 	
+	bool own_scope = scope == nullptr;
+	
 	// Apply new scope
 	if (scope == nullptr) {
 		scope = new vscope();
@@ -1274,7 +1276,7 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 	scopes.push_back(scope);
 	
 	// Push call frame and mark own scope
-	store_frame(window_stack, window_stack_id, L"", 1);
+	store_frame(window_stack, window_stack_id, L"", own_scope);
 	
 	// Save expected call id
 	int window_id = window_stack.size() - 1;
@@ -1289,18 +1291,25 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 	while (1) {
 		try {
 			exec_bytecode();
+			GIL::current_thread()->clear_blocks();
 			
 			// Reached bytecode end
 			break;
 			
 		} catch(const ck_exceptions::ck_message& msg) { 
+			GIL::current_thread()->clear_blocks();
+			
 			if (msg.get_type() == ck_message_type::CK_OBJECT)
 				follow_exception(msg);
 			else
 				follow_exception(new Error(msg));
 		} catch (const std::exception& ex) {
+			GIL::current_thread()->clear_blocks();
+			
 			follow_exception(new Error(ck_message(ex)));
 		} catch (...) {
+			GIL::current_thread()->clear_blocks();
+			
 			follow_exception(new Error(ck_message(ck_exceptions::ck_message_type::NATIVE_EXCEPTION)));
 		} 
 	}
@@ -1311,29 +1320,37 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 	return;
 };
 
-ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>& args, const std::wstring& name) { 
+ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>& args, const std::wstring& name, vscope* exec_scope) { 
 
 	if (obj == nullptr)
 		throw ck_message(wstring(L"undefined call to ") + name, ck_message_type::CK_TYPE_ERROR);
 	
 	// Construct scope
 	vscope* scope = nullptr;
+	bool own_scope = 0;
 	
 	if (obj->is_typeof<BytecodeFunction>()) {
 		// Apply new scope
 		scope = ((BytecodeFunction*) obj)->apply(args);
-	} else
+		scope->root();
+		own_scope = 1;
+	} else if (exec_scope != nullptr) {
+		scope = exec_scope;
+		own_scope = 0;
+	} else {
 		scope = new vscope(scopes.size() == 0 ? nullptr : scopes.back());
+		scope->root();
+		own_scope = 1;
+	}
 	
 	if (ref != nullptr)
 		scope->put(L"__self", ref);
 	
 	// Push scope
-	scope->root();
 	scopes.push_back(scope);
 	
 	// Push call frame and mark own scope
-	store_frame(call_stack, call_stack_id, name, 1);
+	store_frame(call_stack, call_stack_id, name, own_scope);
 	
 	// Apply script
 	if (obj->is_typeof<BytecodeFunction>())
@@ -1348,9 +1365,13 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 		// Reset pointer to 0 and start
 		pointer = 0;
 		
+		// This long loop without any protection of the objects is thread-safe because 
+		//  other threads can not call GC
+		
 		while (1) {
 			try {
 				exec_bytecode();
+				GIL::current_thread()->clear_blocks();
 				
 				// Correct function finish
 				obj = Undefined::instance();
@@ -1358,6 +1379,8 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 				break;
 				
 			} catch(const ck_exceptions::ck_message& msg) { 
+				GIL::current_thread()->clear_blocks();
+				
 				if (msg.get_type() == ck_message_type::CK_RETURN) {
 					// Got return value
 					obj = msg.get_object();
@@ -1370,9 +1393,13 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 						follow_exception(new Error(msg));
 				}
 			} catch (const std::exception& ex) {
+				GIL::current_thread()->clear_blocks();
+				
 				// Process exception
 				follow_exception(new Error(ck_message(ex)));
 			} catch (...) {
+				GIL::current_thread()->clear_blocks();
+				
 				// Process exception
 				follow_exception(new Error(ck_message(ck_exceptions::ck_message_type::NATIVE_EXCEPTION)));
 			} 
@@ -1380,7 +1407,10 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 	} else {
 		try {
 			obj = obj->call(scope, args);
+			GIL::current_thread()->clear_blocks();
 		} catch(const ck_exceptions::ck_message& msg) { 
+			GIL::current_thread()->clear_blocks();
+			
 			if (msg.get_type() == ck_message_type::CK_RETURN)
 				// Got return
 				obj = msg.get_object();
@@ -1390,9 +1420,13 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 			else
 				follow_exception(new Error(msg));
 		} catch (const std::exception& ex) {
+			GIL::current_thread()->clear_blocks();
+			
 			// Process exception
 			follow_exception(new Error(ck_message(ex)));
 		} catch (...) {
+			GIL::current_thread()->clear_blocks();
+			
 			// Process exception
 			follow_exception(new Error(ck_message(ck_exceptions::ck_message_type::NATIVE_EXCEPTION)));
 		} 

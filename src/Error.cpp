@@ -173,6 +173,11 @@ Error::Error(const ck_message& msg) : Error() {
 			message = L"stack overflow error: " + msg.get_string();
 			break;
 		}
+		
+		case ck_message_type::CK_EMPTY: {
+			message = L"not an error";
+			break;
+		}
 	}
 	
 	Object::put(wstring(L"message"), new String(message));

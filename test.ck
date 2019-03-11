@@ -24,5 +24,9 @@ try{
 r()
 }catch(e) print(e)
 
-while (1)
-	print('trye')
+//while (1)
+	;//print('trye' + 'ses')
+
+__defexceptionhandler = function(k) {  print(__defexceptionhandler) __defexceptionhandler = null print(k) }
+
+throw 'kek'

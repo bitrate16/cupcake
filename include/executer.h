@@ -127,9 +127,6 @@ namespace ck_core {
 		// Swap [top-2] and [top-3] or throw stack_corruption
 		inline void vswap2();
 		
-		// Returns line number of pointer to command
-		int lineno();
-		
 		// if (scopes.size() == 0 || scopes.back() == nullptr)
 		//	throw ck_message(ck_message_type::CK_STACK_CORRUPTED);		
 		inline void validate_scope();
@@ -149,6 +146,9 @@ namespace ck_core {
 		ck_executer();
 		~ck_executer();
 		
+		// Returns line number of pointer to command
+		int lineno();
+		
 		// Executes passed script by allocating new stack frame.
 		void execute(ck_core::ck_script* scr);
 		
@@ -163,7 +163,7 @@ namespace ck_core {
 		// 2. obj is any other type and does not support direct call. Then obj.::vobject::call() is called.
 		// Ref will be assigned to scope::self
 		// Name is used in traceback (empty for none)
-		ck_vobject::vobject* call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>&, const std::wstring& name);
+		ck_vobject::vobject* call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>&, const std::wstring& name, ck_vobject::vscope* scope = nullptr);
 		
 		// Jumps on the address of bytecode map
 		void goto_address(int bytecode_address);
