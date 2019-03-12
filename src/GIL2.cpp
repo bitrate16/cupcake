@@ -49,6 +49,7 @@ GIL::GIL() : sync_lock(sync_mutex, sync_condition) {
 // Ignore for signals
 static void dummy_signal(int sig) {
 	signal(SIGINT,  dummy_signal); // <-- user interrupt
+	signal(SIGKILL, dummy_signal); // <-- kill signal
 	signal(SIGTERM, dummy_signal); // <-- Terminate request
 	signal(SIGABRT, dummy_signal); // <-- abortion is murder
 };
@@ -60,9 +61,7 @@ GIL::~GIL() {
 	std::unique_lock<std::mutex> lock(vector_threads_lock);
 	
 	// At this moment ignoring all signals from OS.
-	signal(SIGINT,  dummy_signal); // <-- user interrupt
-	signal(SIGTERM, dummy_signal); // <-- Terminate request
-	signal(SIGABRT, dummy_signal); // <-- abortion is murder
+	dummy_signal(-1);
 	
 	// Derstroy all ck_threads (delete instances)
 	// Causing undefined behavior on accidental delete of GIL.
@@ -77,6 +76,13 @@ GIL::~GIL() {
 	delete executer;
 };
 
+
+void GIL::terminate() {
+	std::unique_lock<std::mutex> lock(vector_threads_lock);
+	
+	for (int i = 0; i < threads.size(); ++i)
+		threads[i]->set_alive(0);
+};
 
 // For first: do nothing
 bool GIL::request_lock() { return 1; };

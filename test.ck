@@ -29,4 +29,17 @@ r()
 
 __defexceptionhandler = function(k) {  print(__defexceptionhandler) __defexceptionhandler = null print(k) }
 
-throw 'kek'
+//throw 'kek'
+
+__defsignalhandler = function(s) { print('signum = ', s, '\n') }
+
+//while (1);
+
+print('a', 'b', 'c')
+
+var o = {}
+o.f = print;
+
+print(o)
+print(o.f)
+o.f('a', 'b', 'c')

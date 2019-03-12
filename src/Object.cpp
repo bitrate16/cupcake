@@ -104,10 +104,12 @@ vector<wstring> Object::keys() {
 
 // Scope-independent getter-setter-checker.
 void Object::put(const wstring& name, vobject* object) {
+	//wcout << this->string_value() << " putting " << name << " with value of " << (object == nullptr ? L"nullptr" : object->string_value()) << endl;
 	objects[name] = object;
 };
 
 vobject* Object::get(const wstring& name) {
+	//wcout << this->string_value() << " getting " << name << endl;
 	map<wstring, vobject*>::const_iterator pos = objects.find(name);
 	if (pos == objects.end())
 		return nullptr;

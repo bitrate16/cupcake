@@ -56,6 +56,15 @@ namespace ck_core {
 		std::wstring name;
 	};
 	
+	// Item representing information about late_call_object
+	struct late_call_instance {
+		ck_vobject::vobject* obj;
+		ck_vobject::vobject* ref;
+		ck_vobject::vscope* scope;
+		std::wstring name;
+		std::vector<ck_vobject::vobject*> args;
+	};
+	
 	// Performs marking all ck_executer objects in current thread onn each GC step.
 	class ck_executer;
 	class ck_executer_gc_object : public gc_object {
@@ -77,6 +86,13 @@ namespace ck_core {
 		friend class ck_executer_gc_object;
 		
 		ck_executer_gc_object* gc_marker;
+		
+		// List of late call function instances.
+		// Each time the execute_bytecode() starts new loop step, 
+		//  late_call list being checked for the next instance to execute.
+		// After execution of the instance, it will be popped out of the list.
+		// During GC cycle values in this list is being marked by gc_marker.
+		std::vector<late_call_instance> late_call;
 	
 		std::vector<ck_core::ck_script*>  scripts;
 		std::vector<ck_vobject::vscope*>  scopes;
@@ -149,6 +165,9 @@ namespace ck_core {
 		// Returns line number of pointer to command
 		int lineno();
 		
+		// Returns amount of pending late_call functions
+		inline int late_call_size() { return late_call.size(); };
+		
 		// Executes passed script by allocating new stack frame.
 		void execute(ck_core::ck_script* scr);
 		
@@ -164,6 +183,9 @@ namespace ck_core {
 		// Ref will be assigned to scope::self
 		// Name is used in traceback (empty for none)
 		ck_vobject::vobject* call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>&, const std::wstring& name, ck_vobject::vscope* scope = nullptr);
+		
+		// Performing late object call by execution passed function on the next executer step
+		void late_call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>&, const std::wstring& name, ck_vobject::vscope* scope = nullptr);
 		
 		// Jumps on the address of bytecode map
 		void goto_address(int bytecode_address);

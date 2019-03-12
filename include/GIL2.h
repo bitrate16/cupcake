@@ -59,6 +59,21 @@ namespace ck_core {
 			return locked;
 		};
 		
+		// Set blocked by i/o 
+		inline bool set_blocked(bool is_blocked) {
+			blocked = is_blocked;
+		};
+		
+		// Set locked by other threads 
+		inline bool set_locked(bool is_locked) {
+			locked = is_locked;
+		};
+		
+		// Set alive state
+		inline bool set_alive(bool is_alive) {
+			alive = is_alive;
+		};
+		
 		// Returns whenever thared is allowing other threads to acquire GIL lock
 		inline bool locked_state() {
 			return !alive || locked || blocked;
@@ -134,6 +149,10 @@ namespace ck_core {
 		inline static ck_executer* executer_instance() {
 			return GIL::instance()->executer;
 		};
+		
+		// Marks all threads with is_alive(0) for forcing them to finish their work.
+		// Used when no __defsignalhandler is not set for tha main thread.
+		void terminate();
 		
 		// Add current thread into sync_lock list.
 		// After pass set lock_requested to 1 and wait for other threads to lock.

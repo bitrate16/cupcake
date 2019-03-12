@@ -31,6 +31,20 @@ using namespace ck_objects;
 using namespace ck_exceptions;
 
 
+// D E B U G _ F U N C T I O N S
+
+#define PRINT_OBJECTS print_objects(this->objects)
+static void print_objects(vector<vobject*>& objects) {	
+	for (int i = 0; i < objects.size(); ++i) {
+		wcout << '[' << i << ']' << ' ';
+		if (objects[i])
+			wcout << objects[i]->string_value() << endl;
+		else
+			wcout << "nullptr" << endl;
+	}
+};
+
+
 // C K _ E X E C U T E R _ G C _ O B J E C T
 
 ck_executer_gc_object::ck_executer_gc_object(ck_executer* exec_instance) {
@@ -50,6 +64,21 @@ void ck_executer_gc_object::gc_mark() {
 	for (int i = 0; i < exec_instance->objects.size(); ++i)
 		if (exec_instance->objects[i] && !exec_instance->objects[i]->gc_reachable)
 			exec_instance->objects[i]->gc_mark();
+		
+	vector<late_call_instance>& late_call = exec_instance->late_call;
+		
+	for (int i = 0; i < late_call.size(); ++i) {
+		if (late_call[i].obj && !late_call[i].obj->gc_reachable)
+			late_call[i].obj->gc_mark();
+		if (late_call[i].ref && !late_call[i].ref->gc_reachable)
+			late_call[i].ref->gc_mark();
+		if (late_call[i].scope && !late_call[i].scope->gc_reachable)
+			late_call[i].scope->gc_mark();
+		
+		for (int j = 0; j < late_call[i].args.size(); ++j)
+			if (late_call[i].args[j] && !late_call[i].args[j]->gc_reachable)
+				late_call[i].args[j]->gc_mark();
+	}
 };
 
 void ck_executer_gc_object::gc_finalize() {};
@@ -109,21 +138,21 @@ void ck_executer::vswap() {
 	if (objects.size() < 2)
 		throw ck_message(L"objects stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
 	
-	std::iter_swap(objects.end(), objects.end() - 1);
+	std::iter_swap(objects.end() - 1, objects.end() - 2);
 };
 
 void ck_executer::vswap1() {
 	if (objects.size() < 3)
 		throw ck_message(L"objects stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
 	
-	std::iter_swap(objects.end() - 1, objects.end() - 2);
+	std::iter_swap(objects.end() - 2, objects.end() - 3);
 };
 
 void ck_executer::vswap2() {
 	if (objects.size() < 4)
 		throw ck_message(L"objects stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
 	
-	std::iter_swap(objects.end() - 2, objects.end() - 3);
+	std::iter_swap(objects.end() - 3, objects.end() - 4);
 };
 
 int ck_executer::lineno() {
@@ -338,6 +367,23 @@ void ck_executer::validate_scope() {
 
 void ck_executer::exec_bytecode() {
 	while (!is_eof()) {
+		
+		// Check if thread is dead (suspended or anything else)
+		if (!GIL::current_thread()->is_alive())
+			return;
+		
+		// Check for pending late calls
+		while (late_call.size()) {
+			
+			late_call_instance instance = late_call.back();
+			
+			// Remove call from the list
+			late_call.pop_back();
+			
+			// Exceptions automatically rethrown up
+			call_object(instance.obj, instance.ref, instance.args, instance.name, instance.scope);
+		}
+		
 #ifdef DEBUG_OUTPUT
 		wcout << "[" << pointer << "] ";
 #endif
@@ -566,7 +612,7 @@ void ck_executer::exec_bytecode() {
 				// Copy args
 				vector<vobject*> args;
 				for (int k = 0; k < argc; ++k)
-					args.push_back(objects.rbegin()[k + 1]);
+					args.push_back(objects.rbegin()[argc-k-1 + 1]);
 				
 				vobject* obj = call_object(objects.rbegin()[0], nullptr, args, L"");
 				for (int k = 0; k < argc + 1; ++k)
@@ -592,24 +638,23 @@ void ck_executer::exec_bytecode() {
 #ifdef DEBUG_OUTPUT
 				wcout << "> CALL_FIELD [" << argc << "] [" << cstr << ']' << endl;
 #endif
-				
 				if (objects.size() < argc + 1)
 					throw ck_message(L"objects stack corrupted", ck_message_type::CK_INVALID_STATE); 
 				
-				if (objects.rbegin()[0] == nullptr)
+				if (objects.back() == nullptr)
 					throw ck_message(wstring(L"undefined reference to ") + cstr, ck_message_type::CK_TYPE_ERROR);
 					
 				validate_scope();
 					
-				vpush(objects.rbegin()[0]->get(scopes.back(), cstr));
+				vpush(objects.back()->get(scopes.back(), cstr));
 				// stack: argN..arg0 ref fun
 				
 				// Copy args
 				vector<vobject*> args;
 				for (int k = 0; k < argc; ++k)
-					args.push_back(objects.rbegin()[k + 2]);
+					args.push_back(objects.rbegin()[argc-k-1 + 2]);
 				
-				vobject* obj = call_object(objects.rbegin()[0], objects.rbegin()[1], args, cstr);
+				vobject* obj = call_object(objects.back(), objects.rbegin()[1], args, cstr);
 				for (int k = 0; k < argc + 2; ++k)
 					objects.pop_back();
 				vpush(obj);
@@ -645,7 +690,7 @@ void ck_executer::exec_bytecode() {
 				// Copy args
 				vector<vobject*> args;
 				for (int k = 0; k < argc; ++k)
-					args.push_back(objects.rbegin()[k + 1]);
+					args.push_back(objects.rbegin()[argc-k-1 + 1]);
 				
 				vobject* obj = call_object(objects.rbegin()[0], nullptr, args, cstr);
 				for (int k = 0; k < argc + 1; ++k)
@@ -687,7 +732,7 @@ void ck_executer::exec_bytecode() {
 				// Copy args
 				vector<vobject*> args;
 				for (int k = 0; k < argc; ++k)
-					args.push_back(objects.rbegin()[k + 3]);
+					args.push_back(objects.rbegin()[argc-k-1 + 3]);
 				
 				vobject* obj = call_object(objects.rbegin()[0], objects.rbegin()[2], args, L"[" + key + L"]");
 				for (int k = 0; k < argc + 3; ++k)
@@ -1447,6 +1492,17 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 	return obj;
 };
 
+void ck_executer::late_call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>& args, const std::wstring& name, vscope* exec_scope) { 
+	late_call_instance instance;
+	instance.obj = obj;
+	instance.ref = ref;
+	instance.name = name;
+	instance.args = args;
+	instance.scope = exec_scope;
+	
+	late_call.push_back(instance);
+};
+
 void ck_executer::goto_address(int bytecode_address) {
 	if (bytecode_address < 0 || bytecode_address > scripts.back()->bytecode.bytemap.size())
 		throw ck_message(L"goto out of range [" + to_wstring(bytecode_address) + L"] for range [0, " + to_wstring(scripts.back()->bytecode.bytemap.size()) + L"]" , ck_message_type::CK_INVALID_STATE);
@@ -1493,6 +1549,8 @@ void ck_executer::clear() {
 	
 	for (int i = objects.size() - 1; i >= 0; --i) 
 		objects.pop_back();
+	
+	late_call.clear();
 };
 
 // TO BE CONTINUED...

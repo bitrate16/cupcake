@@ -1,3 +1,5 @@
+#include <csignal>
+
 #include "parser.h"
 #include "executer.h"
 #include "exceptions.h"
@@ -10,10 +12,11 @@
 #include "ASTPrinter.h"
 
 #include "objects/Error.h"
+#include "objects/Int.h"
 #include "objects/Undefined.h"
 #include "objects/Null.h"
 
-// #define DEBUG_OUTPUT
+#define DEBUG_OUTPUT
 
 using namespace std;
 using namespace ck_token;
@@ -31,6 +34,56 @@ using namespace ck_objects;
 // make && valgrind --leak-check=full --track-origins=yes ./test
 
 // About passing vector without reference: https://stackoverflow.com/questions/15120264/when-is-a-vector-copied-when-is-a-reference-passed
+
+// Main-local fields
+static vscope* root_scope;
+static ck_script* main_script;
+static GIL* gil_instance;
+
+// Signal handling for main thread
+static bool has_signaled;
+static int signaled_number;
+
+// Signals setup for handling them during execution
+static void signal_handler(int sig) {
+	// Set up ignore signals during signal processing
+	signal(SIGINT,  signal_handler); // <-- user interrupt
+	signal(SIGKILL, signal_handler); // <-- kill signal
+	signal(SIGTERM, signal_handler); // <-- Terminate request
+	signal(SIGABRT, signal_handler); // <-- abortion is murder
+	
+	// Forcibly terminate the process
+	if (sig == SIGTERM) {
+		GIL::instance()->terminate();
+		return;
+	}
+	
+	// Warning: checking thread for alive state and then 
+	//  processing signal with late_call_object().
+	// If executer was finishing it's work while signal received, 
+	//  no signal processing would be done.
+	if (GIL::current_thread()->is_alive()) {
+		// Thread is alive.
+		// Using late_call_object() to execute __defsignalhandler() on the 
+		//  next step of execute_bytecode().
+		// If executer was finishing it's work and no more rutting execution loop, 
+		//  signal is ignored.
+		
+		vobject* __defsignalhandler = root_scope->get(L"__defsignalhandler");
+		if (__defsignalhandler == nullptr || __defsignalhandler->is_typeof<Undefined>() || __defsignalhandler->is_typeof<Null>()) {
+			// No handler is found. Default action is terminate.
+			GIL::instance()->terminate();
+		} else if (GIL::executer_instance()->late_call_size() == 0)
+			// Function should be appended only if there is no other events to prevent corruption.
+			GIL::executer_instance()->late_call_object(__defsignalhandler, nullptr, { new Int(sig) }, L"__defsignalhandler", root_scope);
+	} else {
+		has_signaled = 1;
+		// Clear blocking and mark thread alive
+		GIL::current_thread()->clear_blocks();
+		GIL::current_thread()->set_alive(1);
+		signaled_number = sig;
+	}
+};
 
 int main(int argc, const char** argv) {
 	FILE *f = fopen("test.ck", "r");
@@ -51,36 +104,42 @@ int main(int argc, const char** argv) {
 	}
 	
 	// Convert AST to bytecodes & initialize script instance
-	ck_script* scr = new ck_script();
-	scr->directory = get_current_working_dir();
-	scr->filename  = wstring(mbfilename.begin(), mbfilename.end());
-	translate(scr->bytecode.bytemap, scr->bytecode.lineno_table, n);
+	main_script = new ck_script();
+	main_script->directory = get_current_working_dir();
+	main_script->filename  = wstring(mbfilename.begin(), mbfilename.end());
+	translate(main_script->bytecode.bytemap, main_script->bytecode.lineno_table, n);
 	
 #ifdef DEBUG_OUTPUT
 	wcout << "AST:" << endl;
 	printAST(n);
 	
 	wcout << "Bytecodes: " << endl;
-	print(scr->bytecode.bytemap);
+	print(main_script->bytecode.bytemap);
 	wcout << endl;
 				
 	wcout << "Lineno Table: " << endl;
-	print_lineno_table(scr->bytecode.lineno_table);
+	print_lineno_table(main_script->bytecode.lineno_table);
 	wcout << endl;
 #endif
 	
 	/*
-	for (int i = 0; i < scr->bytecode.bytemap.size(); ++i)
-		wcout << "[" << i << "] " << (int) scr->bytecode.bytemap[i] << endl;
+	for (int i = 0; i < main_script->bytecode.bytemap.size(); ++i)
+		wcout << "[" << i << "] " << (int) main_script->bytecode.bytemap[i] << endl;
 	*/
 	
 	delete n;
 	
 	// Initialize GIL, GC and other root components
-	GIL* gil = new GIL(); // <-- all is done inside
+	gil_instance = new GIL(); // <-- all is done inside
 	
-	vscope *scope = ck_objects::primary_init(); // ?? XXX: Use prototype object for all classes
-	scope->root();
+	root_scope = ck_objects::primary_init(); // ?? XXX: Use prototype object for all classes
+	root_scope->root();
+	
+	// Set up signals handling
+	signal(SIGINT,  signal_handler); // <-- user interrupt
+	signal(SIGKILL, signal_handler); // <-- kill signal
+	signal(SIGTERM, signal_handler); // <-- Terminate request
+	signal(SIGABRT, signal_handler); // <-- abortion is murder
 	
 	// Indicates if main returned an exception
 	bool exception_stated = 0;
@@ -90,7 +149,7 @@ int main(int argc, const char** argv) {
 	while (1) {
 		try {
 			if (!exception_stated) {
-				GIL::executer_instance()->execute(scr, scope);
+				GIL::executer_instance()->execute(main_script, root_scope);
 				GIL::current_thread()->clear_blocks();
 			
 				// Finish execution loop on success
@@ -103,15 +162,18 @@ int main(int argc, const char** argv) {
 				// On exception caught, call stack, windows stack and try stack are empty.
 				// Process exception by calling handler-function.
 				// __defexceptionhandler(exception)
+				// The default behaviour is calling thread exception handler and then finish thread work.
 				
-				vobject* __defexceptionhandler = scope->get(L"__defexceptionhandler");
+				vobject* __defexceptionhandler = root_scope->get(L"__defexceptionhandler");
 				if (__defexceptionhandler == nullptr || __defexceptionhandler->is_typeof<Undefined>() || __defexceptionhandler->is_typeof<Null>())
 					if (message.get_type() == ck_message_type::CK_OBJECT && message.get_object() != nullptr)
 						wcerr << "Unhandled error: " << message.get_object()->string_value() << endl;
 					else
 						wcerr << "Unhandled error: " << message << endl;
 				else
-					GIL::executer_instance()->call_object(__defexceptionhandler, nullptr, { new Error(message) }, L"__defexceptionhandler", scope);
+					GIL::executer_instance()->call_object(__defexceptionhandler, nullptr, { 
+							message.get_type() == ck_message_type::CK_OBJECT ? message.get_object() : new Error(message)
+						}, L"__defexceptionhandler", root_scope);
 				
 				// Clear thread blocks after each execution of side code to avoid fake blocking of thread.
 				GIL::current_thread()->clear_blocks();
@@ -138,10 +200,25 @@ int main(int argc, const char** argv) {
 	}
 	
 	// Normally the next step is make this program wait for signals or other threads to die.
+	/*
+		conditional_variable.wait() => {
+			if (has_signaled) {
+				if (!GIL::lock_required ?)
+					unblock for processing dignal
+			} else if (threads_are_dead)
+				goto end of main
+		}
+		vobject* __defsignalhandler = root_scope->get(L"__defsignalhandler");
+		if (__defsignalhandler == nullptr || __defsignalhandler->is_typeof<Undefined>() || __defsignalhandler->is_typeof<Null>()) {
+			// No handler is found. Default action is terminate.
+			GIL::terminate();
+		} else
+			GIL::executer_instance()->late_call_object(__defsignalhandler, nullptr, { new Int(sig) }, L"__defsignalhandler", root_scope);
+	*/
 	
 	// Free up heap
-	delete gil;
-	delete scr;
+	delete gil_instance;
+	delete main_script;
 	
 	// wcout << "MAIN EXITED" << endl;
 	return 0;
