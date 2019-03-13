@@ -34,7 +34,7 @@ void gc_object::gc_finalize() {};
 void* gc_object::operator new(std::size_t count) {
 	try {
 		return ::operator new(count);
-	} catch (std::bad_alloc) {
+	} catch (...) {
 		throw ck_message(ck_message_type::BAD_ALLOC);
 	}
 };

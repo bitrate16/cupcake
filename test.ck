@@ -31,7 +31,7 @@ __defexceptionhandler = function(k) {  print(__defexceptionhandler) __defexcepti
 
 //throw 'kek'
 
-__defsignalhandler = function(s) { print('signum = ', s, '\n') }
+__defsignalhandler = function(s) { print('signum = ', s, '\n') throw 'throw from sighandler' }
 
 //while (1);
 
@@ -43,3 +43,8 @@ o.f = print;
 print(o)
 print(o.f)
 o.f('a', 'b', 'c')
+
+
+var recur = function() { recur() }
+
+recur()

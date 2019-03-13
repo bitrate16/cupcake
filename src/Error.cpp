@@ -229,7 +229,23 @@ void Error::print_backtrace() {
 		wcout << " at File <" << backtrace[i].filename << "> line " << backtrace[i].lineno;
 		
 		if (backtrace[i].function.size() != 0)
-			wcout << " " << backtrace[i].function << "()" << endl;
+			wcout << " " << backtrace[i].function << "()";
+		
+		int amount = 0;
+		while (i + amount + 1 < backtrace.size()) {
+			if (backtrace[i].function == backtrace[i + amount + 1].function
+				&&
+				backtrace[i].lineno   == backtrace[i + amount + 1].lineno
+				&&
+				backtrace[i].filename == backtrace[i + amount + 1].filename)
+				++amount;
+			else
+				break;
+		}
+		i += amount;
+		
+		if (amount) 
+			wcout << " + " << amount << " more" << endl;
 		else
 			wcout << endl;
 	}
