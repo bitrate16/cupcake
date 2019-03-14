@@ -7,6 +7,7 @@
 #include "vobject.h"
 #include "script.h"
 #include "translator.h"
+#include "stack_utils.h"
 
 #include "vscope.h"
 #include "objects/Object.h"
@@ -89,6 +90,23 @@ void ck_executer_gc_object::gc_finalize() {};
 ck_executer::ck_executer() {
 	// Will be disposed by GC.
 	gc_marker = new ck_executer_gc_object(this);
+		
+	// Limit size of total stack usage when calculating
+	//  call, try and windows stacks sizes in constructor.
+	const int system_stack_size_offset = 2 * 1024 * 1024;
+	
+	// Assuming that exec_bytecode, call_object and executer summary takes no more than 1024 bytes.
+	const int system_stack_frame_size = 1024 + 512;
+	
+	int system_stack_size = ck_util::get_system_stack_size();
+	// Limiting stack by 2MB for user calls
+	int bounded_stack_size = system_stack_size - system_stack_size_offset;
+	// Resulting allowed size of stack
+	int result_stack_size = bounded_stack_size / system_stack_frame_size;
+	// Limit stack sizes
+	try_stack_limit = result_stack_size;
+	call_stack_limit = result_stack_size;
+	window_stack_limit = result_stack_size;
 };
 
 ck_executer::~ck_executer() {
@@ -1365,13 +1383,13 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 	return;
 };
 
-ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>& args, const std::wstring& name, vscope* exec_scope) { 
+ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>& args, const std::wstring& name, vscope* scope) { 
 
 	if (obj == nullptr)
 		throw ck_message(wstring(L"undefined call to ") + name, ck_message_type::CK_TYPE_ERROR);
 	
 	// Construct scope
-	vscope* scope = nullptr;
+	// vscope* scope = nullptr;
 	bool own_scope = 0;
 	
 	if (obj->is_typeof<BytecodeFunction>()) {
@@ -1379,8 +1397,8 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 		scope = ((BytecodeFunction*) obj)->apply(args);
 		scope->root();
 		own_scope = 1;
-	} else if (exec_scope != nullptr) {
-		scope = exec_scope;
+	} else if (scope != nullptr) {
+		// scope = exec_scope;
 		own_scope = 0;
 	} else {
 		scope = new vscope(scopes.size() == 0 ? nullptr : scopes.back());

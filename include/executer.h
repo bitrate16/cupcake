@@ -98,8 +98,7 @@ namespace ck_core {
 		std::vector<ck_vobject::vscope*>  scopes;
 		std::vector<ck_vobject::vobject*> objects;
 		
-		// Limit size for each stack	
-		// XXX: Dynamic limit check: https://stackoverflow.com/a/2513561/11109579
+		// Limit size of virtual stack.
 		int call_stack_limit   = 4096;
 		int try_stack_limit    = 4096;
 		int window_stack_limit = 4096;
@@ -132,7 +131,6 @@ namespace ck_core {
 		inline ck_vobject::vobject* vpeek();
 		
 		// Push stack [top]
-		// XXX: Overflow check
 		inline void vpush(ck_vobject::vobject*);
 		
 		// Swap [top] and [top-1] or throw stack_corruption

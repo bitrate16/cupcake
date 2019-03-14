@@ -1,5 +1,7 @@
 #include <csignal>
 
+#include "stack_utils.h"
+
 #include "parser.h"
 #include "executer.h"
 #include "exceptions.h"
@@ -86,6 +88,9 @@ static void signal_handler(int sig) {
 };
 
 int main(int argc, const char** argv) {
+	// Request maximal stack for this process.
+	ck_util::maximize_stack_size();
+	
 	FILE *f = fopen("test.ck", "r");
 	string mbfilename("test.ck");
 	
@@ -223,3 +228,4 @@ int main(int argc, const char** argv) {
 	// wcout << "MAIN EXITED" << endl;
 	return 0;
 };
+
