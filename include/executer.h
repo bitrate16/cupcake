@@ -5,6 +5,7 @@
 
 #include "GC.h"
 #include "exceptions.h"
+#include "constants.h"
 
 namespace ck_vobject {
 	class vobject;
@@ -98,10 +99,10 @@ namespace ck_core {
 		std::vector<ck_vobject::vscope*>  scopes;
 		std::vector<ck_vobject::vobject*> objects;
 		
-		// Limit size of virtual stack.
-		int call_stack_limit   = 4096;
-		int try_stack_limit    = 4096;
-		int window_stack_limit = 4096;
+		// Limit size of summary execution staks:
+		//  sizeof(call_stack) + sizeof(window_stack) < execution_stack_limit
+		int execution_stack_limit = ck_constants::ck_executer::def_execution_stack_limit;
+		int try_stack_limit       = ck_constants::ck_executer::def_try_stack_limit;
 		
 		// Id's of stacks		
 		const int call_stack_id    = 13;

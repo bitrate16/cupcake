@@ -105,8 +105,7 @@ ck_executer::ck_executer() {
 	int result_stack_size = bounded_stack_size / system_stack_frame_size;
 	// Limit stack sizes
 	try_stack_limit = result_stack_size;
-	call_stack_limit = result_stack_size;
-	window_stack_limit = result_stack_size;
+	execution_stack_limit = result_stack_size;
 };
 
 ck_executer::~ck_executer() {
@@ -190,12 +189,10 @@ int ck_executer::lineno() {
 		
 void ck_executer::store_frame(std::vector<stack_frame>& stack, int stack_id, const std::wstring& name, bool own_scope) {
 	
-	if (stack_id == call_stack_id && stack.size() == call_stack_limit)
-		throw ck_message(L"call stack overflow", ck_message_type::CK_STACK_OVERFLOW);
+	if ((stack_id == call_stack_id || stack_id == window_stack_id) && call_stack.size() + window_stack.size() == execution_stack_limit)
+		throw ck_message(L"stack overflow", ck_message_type::CK_STACK_OVERFLOW);
 	else if (stack_id == try_stack_id && stack.size() == try_stack_limit)
 		throw ck_message(L"try stack overflow", ck_message_type::CK_STACK_OVERFLOW);
-	else if (stack_id == window_stack_id && stack.size() == window_stack_limit)
-		throw ck_message(L"window stack overflow", ck_message_type::CK_STACK_OVERFLOW);
 		
 	// Create stack_window and save executer state
 	stack_frame frame;
@@ -1318,8 +1315,8 @@ void ck_executer::exec_bytecode() {
 
 void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, std::vector<std::wstring>* argn, std::vector<ck_vobject::vobject*>* argv) {
 	
-	if (window_stack.size() == window_stack_limit)
-		throw ck_message(L"executer stack overflow", ck_message_type::CK_STACK_OVERFLOW);
+	if (call_stack.size() + window_stack.size() == execution_stack_limit)
+		throw ck_message(L"stack overflow", ck_message_type::CK_STACK_OVERFLOW);
 	
 	bool own_scope = scope == nullptr;
 	
@@ -1384,6 +1381,9 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 };
 
 ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>& args, const std::wstring& name, vscope* scope) { 
+
+	if (call_stack.size() + window_stack.size() == execution_stack_limit)
+		throw ck_message(L"stack overflow", ck_message_type::CK_STACK_OVERFLOW);
 
 	if (obj == nullptr)
 		throw ck_message(wstring(L"undefined call to ") + name, ck_message_type::CK_TYPE_ERROR);

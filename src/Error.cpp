@@ -170,7 +170,7 @@ Error::Error(const ck_message& msg) : Error() {
 		}
 		
 		case ck_message_type::CK_STACK_OVERFLOW: {
-			message = L"stack overflow error: " + msg.get_string();
+			message = msg.get_string();
 			break;
 		}
 		
