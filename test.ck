@@ -47,4 +47,4 @@ o.f('a', 'b', 'c')
 
 var recur = function() { recur() }
 
-recur()
+//recur()
