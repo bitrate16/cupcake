@@ -58,7 +58,7 @@ vobject* Int::get(ck_vobject::vscope* scope, const std::wstring& name) {
 };
 
 void Int::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* object) {
-	throw ck_message(L"Int is not container", ck_message_type::CK_UNSUPPORTED_OPERATION);
+	throw UnsupportedOperation(L"Int is not container");
 };
 
 // Delegate to prototype
@@ -67,12 +67,11 @@ bool Int::contains(ck_vobject::vscope* scope, const std::wstring& name) {
 };
 
 bool Int::remove(ck_vobject::vscope* scope, const std::wstring& name) {
-	throw ck_message(L"Int is not container", ck_message_type::CK_UNSUPPORTED_OPERATION);
-	return 0;
+	throw UnsupportedOperation(L"Int is not container");
 };
 
 vobject* Int::call(ck_vobject::vscope* scope, const std::vector<vobject*> args) {
-	throw ck_message(L"Int is not callable", ck_message_type::CK_UNSUPPORTED_OPERATION);
+	throw UnsupportedOperation(L"Int is not callable");
 };
 
 

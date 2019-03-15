@@ -192,7 +192,8 @@ namespace ck_core {
 		// Amount of locked obejcts
 		int locks_count();
 		
-		void collect();
+		// if forced_collect is 1, GC will ignore checking conditons for optimizing and perform collection.
+		void collect(bool forced_collect = 0);
 		void dispose();
 	};
 };

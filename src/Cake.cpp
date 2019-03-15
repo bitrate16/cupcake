@@ -1,4 +1,4 @@
-#include "objects/Error.h"
+#include "objects/Cake.h"
 
 #include <vector>
 #include <map>
@@ -23,7 +23,7 @@ using namespace ck_core;
 
 
 static vobject* call_handler(vscope* scope, const vector<vobject*>& args) {
-	Error* err = new Error();
+	Cake* err = new Cake();
 	
 	if (args.size() != 0)
 		err->Object::put(L"message", args[0]);
@@ -31,25 +31,25 @@ static vobject* call_handler(vscope* scope, const vector<vobject*>& args) {
 	return err;
 };
 
-vobject* Error::create_proto() {
-	if (ErrorProto != nullptr)
-		return ErrorProto;
+vobject* Cake::create_proto() {
+	if (CakeProto != nullptr)
+		return CakeProto;
 	
-	ErrorProto = new CallablePrototype(call_handler);
-	GIL::gc_instance()->attach_root(ErrorProto);
+	CakeProto = new CallablePrototype(call_handler);
+	GIL::gc_instance()->attach_root(CakeProto);
 	
 	// ...
 	
-	return ErrorProto;
+	return CakeProto;
 };
 
 
-void Error::collect_backtrace() {
+void Cake::collect_backtrace() {
 	if (GIL::executer_instance() == nullptr)
 		return;
 	
 	for (int i = 0; i < GIL::executer_instance()->call_stack.size(); ++i) {
-		backtrace.push_back(Frame());
+		backtrace.push_back(BacktraceFrame());
 		
 		int pointer = GIL::executer_instance()->call_stack[i].pointer;
 		int script_id = GIL::executer_instance()->call_stack[i].script_id;
@@ -78,13 +78,13 @@ void Error::collect_backtrace() {
 	}
 };
 
-Error::Error() {
-	if (ErrorProto == nullptr)
-		Error::create_proto();
+Cake::Cake(const wstring& type, const wstring& message) {
+	if (CakeProto == nullptr)
+		Cake::create_proto();
 	
 	collect_backtrace();
 	
-	Object::put(wstring(L"proto"), ErrorProto);
+	Object::put(wstring(L"proto"), CakeProto);
 	
 	// Construct array of backtrace
 	vector<vobject*> backtrace_array;
@@ -96,135 +96,119 @@ Error::Error() {
 		backtrace_array.push_back(new Object(obj));
 	}
 	Object::put(wstring(L"backtrace"), new Array(backtrace_array));
-};
-
-Error::Error(const wstring& str) : Error() {
-	Object::put(wstring(L"message"), new String(str));
 	
-	message = str;
+	if (type != L"")
+		Object::put(wstring(L"type"), new String(type));
+	if (message != L"")
+		Object::put(wstring(L"message"), new String(message));
+	
+	this->type = type;
+	this->message = message;
 };
 
-Error::Error(const ck_message& msg) : Error() {	
-	switch (msg.get_type()) {
-		case ck_message_type::CK_CMESSAGE: {
-			string s = msg.get_message();
-			message = wstring(s.begin(), s.end());
+Cake::Cake(const cake& c) {	
+	// Assign prototype
+	Object::put(wstring(L"proto"), CakeProto);
+	
+	// Get the backtrace
+	if (c.has_backtrace())
+		backtrace = c.get_backtrace();
+	else
+		collect_backtrace();
+	
+	// Construct array of backtrace
+	vector<vobject*> backtrace_array;
+	for (int i = 0; i < backtrace.size(); ++i) {
+		map<wstring, vobject*> obj;
+		obj[L"lineno"] = new Int(backtrace[i].lineno);
+		obj[L"filename"] = new String(backtrace[i].filename);
+		obj[L"function"] = new String(backtrace[i].function);
+		backtrace_array.push_back(new Object(obj));
+	}
+	Object::put(wstring(L"backtrace"), new Array(backtrace_array));
+
+	// Determine type
+	switch (c.get_type_id()) {
+		case cake_type::CK_EMPTY: {
+			type = L"EmptyCake";
 			break;
 		}
 		
-		case ck_message_type::CK_WCMESSAGE: {
-			message = msg.get_wmessage();
+		case cake_type::CK_CAKE: {
+			type = c.get_type();
+			message = c.get_message();
 			break;
 		}
 		
-		case ck_message_type::CK_STRING: {
-			message = msg.get_string();
+		case cake_type::CK_OBJECT: {
+			message = c.get_object() == nullptr ? L"nullptr" : c.get_object()->string_value();
 			break;
 		}
 		
-		case ck_message_type::BAD_ALLOC: 
-		case ck_message_type::BAD_ALLOC2: {
-			message = L"bad alloc";
+		case cake_type::CK_NATIVE_EXCEPTION: {
+			type = L"NativeException";
+			string what = c.get_exception().what();
+			message = wstring(what.begin(), what.end());
 			break;
 		}
 		
-		case ck_message_type::UNDEFINED_BEHAVIOUR: {
-			message = L"unexpected exception catch(...)";
-			break;
-		}
-		
-		case ck_message_type::NATIVE_EXCEPTION: {
-			string s = msg.get_exception().what();
-			message = L"native exception: " + wstring(s.begin(), s.end());
-			break;
-		}
-		
-		case ck_message_type::CK_UNSUPPORTED_OPERATION: {
-			message = L"unsupported operation: " + msg.get_string();
-			break;
-		}
-		
-		case ck_message_type::CK_RUNTIME_ERROR: {
-			message = L"runtime error: " + msg.get_string();
-			break;
-		}
-		
-		case ck_message_type::CK_STACK_CORRUPTED: {
-			message = L"stack corrupted error: " + msg.get_string();
-			break;
-		}
-		
-		case ck_message_type::CK_TYPE_ERROR: {
-			message = L"type error: " + msg.get_string();
-			break;
-		}
-		
-		case ck_message_type::CK_INVALID_STATE: {
-			message = L"invalid state error: " + msg.get_string();
-			break;
-		}
-		
-		case ck_message_type::CK_OBJECT: {
-			message = msg.get_object() == nullptr ? wstring(L"null") : msg.get_object()->string_value();
-			break;
-		}
-		
-		case ck_message_type::CK_STACK_OVERFLOW: {
-			message = msg.get_string();
-			break;
-		}
-		
-		case ck_message_type::CK_EMPTY: {
-			message = L"not an error";
+		case cake_type::CK_UNKNOWN_EXCEPTION: {
+			type = L"UnknownException";
 			break;
 		}
 	}
 	
+	// Assign info
+	Object::put(wstring(L"type"), new String(type));
 	Object::put(wstring(L"message"), new String(message));
 };
 
-Error::~Error() {
-	
-};
-
-vobject* Error::get(ck_vobject::vscope* scope, const std::wstring& name) {
+vobject* Cake::get(ck_vobject::vscope* scope, const std::wstring& name) {
 	vobject* ret = Object::get(name);
-	if (!ret && ErrorProto)
-		return ErrorProto->get(scope, name);
+	if (!ret && CakeProto)
+		return CakeProto->get(scope, name);
 	return ret;
 };
 
-void Error::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* object) {
+void Cake::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* object) {
 	Object::put(name, object);
 };
 
-bool Error::contains(ck_vobject::vscope* scope, const std::wstring& name) {
-	return Object::contains(name) || (ErrorProto && ErrorProto->contains(scope, name));
+bool Cake::contains(ck_vobject::vscope* scope, const std::wstring& name) {
+	return Object::contains(name) || (CakeProto && CakeProto->contains(scope, name));
 };
 
-bool Error::remove(ck_vobject::vscope* scope, const std::wstring& name) {
+bool Cake::remove(ck_vobject::vscope* scope, const std::wstring& name) {
 	if (Object::remove(name))
 		return 1;
-	if (ErrorProto && ErrorProto->remove(scope, name))
+	if (CakeProto && CakeProto->remove(scope, name))
 		return 1;
 	return 0;
 };
 
-vobject* Error::call(ck_vobject::vscope* scope, const std::vector<vobject*> args) {
-	throw ck_message(L"Error is not callable", ck_message_type::CK_UNSUPPORTED_OPERATION);
+vobject* Cake::call(ck_vobject::vscope* scope, const std::vector<vobject*> args) {
+	throw UnsupportedOperation(L"Cake is not callable");
 };
 
-void Error::gc_mark() {
+void Cake::gc_mark() {
 	Object::gc_mark();
 };
 
-void Error::gc_finalize() {
+void Cake::gc_finalize() {
 	Object::gc_finalize();
 };
 
 
-void Error::print_backtrace() {
-	wcout << "Error: " << message << endl;
+void Cake::print_backtrace() {
+	if (type == L"" && message != L"")
+		wcout << "Cake: " << message << endl;
+	else if (type != L"" && message == L"")
+		wcout << type << endl;
+	else if (type != L"" && message != L"")
+		wcout << type << ": " << message << endl;
+	else
+		wcout << "Cake thrown" << endl;
+	
 	for (int i = 0; i < backtrace.size(); ++i) {
 		wcout << " at File <" << backtrace[i].filename << "> line " << backtrace[i].lineno;
 		
@@ -251,13 +235,16 @@ void Error::print_backtrace() {
 	}
 };
 
-long long Error::int_value() {
+long long Cake::int_value() {
 	return (int) (intptr_t) this; 
 };
 
-wstring Error::string_value() {
+wstring Cake::string_value() {
 	if (message.size() == 0)
-		return L"[Error]";
-	return L"[Error: " + message + L"]";
+		return L"[Cake]";
+	if (type == L"")
+		return L"[Cake: " + message + L"]";
+	else
+		return L"[" + type + L": " + message + L"]";
 };
 

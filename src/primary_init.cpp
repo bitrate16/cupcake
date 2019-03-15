@@ -16,7 +16,7 @@
 #include "objects/Null.h"
 #include "objects/Undefined.h"
 #include "objects/BytecodeFunction.h"
-#include "objects/Error.h"
+#include "objects/Cake.h"
 #include "objects/NativeFunction.h"
 
 using namespace std;
@@ -26,8 +26,8 @@ using namespace ck_vobject;
 static vobject* f_print(vscope* scope, const vector<vobject*>& args) {
 	for (int i = 0; i < args.size(); ++i)
 		if (args[i] != nullptr)
-			if (args[i]->is_typeof<Error>())
-				((Error*) args[i])->print_backtrace();
+			if (args[i]->is_typeof<Cake>())
+				((Cake*) args[i])->print_backtrace();
 			else
 				wcout << args[i]->string_value() << ' ';
 	//throw ck_exceptions::ck_message(wstring(L"ololo call to ") , ck_exceptions::ck_message_type::CK_TYPE_ERROR);
@@ -51,7 +51,7 @@ vscope* ck_objects::primary_init() {
 	scope->put(L"Null",             Null            ::create_proto());
 	scope->put(L"Undefined",        Undefined       ::create_proto());
 	scope->put(L"BytecodeFunction", BytecodeFunction::create_proto());
-	scope->put(L"Error",            Error           ::create_proto());
+	scope->put(L"Cake",            Cake           ::create_proto());
 	scope->put(L"NativeFunction",   NativeFunction  ::create_proto());
 	
 	// Define other objects and fields

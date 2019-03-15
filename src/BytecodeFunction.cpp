@@ -15,7 +15,7 @@ using namespace ck_core;
 
 
 static vobject* call_handler(vscope* scope, const vector<vobject*>& args) {
-	throw ck_message(L"BytecodeFunction construct uncomplete", ck_message_type::CK_UNSUPPORTED_OPERATION);
+	throw UnsupportedOperation(L"BytecodeFunction construct uncomplete");
 };
 
 vobject* BytecodeFunction::create_proto() {
@@ -43,7 +43,7 @@ vobject* BytecodeFunction::get(ck_vobject::vscope* scope, const std::wstring& na
 };
 
 void BytecodeFunction::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* object) {
-	throw ck_message(L"BytecodeFunction is not container", ck_message_type::CK_UNSUPPORTED_OPERATION);
+	throw UnsupportedOperation(L"BytecodeFunction is not container");
 };
 
 // Delegate to prototype
@@ -52,12 +52,12 @@ bool BytecodeFunction::contains(ck_vobject::vscope* scope, const std::wstring& n
 };
 
 bool BytecodeFunction::remove(ck_vobject::vscope* scope, const std::wstring& name) {
-	throw ck_message(L"BytecodeFunction is not container", ck_message_type::CK_UNSUPPORTED_OPERATION);
+	throw UnsupportedOperation(L"BytecodeFunction is not container");
 	return 0;
 };
 
 vobject* BytecodeFunction::call(ck_vobject::vscope* scope, const std::vector<vobject*> args) {
-	throw ck_message(L"BytecodeFunction is not directly callable", ck_message_type::CK_UNSUPPORTED_OPERATION);
+	throw UnsupportedOperation(L"BytecodeFunction is not directly callable");
 };
 
 vscope* BytecodeFunction::apply(const std::vector<ck_vobject::vobject*>& args) {

@@ -6,7 +6,7 @@ var e = function() { f() }
 var f = function() { g() }
 var g = function() { h() }
 var h = function() { i() }
-var i = function() { throw Error() }
+var i = function() { throw Cake() }
 
 try {
 	a()
@@ -27,7 +27,7 @@ r()
 //while (1)
 	;//print('trye' + 'ses')
 
-__defexceptionhandler = function(k) {  print(__defexceptionhandler) __defexceptionhandler = null print(k) }
+__defcakehandler = function(k) {  print(__defcakehandler) __defcakehandler = null print(k) }
 
 //throw 'kek'
 

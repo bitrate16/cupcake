@@ -174,7 +174,7 @@ bool Array::remove(vscope* scope, const wstring& name) {
 
 vobject* Array::call(vscope* scope, const vector<vobject*> args) {
 	// XXX: Construct object from input
-	throw ck_message(L"Array is not callable", ck_message_type::CK_UNSUPPORTED_OPERATION);
+	throw UnsupportedOperation(L"Array is not callable");
 };
 
 void Array::gc_mark() {

@@ -19,7 +19,7 @@
 #include "objects/Null.h"
 #include "objects/Undefined.h"
 #include "objects/BytecodeFunction.h"
-#include "objects/Error.h"
+#include "objects/Cake.h"
 
 
 // #define DEBUG_OUTPUT
@@ -93,16 +93,16 @@ ck_executer::ck_executer() {
 		
 	// Limit size of total stack usage when calculating
 	//  call, try and windows stacks sizes in constructor.
-	const int system_stack_size_offset = 2 * 1024 * 1024;
+	// ck_constants::ck_executer::def_system_stack_offset
 	
 	// Assuming that exec_bytecode, call_object and executer summary takes no more than 1024 bytes.
-	const int system_stack_frame_size = 1024 + 512;
+	// ck_constants::ck_executer::def_stack_frame_size;
 	
 	int system_stack_size = ck_util::get_system_stack_size();
 	// Limiting stack by 2MB for user calls
-	int bounded_stack_size = system_stack_size - system_stack_size_offset;
+	int bounded_stack_size = system_stack_size - ck_constants::ck_executer::def_system_stack_offset;
 	// Resulting allowed size of stack
-	int result_stack_size = bounded_stack_size / system_stack_frame_size;
+	int result_stack_size = bounded_stack_size / ck_constants::ck_executer::def_stack_frame_size;
 	// Limit stack sizes
 	try_stack_limit = result_stack_size;
 	execution_stack_limit = result_stack_size;
@@ -132,7 +132,7 @@ inline bool ck_executer::is_eof() {
 
 ck_vobject::vobject* ck_executer::vpop() {
 	if (objects.size() == 0)
-		throw ck_message(L"objects stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
+		throw StackCorruption(L"objects stack corrupted");
 	
 	vobject* t = objects.back();
 	objects.pop_back();
@@ -142,32 +142,37 @@ ck_vobject::vobject* ck_executer::vpop() {
 
 ck_vobject::vobject* ck_executer::vpeek() {
 	if (objects.size() == 0)
-		throw ck_message(L"objects stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
+		throw StackCorruption(L"objects stack corrupted");
 	
 	return objects.back();
 };
 
 void ck_executer::vpush(ck_vobject::vobject* o) {
-	objects.push_back(o);
+	// We have to handle out of memory exceptions because stack can not grow to the infinity.
+	try {
+		objects.push_back(o);
+	} catch(std::bad_alloc) {
+		throw OutOfMemory(L"allocation out of memory");
+	}
 };
 
 void ck_executer::vswap() {
 	if (objects.size() < 2)
-		throw ck_message(L"objects stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
+		throw StackCorruption(L"objects stack corrupted");
 	
 	std::iter_swap(objects.end() - 1, objects.end() - 2);
 };
 
 void ck_executer::vswap1() {
 	if (objects.size() < 3)
-		throw ck_message(L"objects stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
+		throw StackCorruption(L"objects stack corrupted");
 	
 	std::iter_swap(objects.end() - 2, objects.end() - 3);
 };
 
 void ck_executer::vswap2() {
 	if (objects.size() < 4)
-		throw ck_message(L"objects stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
+		throw StackCorruption(L"objects stack corrupted");
 	
 	std::iter_swap(objects.end() - 3, objects.end() - 4);
 };
@@ -190,9 +195,9 @@ int ck_executer::lineno() {
 void ck_executer::store_frame(std::vector<stack_frame>& stack, int stack_id, const std::wstring& name, bool own_scope) {
 	
 	if ((stack_id == call_stack_id || stack_id == window_stack_id) && call_stack.size() + window_stack.size() == execution_stack_limit)
-		throw ck_message(L"stack overflow", ck_message_type::CK_STACK_OVERFLOW);
+		throw StackOverflow(L"stack overflow");
 	else if (stack_id == try_stack_id && stack.size() == try_stack_limit)
-		throw ck_message(L"try stack overflow", ck_message_type::CK_STACK_OVERFLOW);
+		throw StackOverflow(L"try stack overflow");
 		
 	// Create stack_window and save executer state
 	stack_frame frame;
@@ -231,11 +236,11 @@ void ck_executer::restore_frame(std::vector<stack_frame>& stack, int stack_id, i
 #endif
 	
 	if (stack_id == call_stack_id && stack.size() == 0)
-		throw ck_message(L"call stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
+		throw StackCorruption(L"call stack corrupted");
 	else if (stack_id == try_stack_id && stack.size() == 0)
-		throw ck_message(L"try stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
+		throw StackCorruption(L"try stack corrupted");
 	else if (stack_id == window_stack_id && stack.size() == 0)
-		throw ck_message(L"window stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
+		throw StackCorruption(L"window stack corrupted");
 	
 	int window_id = stack.back().window_id;
 	int try_id    = stack.back().try_id;
@@ -317,9 +322,18 @@ void ck_executer::restore_frame(std::vector<stack_frame>& stack, int stack_id, i
 #endif
 };
 
-void ck_executer::follow_exception(const ck_message& msg) {
-	if (try_stack.size() == 0)
-		throw msg;	
+void ck_executer::follow_exception(const cake& msg) {
+	
+	if (try_stack.size() == 0) {
+		if (msg.has_backtrace())
+			throw msg;
+		
+		// Collect backtrace for this cake (and do not collect for object)
+		cake copy(msg);
+		if (!copy.has_backtrace() && copy.get_type_id() != cake_type::CK_OBJECT) copy.collect_backtrace();
+		
+		throw copy;	
+	}
 	
 	int type          = try_stack.back().try_type;
 	int catch_address = try_stack.back().catch_node;
@@ -343,33 +357,75 @@ void ck_executer::follow_exception(const ck_message& msg) {
 
 	// Check for valid call
 	if (call_stack.size() != 0 && call_stack.back().try_id == try_stack.size()-1) { 
+		if (msg.has_backtrace()) {
+			restore_frame(call_stack, call_stack_id, call_id - 1);
+			throw msg;
+		}
+		
+		// Collect backtrace for this cake (and do not collect for object)
+		cake copy(msg);
+		if (!copy.has_backtrace() && copy.get_type_id() != cake_type::CK_OBJECT) copy.collect_backtrace();
+		
 		restore_frame(call_stack, call_stack_id, call_id - 1);
-		throw msg;
+		throw copy;
 	}
 	
 	// Check for valid script
 	if (window_stack.size() != 0 && window_stack.back().try_id == try_stack.size()-1) {
+		if (msg.has_backtrace()) {
+			restore_frame(window_stack, window_stack_id, window_id - 1);
+			throw msg;
+		}
+		
+		// Collect backtrace for this cake (and do not collect for object)
+		cake copy(msg);
+		if (!copy.has_backtrace() && copy.get_type_id() != cake_type::CK_OBJECT) copy.collect_backtrace();
+		
 		restore_frame(window_stack, window_stack_id, window_id - 1);
-		throw msg;
+		throw copy;
 	}
 	
-	// The default behaviour is to pop try_frame out when handling exception.
-	// Normally try_trame should be popped by POP_TRY when try block finishes work without error.
-	restore_frame(try_stack, try_stack_id, try_stack.size() - 1);
+	if (msg.has_backtrace()) {
+		switch(type) {
+			case ck_bytecodes::TRY_NO_ARG:
+			case ck_bytecodes::TRY_NO_CATCH:
+				goto_address(catch_address); 
+				break;
+				
+			case ck_bytecodes::TRY_WITH_ARG: {
+				vscope* scope = new vscope(scopes.size() == 0 ? nullptr : scopes.back());
+				scope->root();
+				scope->put(handler, msg.get_type_id() == cake_type::CK_OBJECT ? msg.get_object() : new Cake(msg), 0, 1);
+				scopes.push_back(scope);
+				goto_address(catch_address); 
+				break;
+			}
+		}
+	} else {
 	
-	switch(type) {
-		case ck_bytecodes::TRY_NO_ARG:
-		case ck_bytecodes::TRY_NO_CATCH:
-			goto_address(catch_address); 
-			break;
-			
-		case ck_bytecodes::TRY_WITH_ARG: {
-			vscope* scope = new vscope(scopes.size() == 0 ? nullptr : scopes.back());
-			scope->root();
-			scope->put(handler, msg.get_type() == ck_message_type::CK_OBJECT ? msg.get_object() : new Error(msg), 0, 1);
-			scopes.push_back(scope);
-			goto_address(catch_address); 
-			break;
+		// Collect backtrace for this cake
+		cake copy(msg);
+		if (!copy.has_backtrace() && copy.get_type_id() != cake_type::CK_OBJECT) copy.collect_backtrace();
+		
+		
+		// The default behaviour is to pop try_frame out when handling exception.
+		// Normally try_trame should be popped by POP_TRY when try block finishes work without error.
+		restore_frame(try_stack, try_stack_id, try_stack.size() - 1);
+		
+		switch(type) {
+			case ck_bytecodes::TRY_NO_ARG:
+			case ck_bytecodes::TRY_NO_CATCH:
+				goto_address(catch_address); 
+				break;
+				
+			case ck_bytecodes::TRY_WITH_ARG: {
+				vscope* scope = new vscope(scopes.size() == 0 ? nullptr : scopes.back());
+				scope->root();
+				scope->put(handler, copy.get_type_id() == cake_type::CK_OBJECT ? copy.get_object() : new Cake(copy), 0, 1);
+				scopes.push_back(scope);
+				goto_address(catch_address); 
+				break;
+			}
 		}
 	}
 };
@@ -377,15 +433,16 @@ void ck_executer::follow_exception(const ck_message& msg) {
 
 void ck_executer::validate_scope() {
 	if (scopes.size() == 0 || scopes.back() == nullptr)
-		throw ck_message(L"scopes stack corrupted", ck_message_type::CK_STACK_CORRUPTED);		
+		throw StackCorruption(L"scopes stack corrupted");		
 };
 
-void ck_executer::exec_bytecode() {
+vobject* ck_executer::exec_bytecode() { 
+
 	while (!is_eof()) {
 		
 		// Check if thread is dead (suspended or anything else)
 		if (!GIL::current_thread()->is_alive())
-			return;
+			return nullptr;
 		
 		// Check for pending late calls
 		while (late_call.size()) {
@@ -496,7 +553,7 @@ void ck_executer::exec_bytecode() {
 				// Scope should return nullptr if value does not exist.
 				vobject* o = scopes.back()->get(cstr, 1);
 				if (o == nullptr)
-					throw ck_message(wstring(L"undefined reference to ") + cstr, ck_message_type::CK_TYPE_ERROR);
+					throw TypeError(wstring(L"undefined reference to ") + cstr);
 				
 				vpush(o);
 				break;
@@ -622,7 +679,7 @@ void ck_executer::exec_bytecode() {
 #endif
 				
 				if (objects.size() < argc + 1)
-					throw ck_message(L"objects stack corrupted", ck_message_type::CK_INVALID_STATE); 
+					throw StackCorruption(L"objects stack corrupted"); 
 				
 				// Copy args
 				vector<vobject*> args;
@@ -654,10 +711,10 @@ void ck_executer::exec_bytecode() {
 				wcout << "> CALL_FIELD [" << argc << "] [" << cstr << ']' << endl;
 #endif
 				if (objects.size() < argc + 1)
-					throw ck_message(L"objects stack corrupted", ck_message_type::CK_INVALID_STATE); 
+					throw StackCorruption(L"objects stack corrupted"); 
 				
 				if (objects.back() == nullptr)
-					throw ck_message(wstring(L"undefined reference to ") + cstr, ck_message_type::CK_TYPE_ERROR);
+					throw TypeError(wstring(L"undefined reference to ") + cstr);
 					
 				validate_scope();
 					
@@ -695,7 +752,7 @@ void ck_executer::exec_bytecode() {
 #endif
 				
 				if (objects.size() < argc)
-					throw ck_message(L"objects stack corrupted", ck_message_type::CK_INVALID_STATE); 
+					throw StackCorruption(L"objects stack corrupted"); 
 					
 				validate_scope();
 					
@@ -725,10 +782,10 @@ void ck_executer::exec_bytecode() {
 				read(sizeof(int), &argc);
 				
 				if (objects.size() < argc + 2)
-					throw ck_message(L"objects stack corrupted", ck_message_type::CK_INVALID_STATE); 
+					throw StackCorruption(L"objects stack corrupted"); 
 				
 				if (objects.rbegin()[0] == nullptr)
-					throw ck_message(wstring(L"undefined reference to member"), ck_message_type::CK_TYPE_ERROR);
+					throw TypeError(L"undefined reference to member");
 				
 				wstring key = objects.rbegin()[0]->string_value();
 				
@@ -737,7 +794,7 @@ void ck_executer::exec_bytecode() {
 #endif
 				
 				if (objects.rbegin()[1] == nullptr)
-					throw ck_message(wstring(L"undefined reference to ") + key, ck_message_type::CK_TYPE_ERROR);
+					throw TypeError(L"undefined reference to " + key);
 					
 				validate_scope();
 					
@@ -764,13 +821,13 @@ void ck_executer::exec_bytecode() {
 				validate_scope();
 				
 				if (objects.size() < 2)
-					throw ck_message(L"objects stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
+					throw StackCorruption(L"objects stack corrupted");
 				
 				vobject *ref = objects.rbegin()[1];
 				vobject *fun = nullptr;
 				
 				if (ref == nullptr)
-					throw ck_message(wstring(L"undefined reference to operator"), ck_message_type::CK_TYPE_ERROR);
+					throw TypeError(L"undefined reference to operator");
 				
 				wstring fun_name;
 				
@@ -817,7 +874,7 @@ void ck_executer::exec_bytecode() {
 					
 				// no operator
 				if (fun == nullptr || fun->is_typeof<Undefined>() || fun->is_typeof<Null>()) 
-					throw ck_message(wstring(L"undefined reference to operator ") + fun_name, ck_message_type::CK_TYPE_ERROR);
+					throw TypeError(L"undefined reference to operator " + fun_name);
 				else
 					fun_name = L"__roperator" + fun_name;
 				
@@ -859,7 +916,7 @@ void ck_executer::exec_bytecode() {
 				vobject* ref = vpop();
 				
 				if (ref == nullptr)
-					throw ck_message(wstring(L"undefined reference to ") + cstr, ck_message_type::CK_TYPE_ERROR);
+					throw TypeError(L"undefined reference to " + wstring(cstr));
 				
 				// Check for scope
 				validate_scope();		
@@ -878,10 +935,10 @@ void ck_executer::exec_bytecode() {
 				vobject* ref = vpop();
 				
 				if (ref == nullptr)
-					throw ck_message(wstring(L"undefined reference"), ck_message_type::CK_TYPE_ERROR);
+					throw TypeError(L"undefined reference");
 				
 				if (key == nullptr)
-					throw ck_message(wstring(L"undefined reference to member"), ck_message_type::CK_TYPE_ERROR);
+					throw TypeError(L"undefined reference to member");
 				
 				// Check for scope
 				validate_scope();		
@@ -904,7 +961,7 @@ void ck_executer::exec_bytecode() {
 				vobject* ref = vpop();
 				
 				if (ref == nullptr)
-					throw ck_message(wstring(L"undefined reference to ") + cstr, ck_message_type::CK_TYPE_ERROR);
+					throw TypeError(L"undefined reference to " + wstring(cstr));
 				
 				// Check for scope
 				validate_scope();		
@@ -922,10 +979,10 @@ void ck_executer::exec_bytecode() {
 				vobject* ref = vpop();
 				
 				if (ref == nullptr)
-					throw ck_message(wstring(L"undefined reference"), ck_message_type::CK_TYPE_ERROR);
+					throw TypeError(L"undefined reference");
 				
 				if (key == nullptr)
-					throw ck_message(wstring(L"undefined reference to member"), ck_message_type::CK_TYPE_ERROR);
+					throw TypeError(L"undefined reference to member");
 				
 				// Check for scope
 				validate_scope();		
@@ -945,13 +1002,13 @@ void ck_executer::exec_bytecode() {
 				validate_scope();
 				
 				if (objects.size() == 0)
-					throw ck_message(L"objects stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
+					throw StackCorruption(L"objects stack corrupted");
 				
 				vobject *ref = objects.rbegin()[0];
 				vobject *fun = nullptr;
 				
 				if (ref == nullptr)
-					throw ck_message(wstring(L"undefined reference to operator"), ck_message_type::CK_TYPE_ERROR);
+					throw TypeError(L"undefined reference to operator");
 				
 				wstring fun_name;
 				
@@ -982,7 +1039,7 @@ void ck_executer::exec_bytecode() {
 					
 				// no operator
 				if (fun == nullptr || fun->is_typeof<Undefined>() || fun->is_typeof<Null>()) 
-					throw ck_message(wstring(L"undefined reference to operator ") + fun_name, ck_message_type::CK_TYPE_ERROR);
+					throw TypeError(L"undefined reference to operator " + fun_name);
 				else
 					fun_name = L"__roperator" + fun_name;
 				
@@ -1073,8 +1130,9 @@ void ck_executer::exec_bytecode() {
 				wcout << "> HALT" << endl;
 #endif
 				
+				// Make pointer point at HALT
 				--pointer;
-				return;
+				return nullptr;
 				
 				break;
 			}
@@ -1084,7 +1142,7 @@ void ck_executer::exec_bytecode() {
 				wcout << "> THROW_NOARG" << endl;
 #endif
 				
-				throw ck_message((vobject*) nullptr);
+				throw ObjectCake(nullptr);
 				
 				break;
 			}
@@ -1094,7 +1152,7 @@ void ck_executer::exec_bytecode() {
 				wcout << "> THROW" << endl;
 #endif
 				
-				throw ck_message(vpop());
+				throw ObjectCake(vpop());
 				
 				break;
 			}
@@ -1110,7 +1168,7 @@ void ck_executer::exec_bytecode() {
 				wcout << "> THROW_STRING: \"" << cstr << '"' << endl;
 #endif
 				
-				throw ck_message(new String(cstr));
+				throw ObjectCake(new String(cstr));
 				
 				break;
 			}
@@ -1123,7 +1181,7 @@ void ck_executer::exec_bytecode() {
 #endif
 				
 				if (scopes.size() < i)
-					throw ck_message(L"scopes stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
+					throw StackCorruption(L"scopes stack corrupted");
 				
 				for (int k = 0; k < i; ++k)
 					scopes.pop_back();
@@ -1136,7 +1194,9 @@ void ck_executer::exec_bytecode() {
 				wcout << "> RETURN_VALUE" << endl;
 #endif
 				
-				throw ck_message(vpop(), ck_message_type::CK_RETURN);
+				// Returning as a normal result from a function.
+				// Deal with throwing cakes.
+				return vpop();
 				
 				break;
 			}
@@ -1236,7 +1296,7 @@ void ck_executer::exec_bytecode() {
 		
 			case ck_bytecodes::VSTATE_POP_TRY: {
 				if (try_stack.size() == 0)
-					throw ck_message(L"try stack corrupted", ck_message_type::CK_STACK_CORRUPTED);
+					throw StackCorruption(L"try stack corrupted");
 				
 				// No explicit restoration. 
 				// Everything expected to be fine.
@@ -1254,7 +1314,7 @@ void ck_executer::exec_bytecode() {
 			case ck_bytecodes::VSTATE_PUSH_TRY: {	
 		
 				if (try_stack.size() == try_stack_limit)
-					throw ck_message(L"try-catch stack overflow", ck_message_type::CK_STACK_OVERFLOW);
+					throw StackOverflow(L"try stack overflow");
 				
 				int try_node = 0;
 				int catch_node = 0;
@@ -1301,7 +1361,21 @@ void ck_executer::exec_bytecode() {
 				break;
 			}
 			
-			default: throw ck_message(L"invalid bytecode [" + to_wstring(scripts.back()->bytecode.bytemap[pointer-1]) + L"]", ck_message_type::CK_INVALID_STATE);
+			case ck_bytecodes::PUSH_THIS: {
+#ifdef DEBUG_OUTPUT
+				wcout << "> PUSH_THIS" << endl;
+#endif
+				
+				// Check for valid scope
+				validate_scope();
+				
+				// Push scope instance to stack
+				vpush(scopes.back());
+				
+				break;
+			}
+			
+			default: throw InvalidState(L"invalid bytecode [" + to_wstring(scripts.back()->bytecode.bytemap[pointer-1]) + L"]");
 		}
 		
 		// Respond to GIL requests
@@ -1310,13 +1384,15 @@ void ck_executer::exec_bytecode() {
 		// Perform GC collection ?
 		GIL::gc_instance()->collect();
 	}
+	
+	return nullptr;
 };
 
 
 void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, std::vector<std::wstring>* argn, std::vector<ck_vobject::vobject*>* argv) {
 	
 	if (call_stack.size() + window_stack.size() == execution_stack_limit)
-		throw ck_message(L"stack overflow", ck_message_type::CK_STACK_OVERFLOW);
+		throw StackOverflow(L"stack overflow");
 	
 	bool own_scope = scope == nullptr;
 	
@@ -1356,21 +1432,18 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 			// Reached bytecode end
 			break;
 			
-		} catch(const ck_exceptions::ck_message& msg) { 
+		} catch(const ck_exceptions::cake& msg) { 
 			GIL::current_thread()->clear_blocks();
 			
-			if (msg.get_type() == ck_message_type::CK_OBJECT)
-				follow_exception(msg);
-			else
-				follow_exception(new Error(msg));
+			follow_exception(msg);
 		} catch (const std::exception& ex) {
 			GIL::current_thread()->clear_blocks();
 			
-			follow_exception(new Error(ck_message(ex)));
+			follow_exception(NativeException(ex));
 		} catch (...) {
 			GIL::current_thread()->clear_blocks();
 			
-			follow_exception(new Error(ck_message(ck_exceptions::ck_message_type::NATIVE_EXCEPTION)));
+			follow_exception(UnknownException());
 		} 
 	}
 	
@@ -1383,10 +1456,10 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>& args, const std::wstring& name, vscope* scope) { 
 
 	if (call_stack.size() + window_stack.size() == execution_stack_limit)
-		throw ck_message(L"stack overflow", ck_message_type::CK_STACK_OVERFLOW);
+		throw StackOverflow(L"stack overflow");
 
 	if (obj == nullptr)
-		throw ck_message(wstring(L"undefined call to ") + name, ck_message_type::CK_TYPE_ERROR);
+		throw TypeError(L"undefined call to " + name);
 	
 	// Construct scope
 	// vscope* scope = nullptr;
@@ -1433,65 +1506,48 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 		
 		while (1) {
 			try {
-				exec_bytecode();
+				obj = exec_bytecode();
 				GIL::current_thread()->clear_blocks();
-				
-				// Correct function finish
-				obj = Undefined::instance();
 				
 				break;
 				
-			} catch(const ck_exceptions::ck_message& msg) { 
+			} catch(const ck_exceptions::cake& msg) { 
 				GIL::current_thread()->clear_blocks();
 				
-				if (msg.get_type() == ck_message_type::CK_RETURN) {
-					// Got return value
-					obj = msg.get_object();
-					break;
-				} else {
-					// Process exception
-					if (msg.get_type() == ck_message_type::CK_OBJECT)
-						follow_exception(msg);
-					else
-						follow_exception(new Error(msg));
-				}
+				// Process exception
+				follow_exception(msg);
 			} catch (const std::exception& ex) {
 				GIL::current_thread()->clear_blocks();
 				
 				// Process exception
-				follow_exception(new Error(ck_message(ex)));
+				follow_exception(NativeException(ex));
 			} catch (...) {
 				GIL::current_thread()->clear_blocks();
 				
 				// Process exception
-				follow_exception(new Error(ck_message(ck_exceptions::ck_message_type::NATIVE_EXCEPTION)));
+				follow_exception(UnknownException());
 			} 
 		}
 	} else {
 		try {
 			obj = obj->call(scope, args);
 			GIL::current_thread()->clear_blocks();
-		} catch(const ck_exceptions::ck_message& msg) { 
+				
+		} catch(const ck_exceptions::cake& msg) { 
 			GIL::current_thread()->clear_blocks();
 			
-			if (msg.get_type() == ck_message_type::CK_RETURN)
-				// Got return
-				obj = msg.get_object();
-			else if (msg.get_type() == ck_message_type::CK_OBJECT)
-				// Process exception
-				follow_exception(msg);
-			else
-				follow_exception(new Error(msg));
+			// Process exception
+			follow_exception(msg);
 		} catch (const std::exception& ex) {
 			GIL::current_thread()->clear_blocks();
 			
 			// Process exception
-			follow_exception(new Error(ck_message(ex)));
+			follow_exception(NativeException(ex));
 		} catch (...) {
 			GIL::current_thread()->clear_blocks();
 			
 			// Process exception
-			follow_exception(new Error(ck_message(ck_exceptions::ck_message_type::NATIVE_EXCEPTION)));
+			follow_exception(UnknownException());
 		} 
 	}
 	
@@ -1523,7 +1579,7 @@ void ck_executer::late_call_object(ck_vobject::vobject* obj, ck_vobject::vobject
 
 void ck_executer::goto_address(int bytecode_address) {
 	if (bytecode_address < 0 || bytecode_address > scripts.back()->bytecode.bytemap.size())
-		throw ck_message(L"goto out of range [" + to_wstring(bytecode_address) + L"] for range [0, " + to_wstring(scripts.back()->bytecode.bytemap.size()) + L"]" , ck_message_type::CK_INVALID_STATE);
+		throw InvalidState(L"goto out of range [" + to_wstring(bytecode_address) + L"] for range [0, " + to_wstring(scripts.back()->bytecode.bytemap.size()) + L"]");
 	
 	pointer = bytecode_address;
 };

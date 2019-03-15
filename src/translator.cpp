@@ -1852,6 +1852,11 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 			
 			break;
 		}
+		
+		case THIS: {
+			push_byte(bytemap, ck_bytecodes::PUSH_THIS);
+			break;
+		}
 	}
 };
 
@@ -2281,6 +2286,11 @@ void ck_translator::print(vector<unsigned char>& bytemap, int off, int offset, i
 					wcout << "> VSTATE_PUSH_TRY [TRY_WITH_ARG] (" << cstr << ") [" << try_node << "] [" << catch_node << ']' << endl;
 				}
 				
+				break;
+			}
+		
+			case ck_bytecodes::PUSH_THIS: {
+				wcout << "> PUSH_THIS" << endl;
 				break;
 			}
 		}

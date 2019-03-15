@@ -225,7 +225,7 @@ ck_thread *GIL::current_ckthread() {
 
 	if (it != gil->threads.end()) 
 	  return gil->threads[std::distance(gil->threads.begin(), it)];
-	else // Error, lol
+	else // Cake, lol
 		throw std::domain_error("invalid thread");
 };
 
@@ -235,7 +235,7 @@ ck_thread *GIL::current_ckthread_noexcept() noexcept {
 
 	if (it != gil->threads.end()) 
 	  return gil->threads[std::distance(gil->threads.begin(), it)];
-	else // Error, lol
+	else // Cake, lol
 		return nullptr;
 };
 

@@ -77,7 +77,7 @@ bool vscope::remove(vscope* scope, const wstring& name) {
 
 
 vobject* vscope::call(vscope* scope, const std::vector<vobject*> args) { 
-	throw ck_message(L"Scope is not callable", ck_message_type::CK_UNSUPPORTED_OPERATION);
+	throw UnsupportedOperation(L"Scope is not callable");
 };
 
 

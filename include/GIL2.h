@@ -26,19 +26,19 @@ namespace ck_core {
 		// Set to 1 while thread called GIL::accept_lock() for accepting controller's lock
 		bool locked  = 0;
 		
-	public:
-		
-		ckthread() : native_thread_id(std::this_thread::get_id()) {};
-		
+		// Passed only from GIL
 		ckthread(std::thread* t) {
-			if (!t)
-				throw ck_exceptions::ck_message("ckthread is null");
+			if (!t) throw ck_exceptions::InvalidState(L"ckthread is null");
 			
 			native_thread    = t;
 			// thread_id        = (long long) t->get_id();
 			native_thread_id = t->get_id();
 			has_native       = 1;
 		};
+		
+		ckthread() : native_thread_id(std::this_thread::get_id()) {};
+		
+	public:
 		
 		~ckthread() {
 			// Logically here goes nothing because when instance of this object 

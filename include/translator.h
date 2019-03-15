@@ -42,11 +42,12 @@ namespace ck_bytecodes {
 	const int PUSH_CONST_FUNCTION  = 47; // Push BytecodeFunction
 	const int VSTATE_PUSH_TRY      = 48; // Push try frame
 	const int VSTATE_POP_TRY       = 49; // Pop try frame
+	const int PUSH_THIS            = 50; // Push this scope to stack
 	
-	const int CALL                 = 50; // (<expression>)()  top:[fun, args]
-	const int CALL_NAME            = 51; // var_name()        top:[args]
-	const int CALL_FIELD           = 22; // foo.var_name()    top:[ref, args]
-	const int CALL_MEMBER          = 23; // foo["member"]()   top:[key, ref, args]
+	const int CALL                 = 51; // (<expression>)()  top:[fun, args]
+	const int CALL_NAME            = 52; // var_name()        top:[args]
+	const int CALL_FIELD           = 53; // foo.var_name()    top:[ref, args]
+	const int CALL_MEMBER          = 54; // foo["member"]()   top:[key, ref, args]
 	
 	const int OPT_ADD     = 1;
 	const int OPT_SUB     = 2;

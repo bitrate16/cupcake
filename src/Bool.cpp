@@ -50,7 +50,7 @@ vobject* Bool::get(ck_vobject::vscope* scope, const std::wstring& name) {
 };
 
 void Bool::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* object) {
-	throw ck_message(L"Bool is not container", ck_message_type::CK_UNSUPPORTED_OPERATION);
+	throw UnsupportedOperation(L"Bool is not container");
 };
 
 // Delegate to prototype
@@ -59,12 +59,12 @@ bool Bool::contains(ck_vobject::vscope* scope, const std::wstring& name) {
 };
 
 bool Bool::remove(ck_vobject::vscope* scope, const std::wstring& name) {
-	throw ck_message(L"Bool is not container", ck_message_type::CK_UNSUPPORTED_OPERATION);
+	throw UnsupportedOperation(L"Bool is not container");
 	return 0;
 };
 
 vobject* Bool::call(ck_vobject::vscope* scope, const std::vector<vobject*> args) {
-	throw ck_message(L"Bool is not callable", ck_message_type::CK_UNSUPPORTED_OPERATION);
+	throw UnsupportedOperation(L"Bool is not callable");
 };
 
 

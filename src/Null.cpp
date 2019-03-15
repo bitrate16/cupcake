@@ -52,7 +52,7 @@ vobject* Null::get(ck_vobject::vscope* scope, const std::wstring& name) {
 };
 
 void Null::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* object) {
-	throw ck_message(L"Null is not container", ck_message_type::CK_UNSUPPORTED_OPERATION);
+	throw UnsupportedOperation(L"Null is not container");
 };
 
 // Delegate to prototype
@@ -61,12 +61,12 @@ bool Null::contains(ck_vobject::vscope* scope, const std::wstring& name) {
 };
 
 bool Null::remove(ck_vobject::vscope* scope, const std::wstring& name) {
-	throw ck_message(L"Null is not container", ck_message_type::CK_UNSUPPORTED_OPERATION);
+	throw UnsupportedOperation(L"Null is not container");
 	return 0;
 };
 
 vobject* Null::call(ck_vobject::vscope* scope, const std::vector<vobject*> args) {
-	throw ck_message(L"Null is not callable", ck_message_type::CK_UNSUPPORTED_OPERATION);
+	throw UnsupportedOperation(L"Null is not callable");
 };
 
 

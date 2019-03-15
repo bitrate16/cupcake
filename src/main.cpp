@@ -13,7 +13,7 @@
 #include "vscope.h"
 #include "ASTPrinter.h"
 
-#include "objects/Error.h"
+#include "objects/Cake.h"
 #include "objects/Int.h"
 #include "objects/Undefined.h"
 #include "objects/Null.h"
@@ -147,13 +147,13 @@ int main(int argc, const char** argv) {
 	signal(SIGABRT, signal_handler); // <-- abortion is murder
 	
 	// Indicates if main returned an exception
-	bool exception_stated = 0;
-	// Instance of handled exception
-	ck_message message;
+	bool cake_started = 0;
+	// Instance of catched cake
+	cake message;
 	
 	while (1) {
 		try {
-			if (!exception_stated) {
+			if (!cake_started) {
 				GIL::executer_instance()->execute(main_script, root_scope);
 				GIL::current_thread()->clear_blocks();
 			
@@ -162,23 +162,26 @@ int main(int argc, const char** argv) {
 				
 			} else {
 				GIL::executer_instance()->clear();
-				exception_stated = 0;
+				cake_started = 0;
 				
-				// On exception caught, call stack, windows stack and try stack are empty.
-				// Process exception by calling handler-function.
-				// __defexceptionhandler(exception)
-				// The default behaviour is calling thread exception handler and then finish thread work.
+				// On cake caught, call stack, windows stack and try stack are empty.
+				// Process cake by calling handler-function.
+				// __defcakehandler(exception)
+				// The default behaviour is calling thread cake handler and then finish thread work.
 				
-				vobject* __defexceptionhandler = root_scope->get(L"__defexceptionhandler");
-				if (__defexceptionhandler == nullptr || __defexceptionhandler->is_typeof<Undefined>() || __defexceptionhandler->is_typeof<Null>())
-					if (message.get_type() == ck_message_type::CK_OBJECT && message.get_object() != nullptr)
-						wcerr << "Unhandled error: " << message.get_object()->string_value() << endl;
+				vobject* __defcakehandler = root_scope->get(L"__defcakehandler");
+				if (__defcakehandler == nullptr || __defcakehandler->is_typeof<Undefined>() || __defcakehandler->is_typeof<Null>())
+					if (message.get_type_id() == cake_type::CK_OBJECT && message.get_object() != nullptr)
+						if (message.get_object()->is_typeof<Cake>())
+							((Cake*) message.get_object())->print_backtrace();
+						else
+							wcerr << "Unhandled cake: 	" << message << endl;
 					else
-						wcerr << "Unhandled error: " << message << endl;
+						wcerr << "Unhandled cake: " << message << endl;
 				else
-					GIL::executer_instance()->call_object(__defexceptionhandler, nullptr, { 
-							message.get_type() == ck_message_type::CK_OBJECT ? message.get_object() : new Error(message)
-						}, L"__defexceptionhandler", root_scope);
+					GIL::executer_instance()->call_object(__defcakehandler, nullptr, { 
+							message.get_type_id() == cake_type::CK_OBJECT ? message.get_object() : new Cake(message)
+						}, L"__defcakehandler", root_scope);
 				
 				// Clear thread blocks after each execution of side code to avoid fake blocking of thread.
 				GIL::current_thread()->clear_blocks();
@@ -186,21 +189,21 @@ int main(int argc, const char** argv) {
 				// If reached this statement, then exception was processed correctly
 				break;
 			}
-		} catch (const ck_message& msg) {
+		} catch (const cake& msg) {
 			GIL::current_thread()->clear_blocks();
 			
-			exception_stated = 1;
+			cake_started = 1;
 			message = msg;
 		} catch (const std::exception& msg) {
 			GIL::current_thread()->clear_blocks();
 			
-			exception_stated = 1;
+			cake_started = 1;
 			message = msg;
 		} catch (...) {
 			GIL::current_thread()->clear_blocks();
 			
-			exception_stated = 1;
-			message = ck_message(ck_exceptions::ck_message_type::NATIVE_EXCEPTION);
+			cake_started = 1;
+			message = UnknownException();
 		}
 	}
 	

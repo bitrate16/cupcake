@@ -12,8 +12,13 @@ namespace ck_vobject {
 	class vscope;
 };
 
+// Allow both classes collect backtrace of this executer.
 namespace ck_objects {
-	class Error;
+	class Cake;
+};
+
+namespace ck_exceptions {
+	class cake;
 };
 
 namespace ck_core {
@@ -83,7 +88,8 @@ namespace ck_core {
 	class ck_script;
 	class ck_executer {
 		
-		friend class ck_objects::Error;
+		friend class ck_objects::Cake;
+		friend class ck_exceptions::cake;
 		friend class ck_executer_gc_object;
 		
 		ck_executer_gc_object* gc_marker;
@@ -119,8 +125,15 @@ namespace ck_core {
 		// Points to the current command address.
 		int pointer = 0;
 		
+		// Reads object from bytemap.
 		bool read(int size, void* ptr);
-		void exec_bytecode();
+		
+		// Performs bytecode execution in a loop.
+		// Returns value of RETURN bytecode
+		//  or nullptr if nothing returned or nothing should be returned.
+		inline ck_vobject::vobject* exec_bytecode();
+		
+		// Checks if execution reached end or HALT.
 		bool is_eof();
 		
 		// Objects stack manipulation
@@ -144,12 +157,12 @@ namespace ck_core {
 		inline void vswap2();
 		
 		// if (scopes.size() == 0 || scopes.back() == nullptr)
-		//	throw ck_message(ck_message_type::CK_STACK_CORRUPTED);		
+		//	throw StackCorrupted();		
 		inline void validate_scope();
 		
 		// peek closest try_frame and follow it's catch block by jumping on it.
 		// If no frames left, rethrow message up.
-		void follow_exception(const ck_exceptions::ck_message& msg);
+		inline void follow_exception(const ck_exceptions::cake& msg);
 		
 		// Store stack frame
 		void store_frame(std::vector<stack_frame>& stack, int stack_id, const std::wstring& name, bool own_scope);

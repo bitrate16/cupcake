@@ -5,90 +5,159 @@
 #include <string>
 #include <cwchar>
 
+#include "GIL2.h"
+#include "executer.h"
+#include "script.h"
+
 using namespace std;
 using namespace ck_exceptions;
+using namespace ck_core;
 
 
-wostream& ck_exceptions::operator<<(wostream& os, const ck_message& m) {
-	switch(m.message_type) {
-		case ck_message_type::CK_CMESSAGE: {
-			os << "ck_message: " << m.native_message << endl;
+void cake::collect_backtrace() {
+	if (contains_backtrace)
+		return;
+	
+	contains_backtrace = 1;
+	
+	if (GIL::executer_instance() == nullptr)
+		return;
+	
+	for (int i = 0; i < GIL::executer_instance()->call_stack.size(); ++i) {
+		backtrace.push_back(BacktraceFrame());
+		
+		int pointer = GIL::executer_instance()->call_stack[i].pointer;
+		int script_id = GIL::executer_instance()->call_stack[i].script_id;
+		int lineno = 0;
+		if (script_id >= GIL::executer_instance()->scripts.size())
+			continue;
+		
+		ck_script* script = GIL::executer_instance()->scripts[script_id];
+		
+		if (script->bytecode.lineno_table.size() == 0)
+			lineno = -1;
+		
+		if (pointer >= script->bytecode.bytemap.size()) 
+			lineno = script->bytecode.lineno_table.rbegin()[1];
+		
+		for (int i = 0; i < script->bytecode.lineno_table.size() - 2; i += 2) {
+			if (pointer >= script->bytecode.lineno_table[i + 1] && pointer < script->bytecode.lineno_table[i + 3]) {
+				lineno = script->bytecode.lineno_table[i];
+				break;
+			}
+		}
+		
+		backtrace.back().lineno = lineno;
+		backtrace.back().filename = script->filename;
+		backtrace.back().function = GIL::executer_instance()->call_stack[i].name;
+	}
+};
+
+void cake::print_backtrace() {
+	if (type == L"" && message != L"")
+		wcout << "cake: " << message << endl;
+	else if (type != L"" && message == L"")
+		wcout << type << endl;
+	else if (type != L"" && message != L"")
+		wcout << type << ": " << message << endl;
+	else
+		wcout << "cake thrown" << endl;
+	
+	if (has_backtrace())
+		for (int i = 0; i < backtrace.size(); ++i) {
+			wcout << " at File <" << backtrace[i].filename << "> line " << backtrace[i].lineno;
+			
+			if (backtrace[i].function.size() != 0)
+				wcout << " " << backtrace[i].function << "()";
+			
+			int amount = 0;
+			while (i + amount + 1 < backtrace.size()) {
+				if (backtrace[i].function == backtrace[i + amount + 1].function
+					&&
+					backtrace[i].lineno   == backtrace[i + amount + 1].lineno
+					&&
+					backtrace[i].filename == backtrace[i + amount + 1].filename)
+					++amount;
+				else
+					break;
+			}
+			i += amount;
+			
+			if (amount) 
+				wcout << " + " << amount << " more" << endl;
+			else
+				wcout << endl;
+		}
+	else
+		wcout << "<no backtrace>" << endl;
+};
+
+wostream& ck_exceptions::operator<<(wostream& os, const cake& m) {
+	switch(m.type_id) {
+		case cake_type::CK_EMPTY: {
+			os << "empty cake" << endl;
 			break;
 		}
 		
-		case ck_message_type::CK_WCMESSAGE: {
-			os << "ck_message: " << m.native_wmessage << endl;
+		case cake_type::CK_CAKE: {
+			if (m.type == L"" && m.message == L"")
+				os << "cake thrown" << endl;
+			else if (m.type != L"" && m.message == L"")
+				os << m.type << endl;
+			else if (m.type == L"" && m.message != L"")
+				os << "cake: " << m.message << endl;
+			else
+				os << m.type << L": " << m.message << endl;
 			break;
 		}
 		
-		case ck_message_type::CK_STRING: {
-			os << "ck_message: " << m.native_string << endl;
+		case cake_type::CK_OBJECT: {
+			os << (m.object ? L"nullptr" : m.object->string_value()) << endl;
 			break;
 		}
 		
-		case ck_message_type::BAD_ALLOC: 
-		case ck_message_type::BAD_ALLOC2: {
-			os << "ck_message: BAD_ALLOC" << endl;
+		case cake_type::CK_NATIVE_EXCEPTION: {
+			os << "std::exception: " << m.exception.what() << endl;
 			break;
 		}
 		
-		case ck_message_type::UNDEFINED_BEHAVIOUR: {
-			os << "ck_message: UNDEFINED_BEHAVIOUR rethrow catch(...)" << endl;
-			break;
-		}
-		
-		case ck_message_type::NATIVE_EXCEPTION: {
-			os << "ck_message: NATIVE_EXCEPTION: " << m.native_exception.what() << endl;
-			break;
-		}
-		
-		case ck_message_type::CK_UNSUPPORTED_OPERATION: {
-			os << "ck_message: CK_UNSUPPORTED_OPERATION: " << m.native_string << endl;
-			break;
-		}
-		
-		case ck_message_type::CK_RUNTIME_ERROR: {
-			os << "ck_message: RUNTIME_ERROR: " << m.native_string << endl;
-			break;
-		}
-		
-		case ck_message_type::CK_STACK_CORRUPTED: {
-			os << "ck_message: CK_STACK_CORRUPTED: " << m.native_string << endl;
-			break;
-		}
-		
-		case ck_message_type::CK_TYPE_ERROR: {
-			os << "ck_message: CK_TYPE_ERROR: " << m.native_string << endl;
-			break;
-		}
-		
-		case ck_message_type::CK_INVALID_STATE: {
-			os << "ck_message: CK_INVALID_STATE: " << m.native_string << endl;
-			break;
-		}
-		
-		case ck_message_type::CK_OBJECT: {
-			os << "ck_message: CK_OBJECT" << endl;
-			break;
-		}
-		
-		case ck_message_type::CK_STACK_OVERFLOW: {
-			os << "ck_message: CK_STACK_OVERFLOW: " << m.native_string << endl;
-			break;
-		}
-		
-		case ck_message_type::CK_EMPTY: {
-			os << "ck_message: CK_EMPTY: " << endl;
+		case cake_type::CK_UNKNOWN_EXCEPTION: {
+			os << "unknown exception" << endl;
 			break;
 		}
 	}
+	
+	// Then print backtrace
+	if (m.has_backtrace())
+		for (int i = 0; i < m.backtrace.size(); ++i) {
+			wcout << " at File <" << m.backtrace[i].filename << "> line " << m.backtrace[i].lineno;
+			
+			if (m.backtrace[i].function.size() != 0)
+				wcout << " " << m.backtrace[i].function << "()";
+			
+			int amount = 0;
+			while (i + amount + 1 < m.backtrace.size()) {
+				if (m.backtrace[i].function == m.backtrace[i + amount + 1].function
+					&&
+					m.backtrace[i].lineno   == m.backtrace[i + amount + 1].lineno
+					&&
+					m.backtrace[i].filename == m.backtrace[i + amount + 1].filename)
+					++amount;
+				else
+					break;
+			}
+			i += amount;
+			
+			if (amount) 
+				wcout << " + " << amount << " more" << endl;
+			else
+				wcout << endl;
+		}
+	else
+		os << "<no backtrace>" << endl;
 	
 	return os;
 };
 
 
-ck_message::~ck_message() throw() {
-	switch(message_type) {
-		
-	};
-};
+

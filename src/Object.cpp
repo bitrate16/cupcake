@@ -67,7 +67,7 @@ bool Object::remove(vscope* scope, const wstring& name) {
 
 vobject* Object::call(vscope* scope, const vector<vobject*> args) {
 	// XXX: Construct object from input
-	throw ck_message(L"Object is not callable", ck_message_type::CK_UNSUPPORTED_OPERATION);
+	throw UnsupportedOperation(L"Object is not callable");
 };
 
 

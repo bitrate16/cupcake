@@ -10,30 +10,20 @@
 
 namespace ck_objects {
 
-	class Error : public ck_objects::Object {
-		
-		struct Frame {
-			
-			Frame() {};
-			
-			int lineno;
-			std::wstring filename;
-			std::wstring function;
-		};
+	class Cake : public ck_objects::Object {
 		
 	protected:
 	
-		std::vector<Frame> backtrace;
+		std::vector<ck_exceptions::BacktraceFrame> backtrace;
+		std::wstring type;
 		std::wstring message;
 		
 		void collect_backtrace();
 		
 	public:
 		
-		Error();
-		Error(const std::wstring& str);
-		Error(const ck_exceptions::ck_message& ex);
-		virtual ~Error();
+		Cake(const std::wstring& type = L"", const std::wstring& message = L"");
+		Cake(const ck_exceptions::cake& c);
 		
 		virtual vobject* get     (ck_vobject::vscope*, const std::wstring&);
 		virtual void     put     (ck_vobject::vscope*, const std::wstring&, vobject*);
@@ -44,6 +34,18 @@ namespace ck_objects {
 		virtual void gc_mark();
 		virtual void gc_finalize();
 		
+		
+		inline const std::wstring& get_type() {
+			return type;
+		};
+		
+		inline const std::wstring& get_message() {
+			return message;
+		};
+		
+		inline std::vector<ck_exceptions::BacktraceFrame>& get_backtrace() {
+			return backtrace;
+		};
 		
 		void print_backtrace();
 		
@@ -57,5 +59,5 @@ namespace ck_objects {
 	};
 	
 	// Defined on interpreter start.
-	static CallablePrototype* ErrorProto = nullptr;
+	static CallablePrototype* CakeProto = nullptr;
 };

@@ -35,7 +35,7 @@ void* gc_object::operator new(std::size_t count) {
 	try {
 		return ::operator new(count);
 	} catch (...) {
-		throw ck_message(ck_message_type::BAD_ALLOC);
+		throw OutOfMemory(L"allocation out of memory");
 	}
 };
 
@@ -43,7 +43,7 @@ void* gc_object::operator new[](std::size_t count) {
 	try {
 		return ::operator new[](count);
 	} catch (std::bad_alloc) {
-		throw ck_message(ck_message_type::BAD_ALLOC2);
+		throw OutOfMemory(L"allocation out of memory");
 	}
 };
 
@@ -108,7 +108,7 @@ void GC::attach(gc_object *o) {
 	
 	gc_list *c = new gc_list;
 	if (!c)
-		throw ck_message("GC error");
+		throw OutOfMemory(L"GC list allocation error");
 	
 	++created_interval;
 	o->gc_record    = 1;
@@ -132,7 +132,7 @@ void GC::attach_root(gc_object *o) {
 	
 	gc_list *c = new gc_list;
 	if (!c)
-		throw ck_message("GC error");
+		throw OutOfMemory(L"GC list allocation error");
 	
 	o->gc_root       = 1;
 	o->gc_reachable  = 0;
@@ -168,7 +168,7 @@ void GC::lock(gc_object *o) {
 	
 	gc_list *c = new gc_list;
 	if (!c)
-		throw ck_message("GC error");
+		throw OutOfMemory(L"GC list allocation error");
 	
 	o->gc_lock       = 1;
 	o->gc_reachable  = 0;
@@ -202,12 +202,12 @@ int GC::roots_count() { return roots_size; };
 // Amount of locked obejcts
 int GC::locks_count() { return locks_size; };
 
-void GC::collect() {
+void GC::collect(bool forced_collect) {
 	std::unique_lock<std::mutex> guard(protect_lock);
 	if (collecting)
 		return;
 	
-	if (created_interval <= GC::MIN_CREATED_INTERVAL)
+	if (created_interval <= GC::MIN_CREATED_INTERVAL && !forced_collect)
 		return;
 	
 	// Call lock on GIL to prevent interruption

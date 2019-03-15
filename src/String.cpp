@@ -99,7 +99,7 @@ void String::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* o
 	
 	// If valid integer
 	if (is_int) 
-		throw ck_message(L"can not change const string", ck_message_type::CK_UNSUPPORTED_OPERATION);
+		throw UnsupportedOperation(L"can not change const string");
 	
 	// Else put variable by name
 	Object::put(name, object);
@@ -146,7 +146,7 @@ bool String::remove(ck_vobject::vscope* scope, const std::wstring& name) {
 	
 	// If valid integer
 	if (is_int) 
-		throw ck_message(L"can not change const string", ck_message_type::CK_UNSUPPORTED_OPERATION);
+		throw UnsupportedOperation(L"can not change const string");
 	
 	if (Object::remove(name))
 		return 1;
@@ -156,7 +156,7 @@ bool String::remove(ck_vobject::vscope* scope, const std::wstring& name) {
 };
 
 vobject* String::call(ck_vobject::vscope* scope, const std::vector<vobject*> args) {
-	throw ck_message(L"String is not callable", ck_message_type::CK_UNSUPPORTED_OPERATION);
+	throw UnsupportedOperation(L"String is not callable");
 };
 
 void String::gc_mark() {

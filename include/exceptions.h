@@ -12,114 +12,170 @@
 // local information over the cupcake VM.
 // Allows twrowing from any place of script context and
 // will be safety processed by cupcake try/catch statements.
+// yes, you can throw a cake.
 namespace ck_exceptions {		
-	enum ck_message_type {
-		CK_WCMESSAGE, // + wchar_t*
-		CK_CMESSAGE, // + char*
-		CK_STRING, // + string
-		// Failed new()
-		BAD_ALLOC,
-		// Failed new[]()
-		BAD_ALLOC2,
+	enum cake_type {
 		// Just an empty message for temporary storing messages ¯\_(ツ)_/¯
 		CK_EMPTY,
 		
-		// User-friendly:
+		// Any kind of thrown cakes.
+		// It might be runtime error, invalid state, e.t.c.
+		CK_CAKE, // + type + string
 		
-		// catch(...) rethrow
-		UNDEFINED_BEHAVIOUR,
-		// catch(exception) rethrow
-		NATIVE_EXCEPTION,  // + exception
-		// Thrown on executer stack corruption
-		CK_STACK_CORRUPTED, // + string
-		// Returning value from script function or vobject::call
-		CK_RETURN, // + vobject
-		// Overflow of one of ck_executer stacks
-		CK_STACK_OVERFLOW, // + string
-		
-		// Absolutely user-friendly:
-		
-		// For example when trying to assign index of string
-		// Message expected in wstring
-		CK_UNSUPPORTED_OPERATION, // + string
-		// Any king of ck runtime errors
-		// Message expected in wstring
-		CK_RUNTIME_ERROR, // + string
-		// Thrown on invalid operaions on types
-		CK_TYPE_ERROR, // + string
-		// Thrown on invalid state
-		CK_INVALID_STATE, // + string,
 		// Thrown by sctipt raise statement or any king of rethrowing vobject*
-		CK_OBJECT // + vobject
+		CK_OBJECT, // + vobject
+		
+		// Message is a copy of std::exception
+		CK_NATIVE_EXCEPTION,
+		
+		// catch(...)
+		CK_UNKNOWN_EXCEPTION
+	};
+		
+	struct BacktraceFrame {
+		
+		BacktraceFrame() {};
+		
+		int lineno;
+		std::wstring filename;
+		std::wstring function;
 	};
 	
-	class ck_message {
-		ck_message_type message_type;
+	class cake {
 		
-		// CK_WMESSAGE: Onlys tring message that is thrown to up
-		const wchar_t* native_wmessage = nullptr;
+		// Integer type of a message
+		cake_type type_id;
 		
-		// CK_MESSAGE: Onlys tring message that is thrown to up
-		const char* native_message = nullptr;
+		// String type of message telling about type of a cake
+		std::wstring type;
 		
-		// CK_STRING: Onlys tring message that is thrown to up
-		std::wstring native_string;
+		// String message telling something about the error
+		std::wstring message;
 		
 		// Copy of axception
-		std::exception native_exception;
+		std::exception exception;
 		
-		ck_vobject::vobject* script_object;
+		// pointer to thrown object
+		ck_vobject::vobject* object;
+		
+		// Marks that instance of cake contains backtrace
+		bool contains_backtrace = 0;
+		
+		std::vector<BacktraceFrame> backtrace;
 		
 	public:		
 	
 		// Empty initializer
-		ck_message() throw() : message_type(CK_EMPTY)     {};
+		cake() throw() : type_id(CK_EMPTY) {};
 		
-		// String messages
-		ck_message(const wchar_t* message)      throw() : native_wmessage(message), message_type(CK_WCMESSAGE)     {};
-		ck_message(const char* message)         throw() : native_message(message),  message_type(CK_CMESSAGE)      {};
-		ck_message(const std::wstring& message) throw() : native_string(message),   message_type(CK_STRING)        {};
+		// Rehandling std::exception (unsafe) or catch(...)
+		cake(const std::exception& ex) throw() : 
+											exception(ex), 
+											type_id(CK_NATIVE_EXCEPTION) {};
 		
-		// Rehandling std::exception (unsafe)
-		ck_message(const std::exception& ex)    throw() : native_exception(ex),     message_type(NATIVE_EXCEPTION) {};
-		
-		// Typed message with string
-		ck_message(const std::wstring& message, ck_message_type type) throw() : native_string(message), message_type(type) {};
-		
-		// Typed message
-		ck_message(ck_message_type type) throw() : message_type(type) {};
+		// Used by RuntimeCake(type, message, type_id)
+		cake(const std::wstring& _type, const std::wstring& _message = L"", cake_type _type_id = CK_CAKE) throw() : 
+																												type(_type), 
+																												message(_message), 
+																												type_id(_type_id) {};
 		
 		// Typed message with object
-		ck_message(ck_vobject::vobject* object, ck_message_type type = CK_OBJECT) throw() : script_object(object), message_type(type) {};
+		cake(ck_vobject::vobject* object) throw() : 
+												object(object), 
+												type_id(CK_OBJECT) {};
+												
+		cake(const cake& c) {
+			type_id = c.type_id;
+			type = c.type;
+			message = c.message;
+			exception = c.exception;
+			object = c.object;
+			contains_backtrace = c.contains_backtrace;
+			backtrace = c.backtrace;
+		};
+		
+		// Perform collection of backtrace for current executer instance.
+		// May be useful for debugging and used in executer exceptions rethrowing.
+		// Collect backtrace executed only if has_backtrace is 0.
+		void collect_backtrace();
+		
+		// Expects collect_backtrace() to be called first.
+		inline const std::vector<BacktraceFrame>& get_backtrace() const {
+			return backtrace;
+		};
+		
+		inline bool has_backtrace() const {
+			return contains_backtrace;
+		};
+		
+		void print_backtrace();
 
-		inline ck_message_type get_type() const {
-			return message_type;
+		inline cake_type get_type_id() const {
+			return type_id;
 		};
 
-		inline const std::wstring& get_string() const {
-			return native_string;
+		inline const std::wstring& get_type() const {
+			return type;
 		};
 
-		inline const char* get_message() const {
-			return native_message;
+		inline const std::wstring& get_message() const {
+			return message;
 		};
-
-		inline const wchar_t* get_wmessage() const {
-			return native_wmessage;
-		};
-
+		
 		inline const std::exception& get_exception() const {
-			return native_exception;
+			return exception;
 		};
 		
 		inline ck_vobject::vobject* get_object() const {
-			return script_object;
+			return object;
 		};
 		
-		virtual ~ck_message() throw();
-		
-		friend std::wostream& operator<<(std::wostream& os, const ck_message& m);
+		friend std::wostream& operator<<(std::wostream& os, const cake& m);
 	};
 	
-	std::wostream& operator<<(std::wostream& os, const ck_message& m);
+	std::wostream& operator<<(std::wostream& os, const cake& m);
+	
+	
+	// Decorators for different cake type_id's
+	
+	static inline cake ObjectCake(ck_vobject::vobject* o) {
+		return cake(o);
+	};
+	
+	static inline cake NativeException(const std::exception& ex) {
+		return cake(ex);
+	};
+	
+	static inline cake UnknownException() {
+		return cake(L"", L"", CK_UNKNOWN_EXCEPTION);
+	};
+	
+	// Decorators for different string types
+	
+	static inline cake TypeError(const std::wstring& message = L"") {
+		return cake(L"TypeError", message);
+	};
+	
+	static inline cake InvalidState(const std::wstring& message = L"") {
+		return cake(L"InvalidState", message);
+	};
+	
+	static inline cake StackOverflow(const std::wstring& message = L"") {
+		return cake(L"StackOverflow", message);
+	};
+	
+	static inline cake StackCorruption(const std::wstring& message = L"") {
+		return cake(L"StackCorruption", message);
+	};
+	
+	static inline cake UnsupportedOperation(const std::wstring& message = L"") {
+		return cake(L"UnsupportedOperation", message);
+	};
+	
+	// i.e. Bad_Alloc
+	static inline cake OutOfMemory(const std::wstring& message = L"") {
+		return cake(L"OutOfMemory", message);
+	};
 };
+
+// but this cake is lie

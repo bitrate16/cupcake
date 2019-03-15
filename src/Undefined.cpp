@@ -52,7 +52,7 @@ vobject* Undefined::get(ck_vobject::vscope* scope, const std::wstring& name) {
 };
 
 void Undefined::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* object) {
-	throw ck_message(L"Undefined is not container", ck_message_type::CK_UNSUPPORTED_OPERATION);
+	throw UnsupportedOperation(L"Undefined is not container");
 };
 
 // Delegate to prototype
@@ -61,12 +61,11 @@ bool Undefined::contains(ck_vobject::vscope* scope, const std::wstring& name) {
 };
 
 bool Undefined::remove(ck_vobject::vscope* scope, const std::wstring& name) {
-	throw ck_message(L"Undefined is not container", ck_message_type::CK_UNSUPPORTED_OPERATION);
-	return 0;
+	throw UnsupportedOperation(L"Undefined is not container");
 };
 
 vobject* Undefined::call(ck_vobject::vscope* scope, const std::vector<vobject*> args) {
-	throw ck_message(L"Undefined is not callable", ck_message_type::CK_UNSUPPORTED_OPERATION);
+	throw UnsupportedOperation(L"Undefined is not callable");
 };
 
 
