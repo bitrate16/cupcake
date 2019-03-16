@@ -500,7 +500,7 @@ void printAST(ck_ast::ASTNode *localroot) { // XXX: how to save line numbers?
 			break;
 			
 		case ck_token::THROW:
-			wprintf(L"raise");
+			wprintf(L"throw");
 			if (localroot->left->type != ck_token::EMPTY) {
 				wprintf(L" ");
 				printAST(localroot->left);

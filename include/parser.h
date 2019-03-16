@@ -111,8 +111,8 @@ namespace ck_token {
 	const int NEG            = 158; // -x
 
 	// Technical tokens
-	const int TEOF          = 137;
-	const int TEOL          = WEOF;
+	const int TEOF          = WEOF;
+	const int TEOL          = U'\n';
 	const int TERR          = 139;
 	const int NONE          = 140;
 
@@ -333,9 +333,9 @@ namespace ck_parser {
 		// Reading code from passed string
 		static const int IN_STRING = 3;
 		
-		FILE *file;
+		std::wifstream* file;
 		
-		const std::wstring string;
+		const std::wstring* string;
 		int cursor = 0;
 		
 		int source_type = 0;
@@ -344,21 +344,9 @@ namespace ck_parser {
 		
 	public:
 		
-		stream_wrapper()                      : source_type(IN_STDIN)             { _eof = 0; };
-		stream_wrapper(FILE *f)               : source_type(IN_FILE),   file(f)   { _eof = 0; };
-		stream_wrapper(const std::wstring &s) : source_type(IN_STRING), string(s) { _eof = 0; };
-		
-		~stream_wrapper() {
-			switch(source_type) {
-				case IN_STDIN:
-				case IN_STRING:
-				default:
-					break;
-				case IN_FILE:
-					fclose(file);
-					break;
-			};
-		};
+		stream_wrapper()                      : source_type(IN_STDIN)              { _eof = 0; };
+		stream_wrapper(std::wifstream& f)     : source_type(IN_FILE),   file(&f)   { _eof = 0; };
+		stream_wrapper(const std::wstring &s) : source_type(IN_STRING), string(&s) { _eof = 0; };
 		
 		// Returns next redden character.
 		int getc();
@@ -427,7 +415,10 @@ namespace ck_parser {
 			return buffer[4 + off];
 		};
 
-		int next() {
+		int next() {	
+			if (buffer[4] != ck_token::TEOF)
+				++charno;
+			
 			for (int i = 1; i < 9; i++)
 				buffer[i - 1] = buffer[i];
 			
@@ -435,7 +426,6 @@ namespace ck_parser {
 				buffer[8] = ck_token::TEOF;
 			else {
 				int c = sw.getc();
-			++charno;
 				
 				if (c == WEOF)
 					buffer[8] = ck_token::TEOF;

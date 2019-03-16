@@ -1,5 +1,6 @@
 #include <cwchar>
 #include <sstream>
+#include <fstream>
 
 #include "parser.h"
 #include "ast.h"
@@ -132,11 +133,11 @@ int stream_wrapper::getc() {
 	int c;
 	switch(source_type) {
 		case IN_STRING:
-			if (cursor >= string.size()) {
+			if (cursor >= string->size()) {
 				_eof = 1;
 				return WEOF;
 			}
-			return string[cursor++];
+			return (*string)[cursor++];
 		
 		case IN_STDIN:
 			c = fgetwc(stdin);
@@ -145,13 +146,18 @@ int stream_wrapper::getc() {
 			
 			return c;
 			
-		case IN_FILE:
-			c = fgetwc(file);
+		case IN_FILE: {
+			wchar_t t;
+			if (*file >> t)
+				return t;
+			
+			c = WEOF;
 			if (c == WEOF)
 				_eof = 1;
 			
 			return c;
-			
+		}
+		
 		default:
 			_eof = 1;
 			return WEOF;
@@ -166,7 +172,7 @@ bool stream_wrapper::eof() {
 	int c;
 	switch(source_type) {
 		case IN_STRING:
-			if (cursor >= string.size()) {
+			if (cursor >= string->size()) {
 				_eof = 1;
 				return 1;
 			}
@@ -181,15 +187,15 @@ bool stream_wrapper::eof() {
 			
 			return _eof;
 			
-		case IN_FILE:
-			c = fgetwc(file);
-			ungetwc(c, file);
-			
-			if (c == WEOF)
-				_eof = 1;
+		case IN_FILE: {
+			wchar_t t;
+			_eof = (bool) (*file >> t);
+			if (!_eof)
+				file->unget();
 			
 			return _eof;
-			
+		}
+		
 		default:
 			_eof = 1;
 			return 1;
@@ -201,10 +207,10 @@ bool stream_wrapper::eof() {
 // (It was written when i was drunk but it works unlike my liver..)
 
 int to_upper(int c) {
-	if ('a' <= c && c <= 'z')
-		return c - 'a' + 'A';
-	if (U'А' <= c && c <= U'я')
-		return c - U'а' + U'А';
+	if ('a' <= c && c <= L'z')
+		return c - L'a' + L'A';
+	if (L'а' <= c && c <= L'я')
+		return c - L'а' + L'А';
 	return c;
 };
 
@@ -223,11 +229,11 @@ int tokenizer::next_token() {
 	int c1 = get(1);
 
 	// Remove all whitescapes and comments
-	while (white(c) || (c == '/' && ((c1 = get(1)) == '/' || c1 == '*'))) {
+	while (white(c) || (c == L'/' && ((c1 = get(1)) == L'/' || c1 == L'*'))) {
 		if (white(c)) {
 			c = next();
 			c1 = get(1);
-		} else if (c == '/' && c1 == '/') {
+		} else if (c == L'/' && c1 == L'/') {
 			// Skip till newline || TEOF
 			int c0 = c;
 			while (c0 != TEOL && c != TEOF) {
@@ -235,22 +241,22 @@ int tokenizer::next_token() {
 				c = next();
 				c1 = get(1);
 			}
-		} else if (c == '/' && c1 == '*') {
-			// Skip all code till '*' '/' sequence
-			// Warning: '*/' may be hidden in string. That must be ignored
-			int q0 = false; // ' - quote
+		} else if (c == L'/' && c1 == L'*') {
+			// Skip all code till L'*' L'/' sequence
+			// Warning: L'*/' may be hidden in string. That must be ignored
+			int q0 = false; // L' - quote
 			int q1 = false; // " - quote
 			int closed = false;
-			// \/--- !(c == '*' && c1 == '/' && !q0 && !q1) &&
+			// \/--- !(c == L'*' && c1 == L'/' && !q0 && !q1) &&
 			while (c != TEOF) {
 				c = next();
 				c1 = get(1);
-				if (c1 == '\'' && !q1)
+				if (c1 == L'\'' && !q1)
 					q0 = !q0;
-				if (c1 == '\"' && !q0)
+				if (c1 == L'\"' && !q0)
 					q1 = !q1;
 
-				if (c == '*' && c1 == '/' && !q0 && !q1) {
+				if (c == L'*' && c1 == L'/' && !q0 && !q1) {
 					closed = true;
 					c = next();
 					c = next();
@@ -338,7 +344,7 @@ int tokenizer::next_token() {
 	}
 
 	/* S T R I N G S */ 
-	if (c == '\'' || c == '\"') {
+	if (c == L'\'' || c == L'\"') {
 		int quote = c;
 		std::wstring& svref = token->sv;
 
@@ -347,27 +353,27 @@ int tokenizer::next_token() {
 			if (c == TEOL || c == TEOF) TOKENIZER_ERROR(L"string expected to be closed", lineno, charno)
 			if (c == quote)
 				break;
-			if (c == '\\') {
+			if (c == L'\\') {
 				c1 = next();
-				if (c1 == 't')
-					svref += '\t';
-				else if (c1 == 'b')
-					svref += '\b';
-				else if (c1 == 'n')
-					svref += '\n';
-				else if (c1 == 'r')
-					svref += '\r';
-				else if (c1 == 'f')
-					svref += '\f';
-				else if (c1 == '\\')
-					svref += '\\';
-				else if (c1 == '\'')
-					svref += '\'';
-				else if (c1 == '\"')
-					svref += '\"';
-				else if (c1 == '0')
-					svref += '\0';
-				else if (c1 == 'u') {
+				if (c1 == L't')
+					svref += L'\t';
+				else if (c1 == L'b')
+					svref += L'\b';
+				else if (c1 == L'n')
+					svref += L'\n';
+				else if (c1 == L'r')
+					svref += L'\r';
+				else if (c1 == L'f')
+					svref += L'\f';
+				else if (c1 == L'\\')
+					svref += L'\\';
+				else if (c1 == L'\'')
+					svref += L'\'';
+				else if (c1 == L'\"')
+					svref += L'\"';
+				else if (c1 == L'0')
+					svref += L'\0';
+				else if (c1 == L'u') {
 					c1 = next();
 					// Expect 8-digit hex number
 					int chpoint = 0;
@@ -375,10 +381,10 @@ int tokenizer::next_token() {
 					for (int i = 0; i < 8; i++) {
 						c1 = strtlc(c1);
 						int cp = -1;
-						if (c1 >= 'a' && c1 <= 'f')
-							cp = 10 + c1 - 'a';
-						if (c1 >= '0' && c1 <= '9')
-							cp = c1 - '0';
+						if (c1 >= L'a' && c1 <= L'f')
+							cp = 10 + c1 - L'a';
+						if (c1 >= L'0' && c1 <= L'9')
+							cp = c1 - L'0';
 						if (cp == -1 && !point) 
 							TOKENIZER_ERROR(std::wstring(L"expected hexadecimal character code point ") + (wchar_t) cp + std::wstring(L" [") + (wchar_t) cp + std::wstring(L"]"), lineno, charno)
 						if (cp == -1)
@@ -387,7 +393,7 @@ int tokenizer::next_token() {
 						chpoint = chpoint * 16 + cp;
 						c1 = next();
 					}
-				} else if (c1 == 'x') {
+				} else if (c1 == L'x') {
 					c1 = next();
 					// Expect 4-digit hex number
 					int chpoint = 0;
@@ -395,10 +401,10 @@ int tokenizer::next_token() {
 					for (int i = 0; i < 4; i++) {
 						c1 = strtlc(c1);
 						int cp = -1;
-						if (c1 >= 'a' && c1 <= 'f')
-							cp = 10 + c1 - 'a';
-						if (c1 >= '0' && c1 <= '9')
-							cp = c1 - '0';
+						if (c1 >= L'a' && c1 <= L'f')
+							cp = 10 + c1 - L'a';
+						if (c1 >= L'0' && c1 <= L'9')
+							cp = c1 - L'0';
 						if (cp == -1 && !point) 
 							TOKENIZER_ERROR(std::wstring(L"expected hexadecimal character code point ") + (wchar_t) cp + std::wstring(L" [") + (wchar_t) cp + std::wstring(L"]"), lineno, charno)
 						if (cp == -1)
@@ -418,7 +424,7 @@ int tokenizer::next_token() {
 	}
 	
 	/* N U M B E R S */ 
-	if (digit(c) || (c == '.' && digit(c1))) {
+	if (digit(c) || (c == L'.' && digit(c1))) {
 		
 		
 		// XXX: Rewrite this code part to optimize/fix parser bugs
@@ -431,7 +437,7 @@ int tokenizer::next_token() {
 
 		std::wstring& svref = token->sv;
 		
-		if (c == '.') {
+		if (c == L'.') {
 			type = DOUBLE;
 			hasPoint = true;
 		}
@@ -443,7 +449,7 @@ int tokenizer::next_token() {
 		while (c != TEOF) {
 			if (scientific)
 				TOKENIZER_ERROR(L"double can't be parsed after scientific notation", lineno, charno)
-			else if (c == '.') {
+			else if (c == L'.') {
 				if (hasPoint)
 					TOKENIZER_ERROR(L"double can't have more than one point", lineno, charno)
 				// if (base != 10)
@@ -452,8 +458,8 @@ int tokenizer::next_token() {
 					TOKENIZER_ERROR(L"unexpected fraction of double nomber", lineno, charno)
 				type = DOUBLE;
 				hasPoint = true;
-				svref += '.';
-			} else if ((c == 'x' || c == 'X') && base == 10) {
+				svref += L'.';
+			} else if ((c == L'x' || c == L'X') && base == 10) {
 				if (type == DOUBLE)
 					TOKENIZER_ERROR(L"double can't be not decimal", lineno, charno)
 				// if (base != 10)
@@ -462,7 +468,7 @@ int tokenizer::next_token() {
 					TOKENIZER_ERROR(L"base notation starts with 0", lineno, charno)
 				svref = L"";
 				base = 16;
-			} else if ((c == 'o' || c == 'O') && base == 10) {
+			} else if ((c == L'o' || c == L'O') && base == 10) {
 				if (type == DOUBLE)
 					TOKENIZER_ERROR(L"double can't be not decimal", lineno, charno)
 				// if (base != 10)
@@ -471,7 +477,7 @@ int tokenizer::next_token() {
 					TOKENIZER_ERROR(L"base notation starts with 0", lineno, charno)
 				svref = L"";
 				base = 8;
-			} else if ((c == 'b' || c == 'B') && base == 10) {
+			} else if ((c == L'b' || c == L'B') && base == 10) {
 				if (type == DOUBLE)
 					TOKENIZER_ERROR(L"double can't be not decimal", lineno, charno)
 				// if (base != 10)
@@ -480,15 +486,15 @@ int tokenizer::next_token() {
 					TOKENIZER_ERROR(L"base notation starts with 0", lineno, charno)
 				svref = L"";
 				base = 2;
-			} else if ((c == 'e' || c == 'E') && base != 16) {
+			} else if ((c == L'e' || c == L'E') && base != 16) {
 				if (base != 10)
 					TOKENIZER_ERROR(L"double can't be not decimal", lineno, charno)
 				type = DOUBLE;
 				// Start reading scientific notation
 				// double + E + (+ or -) + integer
-				svref += 'e';
+				svref += L'e';
 				c = next();
-				if ((c == '-' || c == '+')) {
+				if ((c == L'-' || c == L'+')) {
 					// 12.34E26 is the same as 12.34E+26
 					svref += (wchar_t) c;
 					c = next();
@@ -505,23 +511,23 @@ int tokenizer::next_token() {
 				svref += integer;
 				scientific = true;
 				break;
-			} /*else if ((c == 'l' || c == 'L' || (c == 'b' || c == 'B') && base != 16) && !digit(c1)) {
-				if (c == 'l' || c == 'L')
+			} /*else if ((c == L'l' || c == L'L' || (c == L'b' || c == L'B') && base != 16) && !digit(c1)) {
+				if (c == L'l' || c == L'L')
 					type = LONG;
 				else
 					type = BYTE;
 				c = next();
 				break;
-			} */ else if (base == 16 && (('A' <= c && c <= 'F') || ('a' <= c && 'f' <= c) || digit(c)))
+			} */ else if (base == 16 && (('A' <= c && c <= L'F') || ('a' <= c && L'f' <= c) || digit(c)))
 				svref += (wchar_t) c;
-			else if (base == 8 && '0' <= c && c <= '7')
+			else if (base == 8 && L'0' <= c && c <= L'7')
 				svref += (wchar_t) c;
-			else if (base == 2 && (c == '0' || c == '1'))
+			else if (base == 2 && (c == L'0' || c == L'1'))
 				svref += (wchar_t) c;
 			else if (base == 10 && digit(c))
 				svref += (wchar_t) c;
-			else if (alpha(c) || (base == 8 && '8' <= c && c <= '9')
-							  || (base == 2 && '3' <= c && c <= '9'))
+			else if (alpha(c) || (base == 8 && L'8' <= c && c <= L'9')
+							  || (base == 2 && L'3' <= c && c <= L'9'))
 				TOKENIZER_ERROR(std::wstring(L"unexpected character in number ") + (wchar_t) c + std::wstring(L" [") + (wchar_t) c + std::wstring(L"]"), lineno, charno)
 			else
 				break;
@@ -537,7 +543,7 @@ int tokenizer::next_token() {
 		} else if (type == INTEGER) {
 			long long mult = 1;
 			for (int i = svref.size() - 1; i >= 0; --i) {
-				token->iv += mult * ('A' <= to_upper(svref[i]) && to_upper(svref[i]) <= 'Z' ? to_upper(svref[i]) - 'A' + 10 : to_upper(svref[i]) - '0');
+				token->iv += mult * ('A' <= to_upper(svref[i]) && to_upper(svref[i]) <= L'Z' ? to_upper(svref[i]) - L'A' + 10 : to_upper(svref[i]) - L'0');
 				mult *= base;
 			}
 			return put(INTEGER);
@@ -545,55 +551,55 @@ int tokenizer::next_token() {
 	}
 	
 	/* D E L I M I T E R S */ 
-	if (match('>', '>', '>', '='))
+	if (match('>', L'>', L'>', L'='))
 		return put(ASSIGN_BITURSH);
-	if (match('>', '>', '>'))
+	if (match('>', L'>', L'>'))
 		return put(BITURSH);
-	if (match('>', '>', '='))
+	if (match('>', L'>', L'='))
 		return put(ASSIGN_BITRSH);
-	if (match('<', '<', '='))
+	if (match('<', L'<', L'='))
 		return put(ASSIGN_BITLSH);
-	if (match('>', '>'))
+	if (match('>', L'>'))
 		return put(BITRSH);
-	if (match('<', '<'))
+	if (match('<', L'<'))
 		return put(BITLSH);
-	if (match('>', '='))
+	if (match('>', L'='))
 		return put(GE);
-	if (match('<', '='))
+	if (match('<', L'='))
 		return put(LE);
-	if (match('&', '&'))
+	if (match('&', L'&'))
 		return put(AND);
-	if (match('|', '|'))
+	if (match('|', L'|'))
 		return put(OR);
-	if (match('=', '='))
+	if (match('=', L'='))
 		return put(EQ);
-	if (match('!', '='))
+	if (match('!', L'='))
 		return put(NEQ);
-	if (match('-', '>'))
+	if (match('-', L'>'))
 		return put(PUSH);
-	if (match('=', '>'))
+	if (match('=', L'>'))
 		return put(ARROW);
-	if (match('/', '/'))
+	if (match('/', L'/'))
 		return put(PATH);
-	if (match('+', '+'))
+	if (match('+', L'+'))
 		return put(INC);
-	if (match('-', '-'))
+	if (match('-', L'-'))
 		return put(DEC);
-	if (match('+', '='))
+	if (match('+', L'='))
 		return put(ASSIGN_ADD);
-	if (match('-', '='))
+	if (match('-', L'='))
 		return put(ASSIGN_SUB);
-	if (match('*', '='))
+	if (match('*', L'='))
 		return put(ASSIGN_MUL);
-	if (match('/', '='))
+	if (match('/', L'='))
 		return put(ASSIGN_DIV);
-	if (match('%', '='))
+	if (match('%', L'='))
 		return put(ASSIGN_MOD);
-	if (match('|', '='))
+	if (match('|', L'='))
 		return put(ASSIGN_BITOR);
-	if (match('&', '='))
+	if (match('&', L'='))
 		return put(ASSIGN_BITAND);
-	if (match('^', '='))
+	if (match('^', L'='))
 		return put(ASSIGN_BITXOR);
 	if (match('='))
 		return put(ASSIGN);
@@ -649,10 +655,10 @@ int tokenizer::next_token() {
 		return put(HASH);
 	if (match('@'))
 		return put(DOG);
-	if (match('#', '='))
+	if (match('#', L'='))
 		return put(ASSIGN_HASH);
 	
-	TOKENIZER_ERROR(std::wstring(L"unexpected character '") + (wchar_t) c + std::wstring(L"' [") + std::to_wstring(c) + std::wstring(L"]"), lineno, charno)
+	TOKENIZER_ERROR(std::wstring(L"unexpected character L'") + (wchar_t) c + std::wstring(L"' [") + std::to_wstring(c) + std::wstring(L"]"), lineno, charno)
 };
 
 

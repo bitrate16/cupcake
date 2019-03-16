@@ -1,4 +1,7 @@
 #include <csignal>
+#include <fstream>
+#include <codecvt>
+#include <locale>
 
 #include "stack_utils.h"
 
@@ -18,7 +21,7 @@
 #include "objects/Undefined.h"
 #include "objects/Null.h"
 
-#define DEBUG_OUTPUT
+// #define DEBUG_OUTPUT
 
 using namespace std;
 using namespace ck_token;
@@ -91,17 +94,41 @@ int main(int argc, const char** argv) {
 	// Request maximal stack for this process.
 	ck_util::maximize_stack_size();
 	
-	FILE *f = fopen("test.ck", "r");
-	string mbfilename("test.ck");
+	// Set up locales
+	setlocale(LC_ALL, "");
 	
-	if (!f)
+	// Create UTF-8 locale
+	std::locale empty_locale;
+	std::locale utf8_locale(empty_locale, new std::codecvt_utf8<wchar_t>);
+	
+	// Apply locale on stdin
+	wcin.imbue(utf8_locale);
+	
+	// Apply locale on stdout
+	wcout.imbue(utf8_locale);
+	wcerr.imbue(utf8_locale);
+	
+	// Set up input stream
+	std::wifstream file("test.ck");
+	// Preserve whitespaces for parser
+	file >> std::noskipws;
+	// Apply encoding UTF-8
+	file.imbue(utf8_locale);
+	
+	// Preserve file name
+	wstring wfilename(L"test.ck");
+	
+	if (file.fail())
 		return 1;
 	
 	// Convert input file to AST
-	stream_wrapper sw(f);
-	parser_massages pm(L"test.ck");
+	stream_wrapper sw(file);
+	parser_massages pm(wfilename);
 	parser p(pm, sw);
 	ASTNode* n = p.parse();
+	
+	file.close();
+	
 	if (pm.errors()) {
 		pm.print();
 		delete n;
@@ -111,7 +138,7 @@ int main(int argc, const char** argv) {
 	// Convert AST to bytecodes & initialize script instance
 	main_script = new ck_script();
 	main_script->directory = get_current_working_dir();
-	main_script->filename  = wstring(mbfilename.begin(), mbfilename.end());
+	main_script->filename  = wfilename;
 	translate(main_script->bytecode.bytemap, main_script->bytecode.lineno_table, n);
 	
 #ifdef DEBUG_OUTPUT
