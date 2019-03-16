@@ -93,7 +93,8 @@ static void signal_handler(int sig) {
 int main(int argc, const char** argv) {
 	// Request maximal stack for this process.
 	ck_util::maximize_stack_size();
-	
+	wcout << "sizeof vobject  = " << sizeof(ck_vobject::vobject) << endl;
+	wcout << "sizeof vsobject = " << sizeof(ck_vobject::vsobject) << endl;
 	// Set up locales
 	setlocale(LC_ALL, "");
 	
