@@ -9,6 +9,11 @@
 
 #include "CallablePrototype.h"
 
+// XXX:
+// Use __call(this, <args>) for calling with applied this.
+// Use __apply(this, [args]) for calling with array of parameters
+// Use __bind(this, <args>) for making new function with fixed this and args
+
 namespace ck_objects {	
 
 	class BytecodeFunction : public ck_vobject::vobject {

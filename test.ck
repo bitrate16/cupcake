@@ -47,6 +47,6 @@ o.f('a', 'b', 'c')
 
 var recur = function() { recur() }
 
-print ('asdfgыh')
+print ('asdfgыыh')
 
 //recur()
