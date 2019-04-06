@@ -1875,7 +1875,7 @@ void ck_translator::translate(vector<unsigned char>& bytemap, vector<int>& linen
 		return;
 	
 	visit(bytemap, lineno_table, n);
-	push_byte(bytemap, ck_bytecodes::HALT);
+	push_byte(bytemap, ck_bytecodes::BCEND);
 	
 	last_lineno = -1;
 	lineno_table.push_back(last_lineno);
@@ -2178,8 +2178,8 @@ void ck_translator::print(vector<unsigned char>& bytemap, int off, int offset, i
 				break;
 			}
 			
-			case ck_bytecodes::HALT: {
-				wcout << "> HALT" << endl;
+			case ck_bytecodes::BCEND: {
+				wcout << "> BCEND" << endl;
 				break;
 			}
 			

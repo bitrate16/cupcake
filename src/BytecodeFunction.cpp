@@ -61,7 +61,7 @@ vobject* BytecodeFunction::call(ck_vobject::vscope* scope, const std::vector<vob
 };
 
 vscope* BytecodeFunction::apply(const std::vector<ck_vobject::vobject*>& args) {
-	vscope* nscope = new vscope(scope);
+	vscope* nscope = new iscope(scope);
 	Array* arguments = new Array(args);
 	nscope->put(L"__arguments", arguments);
 	

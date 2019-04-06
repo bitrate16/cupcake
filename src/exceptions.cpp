@@ -51,6 +51,20 @@ void cake::collect_backtrace() {
 		backtrace.back().filename = script->filename;
 		backtrace.back().function = GIL::executer_instance()->call_stack[i].name;
 	}
+	
+	// If no calls still, extract information from closest script
+	if (GIL::executer_instance()->call_stack.size() == 0)
+		if (GIL::executer_instance()->window_stack.size() != 0) {
+			int script_id = GIL::executer_instance()->window_stack.back().script_id + 1;
+			
+			ck_script* script = GIL::executer_instance()->scripts[script_id];
+		
+			int lineno = GIL::executer_instance()->lineno();
+			
+			backtrace.push_back(BacktraceFrame());
+			backtrace.back().lineno = lineno;
+			backtrace.back().filename = script->filename;
+		}
 };
 
 void cake::print_backtrace() {
@@ -130,10 +144,10 @@ wostream& ck_exceptions::operator<<(wostream& os, const cake& m) {
 	// Then print backtrace
 	if (m.has_backtrace())
 		for (int i = 0; i < m.backtrace.size(); ++i) {
-			wcout << " at File <" << m.backtrace[i].filename << "> line " << m.backtrace[i].lineno;
+			os << " at File <" << m.backtrace[i].filename << "> line " << m.backtrace[i].lineno;
 			
 			if (m.backtrace[i].function.size() != 0)
-				wcout << " " << m.backtrace[i].function << "()";
+				os << " " << m.backtrace[i].function << "()";
 			
 			int amount = 0;
 			while (i + amount + 1 < m.backtrace.size()) {
@@ -149,9 +163,9 @@ wostream& ck_exceptions::operator<<(wostream& os, const cake& m) {
 			i += amount;
 			
 			if (amount) 
-				wcout << " + " << amount << " more" << endl;
+				os << " + " << amount << " more" << endl;
 			else
-				wcout << endl;
+				os << endl;
 		}
 	else
 		os << "<no backtrace>" << endl;

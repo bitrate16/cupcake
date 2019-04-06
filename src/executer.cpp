@@ -127,7 +127,7 @@ bool ck_executer::read(int size, void* buf) {
 };
 
 inline bool ck_executer::is_eof() {
-	return !scripts.back() || pointer >= scripts.back()->bytecode.bytemap.size() || scripts.back()->bytecode.bytemap[pointer] == ck_bytecodes::HALT || pointer == -1;
+	return !scripts.back() || pointer >= scripts.back()->bytecode.bytemap.size() || scripts.back()->bytecode.bytemap[pointer] == ck_bytecodes::BCEND || pointer == -1;
 };
 
 ck_vobject::vobject* ck_executer::vpop() {
@@ -393,7 +393,7 @@ void ck_executer::follow_exception(const cake& msg) {
 				break;
 				
 			case ck_bytecodes::TRY_WITH_ARG: {
-				vscope* scope = new vscope(scopes.size() == 0 ? nullptr : scopes.back());
+				vscope* scope = new iscope(scopes.size() == 0 ? nullptr : scopes.back());
 				scope->root();
 				scope->put(handler, msg.get_type_id() == cake_type::CK_OBJECT ? msg.get_object() : new Cake(msg), 0, 1);
 				scopes.push_back(scope);
@@ -419,7 +419,7 @@ void ck_executer::follow_exception(const cake& msg) {
 				break;
 				
 			case ck_bytecodes::TRY_WITH_ARG: {
-				vscope* scope = new vscope(scopes.size() == 0 ? nullptr : scopes.back());
+				vscope* scope = new iscope(scopes.size() == 0 ? nullptr : scopes.back());
 				scope->root();
 				scope->put(handler, copy.get_type_id() == cake_type::CK_OBJECT ? copy.get_object() : new Cake(copy), 0, 1);
 				scopes.push_back(scope);
@@ -1079,7 +1079,7 @@ vobject* ck_executer::exec_bytecode() {
 #ifdef DEBUG_OUTPUT
 				wcout << "> VSTATE_PUSH_SCOPE" << endl;
 #endif
-				vscope* s = new vscope(scopes.size() == 0 ? nullptr : scopes.back());
+				vscope* s = new iscope(scopes.size() == 0 ? nullptr : scopes.back());
 				GIL::gc_instance()->attach_root(s);
 				scopes.push_back(s);
 				break;
@@ -1125,12 +1125,12 @@ vobject* ck_executer::exec_bytecode() {
 				break;
 			}
 			
-			case ck_bytecodes::HALT: {
+			case ck_bytecodes::BCEND: {
 #ifdef DEBUG_OUTPUT
-				wcout << "> HALT" << endl;
+				wcout << "> BCEND" << endl;
 #endif
 				
-				// Make pointer point at HALT
+				// Make pointer point at BCEND
 				--pointer;
 				return nullptr;
 				
@@ -1398,7 +1398,7 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 	
 	// Apply new scope
 	if (scope == nullptr) {
-		scope = new vscope();
+		scope = new iscope();
 		scope->root();
 	}
 		
@@ -1474,7 +1474,7 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 		// scope = exec_scope;
 		own_scope = 0;
 	} else {
-		scope = new vscope(scopes.size() == 0 ? nullptr : scopes.back());
+		scope = new iscope(scopes.size() == 0 ? nullptr : scopes.back());
 		scope->root();
 		own_scope = 1;
 	}

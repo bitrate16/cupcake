@@ -133,7 +133,7 @@ namespace ck_core {
 		//  or nullptr if nothing returned or nothing should be returned.
 		inline ck_vobject::vobject* exec_bytecode();
 		
-		// Checks if execution reached end or HALT.
+		// Checks if execution reached end or BCEND.
 		bool is_eof();
 		
 		// Objects stack manipulation

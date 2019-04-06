@@ -44,6 +44,7 @@ Object::~Object() {
 		
 vobject* Object::get(vscope* scope, const wstring& name) {
 	vobject* ret = get(name);
+
 	if (!ret && ObjectProto != this && ObjectProto)
 		return ObjectProto->get(scope, name);
 	return ret;
@@ -109,6 +110,11 @@ void Object::put(const wstring& name, vobject* object) {
 };
 
 vobject* Object::get(const wstring& name) {
+	
+	#ifndef CK_SINGLETHREAD
+		std::unique_lock<std::mutex> lck(mutex());
+	#endif
+	
 	//wcout << this->string_value() << " getting " << name << endl;
 	map<wstring, vobject*>::const_iterator pos = objects.find(name);
 	if (pos == objects.end())
@@ -117,6 +123,11 @@ vobject* Object::get(const wstring& name) {
 };
 
 bool Object::contains(const wstring& name) {
+	
+	#ifndef CK_SINGLETHREAD
+		std::unique_lock<std::mutex> lck(mutex());
+	#endif
+	
 	map<wstring, vobject*>::const_iterator pos = objects.find(name);
 	if (pos == objects.end())
 		return 0;
@@ -124,6 +135,11 @@ bool Object::contains(const wstring& name) {
 };
 
 bool Object::remove(const wstring& name) {
+	
+	#ifndef CK_SINGLETHREAD
+		std::unique_lock<std::mutex> lck(mutex());
+	#endif
+	
 	map<wstring, vobject*>::const_iterator pos = objects.find(name);
 	if (pos == objects.end())
 		return 0;

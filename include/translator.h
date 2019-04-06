@@ -33,7 +33,7 @@ namespace ck_bytecodes {
 	const int VSTATE_POP_SCOPE     = 38; // Pop scope from scope list
 	const int JMP_IF_ZERO          = 39; // Jump to [int] address if top of the stack is not zero. stack.pop()
 	const int JMP                  = 40; // Jump to [int] address.
-	const int HALT                 = 41; // Halts the program
+	const int BCEND                 = 41; // Halts the program
 	const int THROW_NOARG          = 42; // raise;
 	const int THROW                = 43; // raise <expression>;
 	const int THROW_STRING         = 44; // raise from translator. ~Eof

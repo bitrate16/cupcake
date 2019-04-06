@@ -35,6 +35,7 @@ using namespace ck_core;
 using namespace ck_vobject;
 using namespace ck_objects;
 
+// XXX: Use -DCK_SINGLETHREAD to defined singlethreaded usage and CK_SINGLETHREAD macro value
 
 // make && valgrind --leak-check=full --track-origins=yes ./test
 

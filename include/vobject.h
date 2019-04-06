@@ -38,7 +38,7 @@ namespace ck_vobject {
 		virtual std::wstring string_value();
 	};
 	
-	// VObject that supports synchronization via lock() and unlock().
+	// vobject that supports synchronization via lock() and unlock().
 	//  vsobject.
 	// Must be used in multithreaded mode to avoid priority race breaks.
 	class vsobject : public vobject {

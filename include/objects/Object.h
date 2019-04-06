@@ -6,7 +6,7 @@
 
 namespace ck_objects {	// WARNING: This and all standard objects uses prototype chain to fetch objects.
 
-	class Object : public ck_vobject::vobject {
+	class Object : public ck_vobject::vsobject {
 		
 	protected:
 		

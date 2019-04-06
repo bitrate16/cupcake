@@ -37,12 +37,16 @@ static vobject* f_print(vscope* scope, const vector<vobject*>& args) {
 
 vscope* ck_objects::primary_init() {
 	
-	vscope* scope = new vscope();
+	vscope* scope = new iscope();
 	
 	
 	// Define root prototypes
+	
+	// XXX: Use call-wrapper-functions to initialize objects by call.
+	
 	scope->put(L"Object",           Object          ::create_proto());
-	scope->put(L"vscope",           vscope          ::create_proto());
+	scope->put(L"Scope",            iscope          ::create_proto());
+	scope->put(L"OScope",           xscope          ::create_proto());
 	scope->put(L"String",           String          ::create_proto());
 	scope->put(L"Array",            Array           ::create_proto());
 	scope->put(L"Int",              Int             ::create_proto());
@@ -51,7 +55,7 @@ vscope* ck_objects::primary_init() {
 	scope->put(L"Null",             Null            ::create_proto());
 	scope->put(L"Undefined",        Undefined       ::create_proto());
 	scope->put(L"BytecodeFunction", BytecodeFunction::create_proto());
-	scope->put(L"Cake",            Cake           ::create_proto());
+	scope->put(L"Cake",             Cake            ::create_proto());
 	scope->put(L"NativeFunction",   NativeFunction  ::create_proto());
 	
 	// Define other objects and fields
