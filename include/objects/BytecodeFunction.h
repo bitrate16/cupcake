@@ -7,16 +7,12 @@
 #include "vscope.h"
 #include "script.h"
 
+#include "Function.h"
 #include "CallablePrototype.h"
-
-// XXX:
-// Use __call(this, <args>) for calling with applied this.
-// Use __apply(this, [args]) for calling with array of parameters
-// Use __bind(this, <args>) for making new function with fixed this and args
 
 namespace ck_objects {	
 
-	class BytecodeFunction : public ck_vobject::vobject {
+	class BytecodeFunction : public ck_objects::Function {
 		
 	protected:
 		
@@ -37,14 +33,10 @@ namespace ck_objects {
 		virtual vobject* call    (ck_vobject::vscope*, const std::vector<vobject*>);
 		
 		virtual void gc_mark();
-		virtual void gc_finalize();
 		
 		
 		// Apply arguments tu the function and return scope
-		ck_vobject::vscope* apply(const std::vector<ck_vobject::vobject*>&);
-		
-		// Returns value
-		virtual long long int_value();
+		virtual ck_vobject::vscope* apply(ck_vobject::vobject* this_bind, const std::vector<ck_vobject::vobject*>& argv, ck_vobject::vscope* caller_scope = nullptr);
 		
 		// Returns int to string
 		virtual std::wstring string_value();

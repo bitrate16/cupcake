@@ -54,7 +54,10 @@ Int::~Int() {};
 
 // Delegate to prototype
 vobject* Int::get(ck_vobject::vscope* scope, const std::wstring& name) {
-	return IntProto ? IntProto->get(scope, name) : nullptr;
+	if (name == L"proto")
+		return IntProto;
+	
+	return IntProto ? IntProto->Object::get(scope, name) : nullptr;
 };
 
 void Int::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* object) {
@@ -63,7 +66,10 @@ void Int::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* obje
 
 // Delegate to prototype
 bool Int::contains(ck_vobject::vscope* scope, const std::wstring& name) {	
-	return IntProto && IntProto->contains(scope, name);
+	if (name == L"proto")
+		return 1;
+	
+	return IntProto && IntProto->Object::contains(scope, name);
 };
 
 bool Int::remove(ck_vobject::vscope* scope, const std::wstring& name) {

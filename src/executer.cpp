@@ -19,6 +19,7 @@
 #include "objects/Null.h"
 #include "objects/Undefined.h"
 #include "objects/BytecodeFunction.h"
+#include "objects/NativeFunction.h"
 #include "objects/Cake.h"
 
 
@@ -1369,8 +1370,8 @@ vobject* ck_executer::exec_bytecode() {
 				// Check for valid scope
 				validate_scope();
 				
-				// Push scope instance to stack
-				vpush(scopes.back());
+				// Get __this value from enclosing scope.
+				vpush(scopes.back()->get(L"__this"));
 				
 				break;
 			}
@@ -1467,20 +1468,28 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 	
 	if (obj->is_typeof<BytecodeFunction>()) {
 		// Apply new scope
-		scope = ((BytecodeFunction*) obj)->apply(args);
+		Function* f = (Function*) obj;
+		
+		// Overwrite binded __this reference
+		ref = f->get_bind() ? f->get_bind() : ref;
+		
+		// Apply this & args on scope
+		scope = f->apply(ref, args);
 		scope->root();
 		own_scope = 1;
-	} else if (scope != nullptr) {
-		// scope = exec_scope;
-		own_scope = 0;
 	} else {
-		scope = new iscope(scopes.size() == 0 ? nullptr : scopes.back());
-		scope->root();
-		own_scope = 1;
+		if (scope != nullptr) {
+			// scope = exec_scope;
+			own_scope = 0;
+		} else {
+			scope = new iscope(scopes.size() == 0 ? nullptr : scopes.back());
+			scope->root();
+			own_scope = 1;
+		}
+		
+		if (ref != nullptr)
+			scope->put(L"__this", ref);
 	}
-	
-	if (ref != nullptr)
-		scope->put(L"__self", ref);
 	
 	// Push scope
 	scopes.push_back(scope);
@@ -1528,6 +1537,27 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 				follow_exception(UnknownException());
 			} 
 		}
+	} else if (obj->is_typeof<NativeFunction>()) {
+		try {
+			obj = ((NativeFunction*) obj)->get_call_wrapper()(scope, args);
+			GIL::current_thread()->clear_blocks();
+				
+		} catch(const ck_exceptions::cake& msg) { 
+			GIL::current_thread()->clear_blocks();
+			
+			// Process exception
+			follow_exception(msg);
+		} catch (const std::exception& ex) {
+			GIL::current_thread()->clear_blocks();
+			
+			// Process exception
+			follow_exception(NativeException(ex));
+		} catch (...) {
+			GIL::current_thread()->clear_blocks();
+			
+			// Process exception
+			follow_exception(UnknownException());
+		} 
 	} else {
 		try {
 			obj = obj->call(scope, args);

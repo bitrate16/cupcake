@@ -46,7 +46,10 @@ Bool::~Bool() {};
 
 // Delegate to prototype
 vobject* Bool::get(ck_vobject::vscope* scope, const std::wstring& name) {
-	return BoolProto ? BoolProto->get(scope, name) : nullptr;
+	if (name == L"proto")
+		return BoolProto;
+	
+	return BoolProto ? BoolProto->Object::get(scope, name) : nullptr;
 };
 
 void Bool::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* object) {
@@ -55,12 +58,14 @@ void Bool::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* obj
 
 // Delegate to prototype
 bool Bool::contains(ck_vobject::vscope* scope, const std::wstring& name) {	
-	return BoolProto && BoolProto->contains(scope, name);
+	if (name == L"proto")
+		return 1;
+	
+	return BoolProto && BoolProto->Object::contains(scope, name);
 };
 
 bool Bool::remove(ck_vobject::vscope* scope, const std::wstring& name) {
 	throw UnsupportedOperation(L"Bool is not container");
-	return 0;
 };
 
 vobject* Bool::call(ck_vobject::vscope* scope, const std::vector<vobject*> args) {

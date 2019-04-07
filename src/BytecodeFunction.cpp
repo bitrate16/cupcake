@@ -39,7 +39,10 @@ BytecodeFunction::~BytecodeFunction() {
 
 // Delegate to prototype
 vobject* BytecodeFunction::get(ck_vobject::vscope* scope, const std::wstring& name) {
-	return BytecodeFunctionProto ? BytecodeFunctionProto->get(scope, name) : nullptr;
+	if (name == L"proto")
+		return BytecodeFunctionProto;
+	
+	return BytecodeFunctionProto ? BytecodeFunctionProto->Object::get(name) : nullptr;
 };
 
 void BytecodeFunction::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* object) {
@@ -48,28 +51,35 @@ void BytecodeFunction::put(ck_vobject::vscope* scope, const std::wstring& name, 
 
 // Delegate to prototype
 bool BytecodeFunction::contains(ck_vobject::vscope* scope, const std::wstring& name) {	
-	return BytecodeFunctionProto && BytecodeFunctionProto->contains(scope, name);
+	if (name == L"proto")
+		return 1;
+	
+	return BytecodeFunctionProto && BytecodeFunctionProto->Object::contains(name);
 };
 
 bool BytecodeFunction::remove(ck_vobject::vscope* scope, const std::wstring& name) {
 	throw UnsupportedOperation(L"BytecodeFunction is not container");
-	return 0;
 };
 
 vobject* BytecodeFunction::call(ck_vobject::vscope* scope, const std::vector<vobject*> args) {
 	throw UnsupportedOperation(L"BytecodeFunction is not directly callable");
 };
 
-vscope* BytecodeFunction::apply(const std::vector<ck_vobject::vobject*>& args) {
+vscope* BytecodeFunction::apply(ck_vobject::vobject* this_bind, const std::vector<ck_vobject::vobject*>& args, ck_vobject::vscope* caller_scope) {
 	vscope* nscope = new iscope(scope);
+	
+	// Apply args
 	Array* arguments = new Array(args);
-	nscope->put(L"__arguments", arguments);
+	nscope->put(L"__args", arguments);
 	
 	int min = argn.size();
 	min = min < args.size() ? min : args.size();
 	
 	for (int i = 0; i < min; ++i)
 		nscope->put(argn[i], args[i], 0, 1);
+	
+	// Bind __this
+	nscope->put(L"__this", this_bind);
 	
 	return nscope;
 };
@@ -78,18 +88,12 @@ void BytecodeFunction::gc_mark() {
 	if (gc_reachable)
 		return;
 	
-	gc_reach();
+	Function::gc_mark();
 	
 	if (scope && !scope->gc_reachable)
 		scope->gc_mark();
 };
 
-void BytecodeFunction::gc_finalize() {};
-
-
-long long BytecodeFunction::int_value() {
-	return (int) (intptr_t) this;
-};
 
 wstring BytecodeFunction::string_value() {
 	return std::wstring(L"[Function ") + std::to_wstring((int) (intptr_t) this) + std::wstring(L"]"); 

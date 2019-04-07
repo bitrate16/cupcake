@@ -54,7 +54,10 @@ Double::~Double() {};
 
 // Delegate to prototype
 vobject* Double::get(ck_vobject::vscope* scope, const std::wstring& name) {
-	return DoubleProto ? DoubleProto->get(scope, name) : nullptr;
+	if (name == L"proto")
+		return IntProto;
+	
+	return DoubleProto ? DoubleProto->Object::get(scope, name) : nullptr;
 };
 
 void Double::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* object) {
@@ -63,12 +66,14 @@ void Double::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* o
 
 // Delegate to prototype
 bool Double::contains(ck_vobject::vscope* scope, const std::wstring& name) {	
-	return DoubleProto && DoubleProto->contains(scope, name);
+	if (name == L"proto")
+		return 1;
+	
+	return DoubleProto && DoubleProto->Object::contains(scope, name);
 };
 
 bool Double::remove(ck_vobject::vscope* scope, const std::wstring& name) {
 	throw UnsupportedOperation(L"Double is not container");
-	return 0;
 };
 
 vobject* Double::call(ck_vobject::vscope* scope, const std::vector<vobject*> args) {

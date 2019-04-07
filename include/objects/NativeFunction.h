@@ -2,16 +2,17 @@
 
 #include <functional>
 
+#include "Function.h"
 #include "Object.h"
 
 // Container for prototypes that allow overloading call with lambda-expression.
 namespace ck_objects {	
 
-	class NativeFunction : public ck_objects::Object {
+	class NativeFunction : public ck_objects::Function {
 		
 	protected:
 		
-		// NativeFunction::call override
+		// NativeFunction::call override -> vobject* func(vscope*, vector<vobject*> args)
 		ck_vobject::vobject* (*call_wrapper) (ck_vobject::vscope*, const std::vector<ck_vobject::vobject*>&);
 		
 	public:
@@ -26,16 +27,18 @@ namespace ck_objects {
 		virtual vobject* call    (ck_vobject::vscope*, const std::vector<vobject*>);
 		
 		virtual void gc_mark();
-		virtual void gc_finalize();
-		
-		// Must return integer representation of an object
-		virtual long long int_value();
 		
 		// Must return string representation of an object
 		virtual std::wstring string_value();
 		
 		// Called on interpreter start to initialize prototype
 		static vobject* create_proto();
+		
+		// Does absolutely nothing
+		virtual ck_vobject::vscope* apply(ck_vobject::vobject* this_bind, const std::vector<ck_vobject::vobject*>& argv, ck_vobject::vscope* caller_scope) { return nullptr; };
+		
+		// Returns pointer to call_wrapper
+		inline ck_vobject::vobject* (*get_call_wrapper()) (ck_vobject::vscope*, const std::vector<ck_vobject::vobject*>&) { return call_wrapper; };
 	};
 	
 	// Defined on interpreter start.
