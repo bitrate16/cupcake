@@ -139,12 +139,12 @@ vobject* iscope::get(const std::wstring& name, bool parent_get) {
 		#ifndef CK_SINGLETHREAD
 			std::unique_lock<std::mutex> lck(mutex());
 		#endif
-			
+		
 		pos = objects.find(name);
 		if (pos != objects.end())
 			return pos->second;
 	}
-
+	
 	if (parent_get && parent)
 		return parent->get(name, 1);
 	else
@@ -153,7 +153,7 @@ vobject* iscope::get(const std::wstring& name, bool parent_get) {
 		
 bool iscope::put(const std::wstring& name, vobject* object, bool parent_put, bool create_new) {
 	map<wstring, vobject*>::const_iterator pos;
-
+	
 	{
 		#ifndef CK_SINGLETHREAD
 			std::unique_lock<std::mutex> lck(mutex());
@@ -166,7 +166,7 @@ bool iscope::put(const std::wstring& name, vobject* object, bool parent_put, boo
 		}
 	}
 	
-	if (parent_put && parent)
+	if (parent_put && parent) {
 		if (parent->put(name, object, 1, 0))
 			return 1;
 		else if (create_new) {
@@ -177,15 +177,16 @@ bool iscope::put(const std::wstring& name, vobject* object, bool parent_put, boo
 			objects[name] = object;
 			return 1;
 		}
-	else if (create_new) {
+	} else if (create_new) {
 		#ifndef CK_SINGLETHREAD
 			std::unique_lock<std::mutex> lck(mutex());
 		#endif
 		
 		objects[name] = object;
 		return 1;
-	} else
-		return 0;
+	}
+	
+	return 0;
 };
 
 bool iscope::contains(const std::wstring& name, bool parent_search) {
@@ -337,14 +338,14 @@ bool xscope::put(const std::wstring& name, vobject* object, bool parent_put, boo
 	bool pcontains = proxy ? proxy->contains(this, name) : 0;
 	
 	if (!pcontains)
-		if (parent_put && parent)
+		if (parent_put && parent) {
 			if (parent->put(name, object, 1, 0))
 				return 1;
 			else if (create_new) {
 				if (proxy) proxy->put(this, name, object);
 				return 1;
 			}
-		else if (create_new) {
+		} else if (create_new) {
 			if (proxy) proxy->put(this, name, object);
 			return 1;
 		} else

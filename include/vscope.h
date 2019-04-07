@@ -54,7 +54,7 @@ namespace ck_vobject {
 		//  If parent_put is 1, then parent.put(name, object, 1, 0)
 		//  Returns 0 if no value was inserted,
 		//   If create_new is 1, then value will be created in this scope.
-		virtual bool put(const std::wstring& name, vobject* object, bool parent_put = 0, bool create_new = 0) = 0;
+		virtual bool put(const std::wstring& name, vobject* object, bool parent_put = 0, bool create_new = 1) = 0;
 		
 		// If parent_search is 1, then search in prent too.
 		// Returns 1 if value was found.
@@ -111,7 +111,7 @@ namespace ck_vobject {
 		//  If parent_put is 1, then parent.put(name, object, 1, 0)
 		//  Returns 0 if no value was inserted,
 		//   If create_new is 1, then value will be created in this scope.
-		bool put(const std::wstring& name, vobject* object, bool parent_put = 0, bool create_new = 0);
+		bool put(const std::wstring& name, vobject* object, bool parent_put = 0, bool create_new = 1);
 		
 		// If parent_search is 1, then search in prent too.
 		// Returns 1 if value was found.
@@ -172,7 +172,7 @@ namespace ck_vobject {
 		//  If parent_put is 1, then parent.put(name, object, 1, 0)
 		//  Returns 0 if no value was inserted,
 		//   If create_new is 1, then value will be created in this scope.
-		bool put(const std::wstring& name, vobject* object, bool parent_put = 0, bool create_new = 0);
+		bool put(const std::wstring& name, vobject* object, bool parent_put = 0, bool create_new = 1);
 		
 		// If parent_search is 1, then search in prent too.
 		// Returns 1 if value was found.

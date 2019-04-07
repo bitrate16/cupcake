@@ -42,27 +42,31 @@ namespace ck_vobject {
 	//  vsobject.
 	// Must be used in multithreaded mode to avoid priority race breaks.
 	class vsobject : public vobject {
-		// Synchronization lock protectors
-		// ???: Thinking about using recursive_mutex
-		std::mutex lock_mutex;
+		#ifndef CK_SINGLETHREAD
 		
-	protected: // absolutely 200 bytes shit
+			// Synchronization lock protectors
+			// ???: Thinking about using recursive_mutex
+			std::mutex lock_mutex;
+			
+		protected: // absolutely 200 bytes shit
+			
+			// Synchronization methods.
+			//  must be called on any access to object's fields inside 
+			//  of get/put/call/contains/remode, e.t.c.
+			// PROF: better to use unique_lock
+			inline void lock() {
+				lock_mutex.lock();
+			};
+			
+			inline void unlock() {
+				lock_mutex.unlock();
+			};
+			
+			inline std::mutex& mutex() {
+				return lock_mutex;
+			};
 		
-		// Synchronization methods.
-		//  must be called on any access to object's fields inside 
-		//  of get/put/call/contains/remode, e.t.c.
-		// PROF: better to use unique_lock
-		inline void lock() {
-			lock_mutex.lock();
-		};
-		
-		inline void unlock() {
-			lock_mutex.unlock();
-		};
-		
-		inline std::mutex& mutex() {
-			return lock_mutex;
-		};
+		#endif
 	};
 	
 		// XXX: check for working
