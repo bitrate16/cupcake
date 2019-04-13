@@ -1487,7 +1487,8 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 		// Pass given scope as proxy to avoid overwritting of __this value.
 		if (scope)
 			scope = new xscope(scope);
-		scope = new iscope(scope ? scope : (scopes.size() == 0 ? nullptr : scopes.back()));
+		else
+			scope = new iscope(scopes.size() == 0 ? nullptr : scopes.back());
 		scope->root();
 		own_scope = 1;
 		
