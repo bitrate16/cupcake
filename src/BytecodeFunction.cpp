@@ -61,7 +61,7 @@ bool BytecodeFunction::remove(ck_vobject::vscope* scope, const std::wstring& nam
 	throw UnsupportedOperation(L"BytecodeFunction is not container");
 };
 
-vobject* BytecodeFunction::call(ck_vobject::vscope* scope, const std::vector<vobject*> args) {
+vobject* BytecodeFunction::call(ck_vobject::vscope* scope, const std::vector<vobject*>& args) {
 	throw UnsupportedOperation(L"BytecodeFunction is not directly callable");
 };
 

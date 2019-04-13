@@ -155,7 +155,7 @@ bool String::remove(ck_vobject::vscope* scope, const std::wstring& name) {
 	return 0;
 };
 
-vobject* String::call(ck_vobject::vscope* scope, const std::vector<vobject*> args) {
+vobject* String::call(ck_vobject::vscope* scope, const std::vector<vobject*>& args) {
 	throw UnsupportedOperation(L"String is not callable");
 };
 

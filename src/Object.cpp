@@ -4,6 +4,9 @@
 
 #include "exceptions.h"
 #include "GIL2.h"
+#include "objects/Object.h"
+#include "objects/Bool.h"
+#include "objects/NativeFunction.h"
 
 using namespace std;
 using namespace ck_exceptions;
@@ -19,6 +22,27 @@ vobject* Object::create_proto() {
 	GIL::gc_instance()->attach_root(ObjectProto);
 	
 	// ...
+	ObjectProto->put(L"__contains", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return nullptr;
+			vobject* __this = scope->get(L"__this");
+			if (!__this)
+				return nullptr;
+			
+			// Validate args
+			bool con = 1;
+			for (auto &i : args)
+				if (!i || !static_cast<Object*>(__this)->contains(i->string_value())) {
+					con = 0;
+					break;
+				}
+			
+			if (con)
+				return Bool::True();
+			else
+				return Bool::False();
+		}));
 	
 	return ObjectProto;
 };
@@ -66,7 +90,7 @@ bool Object::remove(vscope* scope, const wstring& name) {
 	return 0;
 };
 
-vobject* Object::call(vscope* scope, const vector<vobject*> args) {
+vobject* Object::call(vscope* scope, const vector<vobject*>& args) {
 	// XXX: Construct object from input
 	throw UnsupportedOperation(L"Object is not callable");
 };

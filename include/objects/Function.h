@@ -21,7 +21,7 @@ namespace ck_objects {
 		Function() {};
 		virtual ~Function() {};
 		
-		virtual vobject* call(ck_vobject::vscope*, const std::vector<vobject*>) = 0;
+		virtual vobject* call(ck_vobject::vscope*, const std::vector<vobject*>&) = 0;
 		
 		// Fix this reference for a current instance of function.
 		// Normally does not return modified function, just binds a reference.

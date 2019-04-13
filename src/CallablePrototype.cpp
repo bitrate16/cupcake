@@ -30,7 +30,7 @@ bool CallablePrototype::remove(ck_vobject::vscope* scope, const std::wstring& na
 	return Object::remove(name);
 };
 
-vobject* CallablePrototype::call(ck_vobject::vscope* scope, const std::vector<vobject*> args) {
+vobject* CallablePrototype::call(ck_vobject::vscope* scope, const std::vector<vobject*>& args) {
 	return call_handler(scope, args);
 };
 

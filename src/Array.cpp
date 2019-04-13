@@ -172,7 +172,7 @@ bool Array::remove(vscope* scope, const wstring& name) {
 	return 0;
 };
 
-vobject* Array::call(vscope* scope, const vector<vobject*> args) {
+vobject* Array::call(vscope* scope, const vector<vobject*>& args) {
 	// XXX: Construct object from input
 	throw UnsupportedOperation(L"Array is not callable");
 };

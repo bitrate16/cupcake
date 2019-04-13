@@ -24,7 +24,7 @@ namespace ck_objects {
 		virtual void     put     (ck_vobject::vscope*, const std::wstring&, vobject*);
 		virtual bool     contains(ck_vobject::vscope*, const std::wstring&);
 		virtual bool     remove  (ck_vobject::vscope*, const std::wstring&);
-		virtual vobject* call    (ck_vobject::vscope*, const std::vector<vobject*>);
+		virtual vobject* call    (ck_vobject::vscope*, const std::vector<vobject*>&);
 		
 		
 		// Returns value

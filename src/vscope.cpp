@@ -79,7 +79,7 @@ bool iscope::remove(vscope* scope, const wstring& name) {
 };
 
 
-vobject* iscope::call(vscope* scope, const std::vector<vobject*> args) { 
+vobject* iscope::call(vscope* scope, const std::vector<vobject*>& args) { 
 	throw UnsupportedOperation(L"Scope is not callable");
 };
 
@@ -271,7 +271,7 @@ bool xscope::remove(vscope* scope, const wstring& name) {
 };
 
 
-vobject* xscope::call(vscope* scope, const std::vector<vobject*> args) { 
+vobject* xscope::call(vscope* scope, const std::vector<vobject*>& args) { 
 	throw UnsupportedOperation(L"Scope is not callable");
 };
 
@@ -324,6 +324,9 @@ void xscope::gc_finalize() {};
 
 
 vobject* xscope::get(const std::wstring& name, bool parent_get) {
+	if (name == L"__this")
+		return __this;
+	
 	vobject* o = proxy ? proxy->get(this, name) : nullptr;
 	
 	if (!o)
@@ -334,28 +337,37 @@ vobject* xscope::get(const std::wstring& name, bool parent_get) {
 	return o;
 };
 		
-bool xscope::put(const std::wstring& name, vobject* object, bool parent_put, bool create_new) {
-	bool pcontains = proxy ? proxy->contains(this, name) : 0;
+bool xscope::put(const std::wstring& name, vobject* object, bool parent_put, bool create_new) {	
+	bool pcontains = (name == L"__this" && __this) || (proxy ? proxy->contains(this, name) : 0);
 	
 	if (!pcontains)
 		if (parent_put && parent) {
 			if (parent->put(name, object, 1, 0))
 				return 1;
 			else if (create_new) {
-				if (proxy) proxy->put(this, name, object);
+				if (name == L"__this") __this = object;
+				else if (proxy) proxy->put(this, name, object);
+				
 				return 1;
 			}
 		} else if (create_new) {
-			if (proxy) proxy->put(this, name, object);
+			if (name == L"__this") __this = object;
+			else if (proxy) proxy->put(this, name, object);
+			
 			return 1;
 		} else
 			return 0;
 
-	if (proxy) proxy->put(this, name, object);
+	if (name == L"__this") __this = object;
+	else if (proxy) proxy->put(this, name, object);
+	
 	return 1;
 };
 
 bool xscope::contains(const std::wstring& name, bool parent_search) {
+	if (name == L"__this" && __this)
+		return 1;
+	
 	bool pcontains = proxy ? proxy->contains(this, name) : 0;
 	
 	if (!pcontains)
@@ -364,12 +376,16 @@ bool xscope::contains(const std::wstring& name, bool parent_search) {
 };
 
 bool xscope::remove(const std::wstring& name, bool parent_remove) {
+	if (name == L"__this" && __this) 
+		__this = nullptr;
+	
 	bool pcontains = proxy ? proxy->contains(this, name) : 0;
 	if (!pcontains)
 		if (parent_remove && parent)
 			return parent->remove(name, 1);
 		else
 			return 0;
+		
 	proxy->remove(this, name);
 	return 1;
 };

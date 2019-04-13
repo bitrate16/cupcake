@@ -39,6 +39,22 @@ vobject* Bool::create_proto() {
 	return BoolProto;
 };
 
+Bool* Bool::True() {
+	if (TrueInstance == nullptr) {
+		TrueInstance = new Bool(1);
+		GIL::gc_instance()->attach_root(TrueInstance);
+	}
+	return TrueInstance;
+};
+
+Bool* Bool::False() {
+	if (FalseInstance == nullptr) {
+		FalseInstance = new Bool(0);
+		GIL::gc_instance()->attach_root(FalseInstance);
+	}
+	return FalseInstance;
+};
+
 
 Bool::Bool(bool value) : val(value) {};
 
@@ -68,7 +84,7 @@ bool Bool::remove(ck_vobject::vscope* scope, const std::wstring& name) {
 	throw UnsupportedOperation(L"Bool is not container");
 };
 
-vobject* Bool::call(ck_vobject::vscope* scope, const std::vector<vobject*> args) {
+vobject* Bool::call(ck_vobject::vscope* scope, const std::vector<vobject*>& args) {
 	throw UnsupportedOperation(L"Bool is not callable");
 };
 

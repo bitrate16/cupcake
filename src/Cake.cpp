@@ -201,7 +201,7 @@ bool Cake::remove(ck_vobject::vscope* scope, const std::wstring& name) {
 	return 0;
 };
 
-vobject* Cake::call(ck_vobject::vscope* scope, const std::vector<vobject*> args) {
+vobject* Cake::call(ck_vobject::vscope* scope, const std::vector<vobject*>& args) {
 	throw UnsupportedOperation(L"Cake is not callable");
 };
 

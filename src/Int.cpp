@@ -76,7 +76,7 @@ bool Int::remove(ck_vobject::vscope* scope, const std::wstring& name) {
 	throw UnsupportedOperation(L"Int is not container");
 };
 
-vobject* Int::call(ck_vobject::vscope* scope, const std::vector<vobject*> args) {
+vobject* Int::call(ck_vobject::vscope* scope, const std::vector<vobject*>& args) {
 	throw UnsupportedOperation(L"Int is not callable");
 };
 

@@ -24,7 +24,7 @@ namespace ck_objects {
 		virtual void     put     (ck_vobject::vscope*, const std::wstring&, vobject*);
 		virtual bool     contains(ck_vobject::vscope*, const std::wstring&);
 		virtual bool     remove  (ck_vobject::vscope*, const std::wstring&);
-		virtual vobject* call    (ck_vobject::vscope*, const std::vector<vobject*>);
+		virtual vobject* call    (ck_vobject::vscope*, const std::vector<vobject*>&);
 		
 		
 		// Returns value
@@ -37,9 +37,19 @@ namespace ck_objects {
 			return val;
 		};
 		
+		static Bool* True();
+		
+		static Bool* False();
+		
 		// Called on interpreter start to initialize prototype
 		static vobject* create_proto();
 	};
+	
+	// Defined on any call to Bool::True().
+	static Bool* TrueInstance = nullptr;
+	
+	// Defined on any call to Bool::False().
+	static Bool* FalseInstance = nullptr;
 	
 	// Defined on interpreter start.
 	static CallablePrototype* BoolProto = nullptr;

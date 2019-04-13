@@ -28,7 +28,7 @@ vobject* vobject::get     (vscope* scope, const std::wstring& name) { return nul
 void     vobject::put     (vscope* scope, const std::wstring& name, vobject* obj) {};
 bool     vobject::contains(vscope* scope, const std::wstring& name) {return 0; };
 bool     vobject::remove  (vscope* scope, const std::wstring& name) { return 0; };
-vobject* vobject::call    (vscope* scope, const std::vector<vobject*> args) { return nullptr; };
+vobject* vobject::call    (vscope* scope, const std::vector<vobject*>& args) { return nullptr; };
 
 void vobject::gc_mark() { ck_core::gc_object::gc_reachable = 1; };
 void vobject::gc_finalize() {};

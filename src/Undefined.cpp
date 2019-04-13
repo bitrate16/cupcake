@@ -64,7 +64,7 @@ bool Undefined::remove(ck_vobject::vscope* scope, const std::wstring& name) {
 	throw UnsupportedOperation(L"Undefined is not container");
 };
 
-vobject* Undefined::call(ck_vobject::vscope* scope, const std::vector<vobject*> args) {
+vobject* Undefined::call(ck_vobject::vscope* scope, const std::vector<vobject*>& args) {
 	throw UnsupportedOperation(L"Undefined is not callable");
 };
 

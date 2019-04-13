@@ -12,7 +12,7 @@ namespace ck_vobject {
 	class vscope : public ck_vobject::vobject {
 		
 	public:
-	
+		
 		vscope* parent;
 		
 		vscope(vscope* parent = nullptr) { this->parent = parent; };
@@ -22,7 +22,7 @@ namespace ck_vobject {
 		virtual void     put     (vscope*, const std::wstring&, vobject*) = 0;
 		virtual bool     contains(vscope*, const std::wstring&) = 0;
 		virtual bool     remove  (vscope*, const std::wstring&) = 0;
-		virtual vobject* call    (vscope*, const std::vector<vobject*>) = 0;
+		virtual vobject* call    (vscope*, const std::vector<vobject*>&) = 0;
 		
 		// Returns pointer to the root scope
 		virtual vscope* get_root() = 0;
@@ -79,7 +79,7 @@ namespace ck_vobject {
 		void     put     (vscope*, const std::wstring&, vobject*);
 		bool     contains(vscope*, const std::wstring&);
 		bool     remove  (vscope*, const std::wstring&);
-		vobject* call    (vscope*, const std::vector<vobject*>);
+		vobject* call    (vscope*, const std::vector<vobject*>&);
 		
 		// Returns pointer to the root scope
 		vscope* get_root();
@@ -129,7 +129,16 @@ namespace ck_vobject {
 	// Acts as a normal scope interface but allows handling object as a field.
 	class xscope: public vscope {
 		
-		ck_vobject::vobject* proxy;
+		// Reference to __this value for the scope.
+		// Used during execution to implace "this" statement
+		//  and pass referencing object to a function.
+		// Using inner variable to avoid overwritting __this value in the contained object.
+		// 
+		// Normally calling scope::put("__this", ...) will write variable __this with given value
+		//  into referencing scope. But when called on a proxy, object's __this is ignored and accessed only 
+		//  __this value that is local variable here.
+		ck_vobject::vobject* __this = nullptr;
+		ck_vobject::vobject* proxy  = nullptr;
 		
 	public:
 		
@@ -140,7 +149,7 @@ namespace ck_vobject {
 		void     put     (vscope*, const std::wstring&, vobject*);
 		bool     contains(vscope*, const std::wstring&);
 		bool     remove  (vscope*, const std::wstring&);
-		vobject* call    (vscope*, const std::vector<vobject*>);
+		vobject* call    (vscope*, const std::vector<vobject*>&);
 		
 		// Returns pointer to the root scope
 		vscope* get_root();

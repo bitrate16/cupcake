@@ -1402,6 +1402,9 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 		scope = new iscope();
 		scope->root();
 	}
+	
+	// Overwrite __this to avoid access to the super-parent __this value
+	scope->put(L"__this", Undefined::instance());
 		
 	if (argn != nullptr && argv != nullptr) {
 		int argc = argn->size() < argv->size() ? argn->size() : argv->size();
@@ -1478,17 +1481,28 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 		scope->root();
 		own_scope = 1;
 	} else {
-		if (scope != nullptr) {
-			// scope = exec_scope;
-			own_scope = 0;
-		} else {
-			scope = new iscope(scopes.size() == 0 ? nullptr : scopes.back());
-			scope->root();
-			own_scope = 1;
-		}
+		//if (scope != nullptr) {
+		// XXX: Passing given scope with scope-wrapper.
+		
+		// Pass given scope as proxy to avoid overwritting of __this value.
+		if (scope)
+			scope = new xscope(scope);
+		scope = new iscope(scope ? scope : (scopes.size() == 0 ? nullptr : scopes.back()));
+		scope->root();
+		own_scope = 1;
 		
 		if (ref != nullptr)
 			scope->put(L"__this", ref);
+		
+			// own_scope = 0;
+		/* } /* else {
+			scope = new iscope(scopes.size() == 0 ? nullptr : scopes.back());
+			scope->root();
+			own_scope = 1;
+			
+			if (ref != nullptr)
+				scope->put(L"__this", ref);
+		} */
 	}
 	
 	// Push scope

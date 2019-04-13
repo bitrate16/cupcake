@@ -20,7 +20,7 @@ namespace ck_vobject {
 		virtual void     put     (vscope*, const std::wstring&, vobject*);
 		virtual bool     contains(vscope*, const std::wstring&);
 		virtual bool     remove  (vscope*, const std::wstring&);
-		virtual vobject* call    (vscope*, const std::vector<vobject*>);
+		virtual vobject* call    (vscope*, const std::vector<vobject*>&);
 		
 		virtual void gc_mark();
 		virtual void gc_finalize();

@@ -54,7 +54,7 @@ bool NativeFunction::remove(ck_vobject::vscope* scope, const std::wstring& name)
 	throw UnsupportedOperation(L"NativeFunction is not container");
 };
 
-vobject* NativeFunction::call(ck_vobject::vscope* scope, const std::vector<vobject*> args) {
+vobject* NativeFunction::call(ck_vobject::vscope* scope, const std::vector<vobject*>& args) {
 	throw UnsupportedOperation(L"BytecodeFunction is not directly callable");
 };
 

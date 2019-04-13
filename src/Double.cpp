@@ -76,7 +76,7 @@ bool Double::remove(ck_vobject::vscope* scope, const std::wstring& name) {
 	throw UnsupportedOperation(L"Double is not container");
 };
 
-vobject* Double::call(ck_vobject::vscope* scope, const std::vector<vobject*> args) {
+vobject* Double::call(ck_vobject::vscope* scope, const std::vector<vobject*>& args) {
 	throw UnsupportedOperation(L"Double is not callable");
 };
 
