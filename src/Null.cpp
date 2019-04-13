@@ -48,7 +48,12 @@ Null::~Null() {};
 
 // Delegate to prototype
 vobject* Null::get(ck_vobject::vscope* scope, const std::wstring& name) {
-	return NullProto ? NullProto->get(scope, name) : nullptr;
+	vobject* o = NullProto ? NullProto->get(scope, name) : nullptr;
+	
+	// Do not trigger on __names
+	if (!o && !(name.size() >= 2 && name[0] != L'_' && name[1] != L'_'))
+		throw UnsupportedOperation(L"Null is not container");
+	return o;
 };
 
 void Null::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* object) {

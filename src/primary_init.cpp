@@ -30,7 +30,9 @@ static vobject* f_print(vscope* scope, const vector<vobject*>& args) {
 				((Cake*) args[i])->print_backtrace();
 			else
 				wcout << args[i]->string_value() << ' ';
-	//throw ck_exceptions::ck_message(wstring(L"ololo call to ") , ck_exceptions::ck_message_type::CK_TYPE_ERROR);
+		else
+			wcout << "undefined" << ' ';
+			
 	return nullptr;
 };
 

@@ -753,7 +753,7 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 			
 			push_byte(bytemap, ck_bytecodes::LOAD_FIELD);
 			
-			wstring& s = *(wstring*) n->left->objectlist->object;
+			wstring& s = *(wstring*) n->objectlist->object;
 			int size = s.size();
 			
 			push(bytemap, sizeof(int), &size);

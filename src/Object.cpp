@@ -26,7 +26,7 @@ vobject* Object::create_proto() {
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
 			// Validate __this
 			if (!scope) return nullptr;
-			vobject* __this = scope->get(L"__this");
+			vobject* __this = scope->get(L"__this", 1);
 			if (!__this)
 				return nullptr;
 			

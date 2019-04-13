@@ -48,7 +48,12 @@ Undefined::~Undefined() {};
 
 // Delegate to prototype
 vobject* Undefined::get(ck_vobject::vscope* scope, const std::wstring& name) {
-	return UndefinedProto ? UndefinedProto->get(scope, name) : nullptr;
+	vobject* o = UndefinedProto ? UndefinedProto->get(scope, name) : nullptr;
+	
+	// Do not trigger on __names
+	if (!o && !(name.size() >= 2 && name[0] != L'_' && name[1] != L'_'))
+		throw UnsupportedOperation(L"Undefined is not container");
+	return o;
 };
 
 void Undefined::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* object) {

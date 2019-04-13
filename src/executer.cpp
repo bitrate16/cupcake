@@ -1371,7 +1371,7 @@ vobject* ck_executer::exec_bytecode() {
 				validate_scope();
 				
 				// Get __this value from enclosing scope.
-				vpush(scopes.back()->get(L"__this"));
+				vpush(scopes.back()->get(L"__this", 1));
 				
 				break;
 			}
