@@ -7,6 +7,8 @@
 #include "objects/Object.h"
 #include "objects/Bool.h"
 #include "objects/NativeFunction.h"
+#include "objects/Undefined.h"
+#include "objects/String.h"
 
 using namespace std;
 using namespace ck_exceptions;
@@ -22,13 +24,14 @@ vobject* Object::create_proto() {
 	GIL::gc_instance()->attach_root(ObjectProto);
 	
 	// ...
-	ObjectProto->put(L"__contains", new NativeFunction(
+	ObjectProto->put(L"__typename", new String(L"Object"));
+	ObjectProto->put(L"contains", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
 			// Validate __this
-			if (!scope) return nullptr;
+			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this)
-				return nullptr;
+			if (!__this || !__this->is_typeof<Object>())
+				return Undefined::instance();
 			
 			// Validate args
 			bool con = 1;
@@ -136,7 +139,7 @@ void Object::put(const wstring& name, vobject* object) {
 vobject* Object::get(const wstring& name) {
 	
 	#ifndef CK_SINGLETHREAD
-		std::unique_lock<std::mutex> lck(mutex());
+		std::unique_lock<std::recursive_mutex> lck(mutex());
 	#endif
 	
 	//wcout << this->string_value() << " getting " << name << endl;
@@ -149,7 +152,7 @@ vobject* Object::get(const wstring& name) {
 bool Object::contains(const wstring& name) {
 	
 	#ifndef CK_SINGLETHREAD
-		std::unique_lock<std::mutex> lck(mutex());
+		std::unique_lock<std::recursive_mutex> lck(mutex());
 	#endif
 	
 	map<wstring, vobject*>::const_iterator pos = objects.find(name);
@@ -161,7 +164,7 @@ bool Object::contains(const wstring& name) {
 bool Object::remove(const wstring& name) {
 	
 	#ifndef CK_SINGLETHREAD
-		std::unique_lock<std::mutex> lck(mutex());
+		std::unique_lock<std::recursive_mutex> lck(mutex());
 	#endif
 	
 	map<wstring, vobject*>::const_iterator pos = objects.find(name);

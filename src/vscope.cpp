@@ -20,6 +20,11 @@
 #include "objects/Object.h"
 #include "objects/String.h"
 #include "objects/Null.h"
+#include "objects/Undefined.h"
+#include "objects/Bool.h"
+#include "objects/NativeFunction.h"
+#include "objects/Array.h"
+#include "objects/String.h"
 
 using namespace std;
 using namespace ck_core;
@@ -32,6 +37,7 @@ using namespace ck_objects;
 
 // _ _ I N I T _ _
 
+// I S C O P E
 vobject* iscope::create_proto() {
 	if (ScopeProto != nullptr)
 		return ScopeProto;
@@ -40,8 +46,98 @@ vobject* iscope::create_proto() {
 	GIL::gc_instance()->attach_root(ScopeProto);
 	
 	ScopeProto->put(L"__typename", new String(L"Scope"));
+	ScopeProto->put(L"parent", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<Object>())
+				return Undefined::instance();
+			
+			vobject* parent = static_cast<iscope*>(__this)->parent;
+			return parent ? parent : Undefined::instance();
+		}));
+	ScopeProto->put(L"root", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<Object>())
+				return Undefined::instance();
+			
+			vobject* root = static_cast<iscope*>(__this)->get_root();
+			return root ? root : Undefined::instance();
+		}));
+	ScopeProto->put(L"contains", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<Object>())
+				return Undefined::instance();
+			
+			// Validate args
+			bool con = 1;
+			for (auto &i : args)
+				if (!i || !static_cast<iscope*>(__this)->contains(i->string_value())) {
+					con = 0;
+					break;
+				}
+			
+			if (con)
+				return Bool::True();
+			else
+				return Bool::False();
+		}));
+	ScopeProto->put(L"remove", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<Object>())
+				return Undefined::instance();
+			
+			// Validate args
+			bool con = 1;
+			for (auto &i : args)
+				con = con && static_cast<iscope*>(__this)->remove(i->string_value());
+			
+			if (con)
+				return Bool::True();
+			else
+				return Bool::False();
+		}));
+	ScopeProto->put(L"keys", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<Object>())
+				return Undefined::instance();
+			
+			std::vector<vobject*> keys;
+	
+			for (const auto& any : static_cast<iscope*>(__this)->objects) 
+				keys.push_back(new String(any.first));
+			
+			return new Array(keys);
+		}));
 	
 	return ScopeProto;
+};
+
+// X S C O P E
+vobject* xscope::create_proto() {
+	if (ProxyScopeProto != nullptr)
+		return ProxyScopeProto;
+	
+	ProxyScopeProto = new Object();
+	GIL::gc_instance()->attach_root(ProxyScopeProto);
+	
+	// Typename match typename for Scope. Difference only in #::Scope funciton
+	ProxyScopeProto->put(L"__typename", new String(L"Scope"));
+	
+	return ProxyScopeProto;
 };
 
 
@@ -132,12 +228,12 @@ void iscope::gc_mark() {
 void iscope::gc_finalize() {};
 
 
-vobject* iscope::get(const std::wstring& name, bool parent_get) {
+vobject* iscope::get(const std::wstring& name, bool parent_get, bool proto_get) {
 	map<wstring, vobject*>::const_iterator pos;
 
 	{
 		#ifndef CK_SINGLETHREAD
-			std::unique_lock<std::mutex> lck(mutex());
+			std::unique_lock<std::recursive_mutex> lck(mutex());
 		#endif
 		
 		pos = objects.find(name);
@@ -145,10 +241,16 @@ vobject* iscope::get(const std::wstring& name, bool parent_get) {
 			return pos->second;
 	}
 	
+	vobject* obj;
 	if (parent_get && parent)
-		return parent->get(name, 1);
+		obj = parent->get(name, 1);
 	else
-		return nullptr;
+		obj = nullptr;
+	
+	if (!obj && proto_get && ScopeProto)
+		return ScopeProto->get(name);
+	
+	return obj;	
 };
 		
 bool iscope::put(const std::wstring& name, vobject* object, bool parent_put, bool create_new) {
@@ -156,7 +258,7 @@ bool iscope::put(const std::wstring& name, vobject* object, bool parent_put, boo
 	
 	{
 		#ifndef CK_SINGLETHREAD
-			std::unique_lock<std::mutex> lck(mutex());
+			std::unique_lock<std::recursive_mutex> lck(mutex());
 		#endif
 		
 		pos = objects.find(name);
@@ -171,7 +273,7 @@ bool iscope::put(const std::wstring& name, vobject* object, bool parent_put, boo
 			return 1;
 		else if (create_new) {
 			#ifndef CK_SINGLETHREAD
-				std::unique_lock<std::mutex> lck(mutex());
+				std::unique_lock<std::recursive_mutex> lck(mutex());
 			#endif
 			
 			objects[name] = object;
@@ -179,7 +281,7 @@ bool iscope::put(const std::wstring& name, vobject* object, bool parent_put, boo
 		}
 	} else if (create_new) {
 		#ifndef CK_SINGLETHREAD
-			std::unique_lock<std::mutex> lck(mutex());
+			std::unique_lock<std::recursive_mutex> lck(mutex());
 		#endif
 		
 		objects[name] = object;
@@ -201,7 +303,7 @@ bool iscope::remove(const std::wstring& name, bool parent_remove) {
 	
 	{
 		#ifndef CK_SINGLETHREAD
-			std::unique_lock<std::mutex> lck(mutex());
+			std::unique_lock<std::recursive_mutex> lck(mutex());
 		#endif
 			
 		pos = objects.find(name);
@@ -219,21 +321,6 @@ bool iscope::remove(const std::wstring& name, bool parent_remove) {
 
 
 // P R O X Y _ S C O P E
-
-// _ _ I N I T _ _
-
-vobject* xscope::create_proto() {
-	if (ProxyScopeProto != nullptr)
-		return ProxyScopeProto;
-	
-	ProxyScopeProto = new Object();
-	GIL::gc_instance()->attach_root(ProxyScopeProto);
-	
-	// Typename match typename for Scope. Difference only in #::Scope funciton
-	ProxyScopeProto->put(L"__typename", new String(L"Scope"));
-	
-	return ProxyScopeProto;
-};
 
 
 xscope::xscope(ck_vobject::vobject* proxy, vscope* parent) { 
@@ -323,17 +410,24 @@ void xscope::gc_mark() {
 void xscope::gc_finalize() {};
 
 
-vobject* xscope::get(const std::wstring& name, bool parent_get) {
+vobject* xscope::get(const std::wstring& name, bool parent_get, bool proto_get) {
 	if (name == L"__this")
 		return __this;
 	
 	vobject* o = proxy ? proxy->get(this, name) : nullptr;
 	
-	if (!o)
+	if (!o) {
+		vobject* obj;
 		if (parent_get && parent)
-			return parent->get(name, 1);
+			obj = parent->get(name, 1);
 		else
-			return nullptr;
+			obj = nullptr;
+		
+		if (!obj && proto_get && ProxyScopeProto)
+			return ScopeProto->get(name);
+		
+		return obj;	
+	}
 	return o;
 };
 		

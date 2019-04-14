@@ -552,7 +552,7 @@ vobject* ck_executer::exec_bytecode() {
 				validate_scope();
 				
 				// Scope should return nullptr if value does not exist.
-				vobject* o = scopes.back()->get(cstr, 1);
+				vobject* o = scopes.back()->get(cstr, 1, 1);
 				if (o == nullptr)
 					throw TypeError(wstring(L"undefined reference to ") + cstr);
 				

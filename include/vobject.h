@@ -45,8 +45,8 @@ namespace ck_vobject {
 		#ifndef CK_SINGLETHREAD
 		
 			// Synchronization lock protectors
-			// ???: Thinking about using recursive_mutex
-			std::mutex lock_mutex;
+			//  Using recursive to allow single thread take ownership many times.
+			std::recursive_mutex lock_mutex;
 			
 		protected: // absolutely 200 bytes shit
 			
@@ -62,7 +62,7 @@ namespace ck_vobject {
 				lock_mutex.unlock();
 			};
 			
-			inline std::mutex& mutex() {
+			inline std::recursive_mutex& mutex() {
 				return lock_mutex;
 			};
 		

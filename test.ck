@@ -8,7 +8,8 @@ var g = function() { h() }
 var h = function() { i() }
 var i = function() { throw Cake() }
 
-t = {}
+print(__typename);
+t = {}print ('contsss ') ; print (t.contains('f'));
 t.f = function() { print('object: '); print(this); print(', [__this]: '); print(__this); };
 t.f();
 

@@ -48,7 +48,7 @@ namespace ck_vobject {
 		// Scope functions
 		// Check in this scope.
 		//  If parent_get is set to 1 then values will be searched in the parent scope too.
-		virtual vobject* get(const std::wstring& name, bool parent_get = 0) = 0;
+		virtual vobject* get(const std::wstring& name, bool parent_get = 0, bool proto_get = 0) = 0;
 		
 		// Attempt to put in this scope.
 		//  If parent_put is 1, then parent.put(name, object, 1, 0)
@@ -105,7 +105,7 @@ namespace ck_vobject {
 		// Scope functions
 		// Check in this scope.
 		//  If parent_get is set to 1 then values will be searched in the parent scope too.
-		vobject* get(const std::wstring& name, bool parent_get = 0);
+		vobject* get(const std::wstring& name, bool parent_get = 0, bool proto_get = 0);
 		
 		// Attempt to put in this scope.
 		//  If parent_put is 1, then parent.put(name, object, 1, 0)
@@ -175,7 +175,7 @@ namespace ck_vobject {
 		// Scope functions
 		// Check in this scope.
 		//  If parent_get is set to 1 then values will be searched in the parent scope too.
-		vobject* get(const std::wstring& name, bool parent_get = 0);
+		vobject* get(const std::wstring& name, bool parent_get = 0, bool proto_get = 0);
 		
 		// Attempt to put in this scope.
 		//  If parent_put is 1, then parent.put(name, object, 1, 0)
