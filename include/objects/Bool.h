@@ -37,6 +37,11 @@ namespace ck_objects {
 			return val;
 		};
 		
+		// Returns esisting intance of true/false value for passed bool value.
+		static inline Bool* instance(bool value) {
+			return value ? Bool::True() : Bool::False();
+		};
+		
 		static Bool* True();
 		
 		static Bool* False();

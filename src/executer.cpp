@@ -504,7 +504,7 @@ vobject* ck_executer::exec_bytecode() {
 #ifdef DEBUG_OUTPUT
 				wcout << "> PUSH_CONST[boolean]: " << i << endl;
 #endif
-				vpush(new Bool(i));
+				vpush(i ? Bool::True() : Bool::False());
 				break;
 			}
 			
