@@ -25,7 +25,7 @@ BytecodeFunction
 | Fields      | proto<br> __typename<br> contains(key)<br> remove(key)<br> bind(this_ref)<br> for bytecode see reference for dec object native lib:dec |
 | Constructor | Function(souce string) or function() { ... }                                                                                           |
 | Thread-safe | yes                                                                                                                                    |
-| Description | BytecodeFunciton represents a piece of source code of the script that can be executed.                                                 |
+| Description | BytecodeFunction represents a piece of source code of the script that can be executed.                                                 |
 
 NativeFunction
 --------------
