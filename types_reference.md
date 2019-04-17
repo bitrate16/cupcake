@@ -53,7 +53,7 @@ BytecodeFunction
 |-------------|----------------------------------------------------------------------------------------------------------------------------------------|
 | proto | Function : vsobject |
 | __typename | BytecodeFunction |
-| Fields | proto<br> __typename<br> contains(key) [i]<br> remove(key) [i]<br> bind(this_ref) [i]<br> for bytecode see reference for dec object native lib:dec |
+| Fields | proto<br> __typename<br> contains(key) [i]<br> remove(key) [i]<br> keys() [i]<br> bind(this_ref) [i]<br> for bytecode see reference for dec object native lib:dec |
 | Constructor | Function(souce string) or function() { ... } |
 | Thread-safe | yes |
 | Description | BytecodeFunction represents a piece of source code of the script that can be executed. |
@@ -65,7 +65,7 @@ NativeFunction
 |-------------|---------------------------------------------------------------------------------------------------------------------------------------|
 | proto | Function : vsobject |
 | __typename | NativeFunction |
-| Fields | proto<br> __typename<br> contains(key) [i]<br> remove(key) [i]<br> __native_ptr<br> bind(this_ref) |
+| Fields | proto<br> __typename<br> contains(key) [i]<br> remove(key) [i]<br> keys() [i]<br> __native_ptr<br> bind(this_ref) |
 | Constructor | none |
 | Thread-safe | yes |
 | Description | NativeFunction can be used to bind C++ native functions to a ck functions.<br> By the default they can not be create from the script. |
@@ -77,7 +77,7 @@ Bool
 |-------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
 | proto | vobject |
 | __typename | Bool |
-| Fields | proto<br> __typename<br> contains(key) [i]<br> remove(key) [i]<br> True - existing instance of True value<br> False - Existing instance of False value<br> |
+| Fields | proto<br> __typename<br> contains(key) [i]<br> remove(key) [i]<br> keys() [i]<br> True - existing instance of True value<br> False - Existing instance of False value<br> |
 | Constructor | Bool(string or value) |
 | Thread-safe | ? |
 
@@ -88,7 +88,7 @@ Double
 |-------------|------------------------------------------------------------------------------------------------------------------------------------------|
 | proto | vobject |
 | __typename | Double |
-| Fields | proto<br> __typename<br> contains(key) [i]<br> remove(key) [i]<br> parseDouble(string)<br> MAX_DOUBLE<br> MIN_DOUBLE<br> NAN<br> toString(value) |
+| Fields | proto<br> __typename<br> contains(key) [i]<br> remove(key) [i]<br> keys() [i]<br> parseDouble(string)<br> MAX_DOUBLE<br> MIN_DOUBLE<br> NAN<br> toString(value) |
 | Constructor | Double(value or string) |
 | Thread-safe | ? |
 
@@ -99,7 +99,7 @@ Int
 |-------------|-------------------------------------------------------------------------------------------------------------------------------|
 | proto | vobject |
 | __typename | Int |
-| Fields | proto<br> __typename<br> contains(key) [i]<br> remove(key) [i]<br> parseInt(string)<br> MAX_INT<br> MIN_INT<br> toString(value, base) |
+| Fields | proto<br> __typename<br> contains(key) [i]<br> remove(key) [i]<br> keys() [i]<br> parseInt(string)<br> MAX_INT<br> MIN_INT<br> toString(value, base) |
 | Constructor | Int(value or string) |
 | Thread-safe | ? |
 
@@ -110,7 +110,7 @@ Array
 |-------------|--------------------------------------------------------|
 | proto | Object |
 | __typename | Array |
-| Fields | proto<br> __typename<br> contains(key) [i]<br> remove(key) [i] |
+| Fields | proto<br> __typename<br> contains(key) [i]<br> remove(key) [i]<br> keys() [i] |
 | Constructor | Array(list of values or an array) |
 | Thread-safe | yes |
 
