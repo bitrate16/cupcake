@@ -31,7 +31,7 @@ String
 | __typename | String |
 | Fields | proto<br> charAt(index)<br> concatenate(string)<br> stripLeading()<br> stribTrailing()<br> strip()<br> isEmpty()<br> isBlank()<br> indexOf(char)<br> lastIndexOf(char)<br> indexOf(string)<br> lastIndexOf(string)<br> replace(find, replacement)<br> replaceAll(find, replace)<br> contains(char)<br> contains(string)<br> substring(start, length)<br> substring(start)<br> split(delimiter, amount) |
 | Proto fields | __typename<br> contains(key) [i]<br> remove(key) [i]<br> keys() [i] |
-| Constructor | IScope() |
+| Constructor | String() or String(char array) |
 | Thread-safe | yes |
 
 IScope
