@@ -46,6 +46,7 @@ vobject* iscope::create_proto() {
 	GIL::gc_instance()->attach_root(ScopeProto);
 	
 	ScopeProto->put(L"__typename", new String(L"Scope"));
+	ScopeProto->put(L"proto", ScopeProto);
 	ScopeProto->put(L"parent", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
 			// Validate __this
