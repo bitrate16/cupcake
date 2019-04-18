@@ -5,7 +5,7 @@ Default types:
 --------------
 * Object
 * Array
-* String ?
+* String
 * Int
 * Bool
 * Double
