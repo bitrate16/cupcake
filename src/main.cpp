@@ -50,6 +50,10 @@ static GIL* gil_instance;
 static bool has_signaled;
 static int signaled_number;
 
+// SIGNALS + THREADS = POSIX
+// https://gist.github.com/rtv/4989304
+// https://habr.com/ru/post/141206/
+// https://devarea.com/linux-handling-signals-in-a-multithreaded-application/#.XLoeW5gzbIU
 // Signals setup for handling them during execution
 static void signal_handler(int sig) {
 	// Set up ignore signals during signal processing
