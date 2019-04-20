@@ -142,7 +142,7 @@ vobject* xscope::create_proto() {
 };
 
 
-iscope::iscope(vscope* parent) { 
+iscope::iscope(vscope* parent) : vscope(parent) { 
 	this->parent = parent; 
 	
 	put(wstring(L"parent"), parent == nullptr ? (vobject*) Null::instance() : (vobject*) parent);
@@ -234,7 +234,7 @@ vobject* iscope::get(const std::wstring& name, bool parent_get, bool proto_get) 
 
 	{
 		#ifndef CK_SINGLETHREAD
-			std::unique_lock<std::recursive_mutex> lck(mutex());
+			ck_pthread::mutex_lock lck(mutex());
 		#endif
 		
 		pos = objects.find(name);
@@ -259,7 +259,7 @@ bool iscope::put(const std::wstring& name, vobject* object, bool parent_put, boo
 	
 	{
 		#ifndef CK_SINGLETHREAD
-			std::unique_lock<std::recursive_mutex> lck(mutex());
+			ck_pthread::mutex_lock lck(mutex());
 		#endif
 		
 		pos = objects.find(name);
@@ -274,7 +274,7 @@ bool iscope::put(const std::wstring& name, vobject* object, bool parent_put, boo
 			return 1;
 		else if (create_new) {
 			#ifndef CK_SINGLETHREAD
-				std::unique_lock<std::recursive_mutex> lck(mutex());
+				ck_pthread::mutex_lock lck(mutex());
 			#endif
 			
 			objects[name] = object;
@@ -282,7 +282,7 @@ bool iscope::put(const std::wstring& name, vobject* object, bool parent_put, boo
 		}
 	} else if (create_new) {
 		#ifndef CK_SINGLETHREAD
-			std::unique_lock<std::recursive_mutex> lck(mutex());
+			ck_pthread::mutex_lock lck(mutex());
 		#endif
 		
 		objects[name] = object;
@@ -304,7 +304,7 @@ bool iscope::remove(const std::wstring& name, bool parent_remove) {
 	
 	{
 		#ifndef CK_SINGLETHREAD
-			std::unique_lock<std::recursive_mutex> lck(mutex());
+			ck_pthread::mutex_lock lck(mutex());
 		#endif
 			
 		pos = objects.find(name);
@@ -324,7 +324,7 @@ bool iscope::remove(const std::wstring& name, bool parent_remove) {
 // P R O X Y _ S C O P E
 
 
-xscope::xscope(ck_vobject::vobject* proxy, vscope* parent) { 
+xscope::xscope(ck_vobject::vobject* proxy, vscope* parent) : vscope(parent) { 
 	this->parent = parent; 
 	this->proxy = proxy; 
 	

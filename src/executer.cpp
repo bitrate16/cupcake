@@ -24,6 +24,7 @@
 
 
 // #define DEBUG_OUTPUT
+// #define DEBUG_CALL
 
 
 using namespace std;
@@ -227,7 +228,7 @@ void ck_executer::restore_frame(std::vector<stack_frame>& stack, int stack_id, i
 	if (restored_frame_id > (int) stack.size() - 1)
 		return;
 
-#ifdef DEBUG_OUTPUT
+#ifdef DEBUG_CALL
 	wcout << endl;
 	wcout << "-------------> call   stack id current  " << (int)call_stack.size()-1 << endl;
 	wcout << "-------------> try    stack id current  " << (int)try_stack.size() -1<< endl;
@@ -251,7 +252,7 @@ void ck_executer::restore_frame(std::vector<stack_frame>& stack, int stack_id, i
 	int object_id = stack.back().object_id;
 	int pointer_v = stack.back().pointer;
 	
-#ifdef DEBUG_OUTPUT
+#ifdef DEBUG_CALL
 	wcout << "-------------> call   stack id expected " << call_id   << endl;
 	wcout << "-------------> try    stack id expected " << try_id    << endl;
 	wcout << "-------------> window stack id expected " << window_id << endl;
@@ -314,7 +315,7 @@ void ck_executer::restore_frame(std::vector<stack_frame>& stack, int stack_id, i
 	// Restore address pointer
 	pointer = pointer_v;
 	
-#ifdef DEBUG_OUTPUT
+#ifdef DEBUG_CALL
 	wcout << "-------------> call   stack id result   " << (int)call_stack.size()-1 << endl;
 	wcout << "-------------> try    stack id result   " << (int)try_stack.size() -1<< endl;
 	wcout << "-------------> window stack id result   " << (int)window_stack.size()-1 << endl;

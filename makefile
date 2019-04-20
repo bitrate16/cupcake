@@ -4,8 +4,8 @@ SRC_DIR := src
 OBJ_DIR := obj
 SRC_FILES := $(wildcard $(SRC_DIR)/*.cpp)
 OBJ_FILES := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRC_FILES))
-LDFLAGS := -rdynamic -w -g -std=c++17 -ldl
-CPPFLAGS := -rdynamic -w -g -std=c++17
+LDFLAGS := -rdynamic -w -g -std=c++17 -pthread -ldl
+CPPFLAGS := -rdynamic -w -g -std=c++17 -pthread
 CXXFLAGS := 
 
 test: $(OBJ_FILES)

@@ -32,7 +32,9 @@ static vobject* f_print(vscope* scope, const vector<vobject*>& args) {
 				wcout << args[i]->string_value() << ' ';
 		else
 			wcout << "undefined" << ' ';
-			
+		
+	wcout.flush();
+		
 	return nullptr;
 };
 

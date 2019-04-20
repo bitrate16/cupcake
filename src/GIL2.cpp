@@ -58,7 +58,7 @@ GIL::~GIL() {
 	// Program termination.
 	// Waiting till everything is completely dead.
 	// Prevent creating new threads.
-	std::unique_lock<std::mutex> lock(vector_threads_lock);
+	//    std::unique_lock<std::mutex> lock(vector_threads_lock);
 	
 	// At this moment ignoring all signals from OS.
 	dummy_signal(-1);
@@ -78,7 +78,7 @@ GIL::~GIL() {
 
 
 void GIL::terminate() {
-	std::unique_lock<std::mutex> lock(vector_threads_lock);
+	//    std::unique_lock<std::mutex> lock(vector_threads_lock);
 	
 	for (int i = 0; i < threads.size(); ++i)
 		threads[i]->set_alive(0);

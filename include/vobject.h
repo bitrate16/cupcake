@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+#include "pthread_util.h"
 #include "GC.h"
 
 
@@ -42,27 +43,27 @@ namespace ck_vobject {
 	//  vsobject.
 	// Must be used in multithreaded mode to avoid priority race breaks.
 	class vsobject : public vobject {
-		#ifndef CK_SINGLETHREAD
 		
-			// Synchronization lock protectors
-			//  Using recursive to allow single thread take ownership many times.
-			std::recursive_mutex lock_mutex;
+		#ifndef CK_SINGLETHREAD
 			
-		protected: // absolutely 200 bytes shit
+			// Synchronization mutex.
+			//  The default type of this mutex is recursive_mutex
+			ck_pthread::recursive_mutex lock_mutex;
+			
+		protected:
 			
 			// Synchronization methods.
 			//  must be called on any access to object's fields inside 
 			//  of get/put/call/contains/remode, e.t.c.
-			// PROF: better to use unique_lock
-			inline void lock() {
-				lock_mutex.lock();
+			inline bool lock() {
+				return !lock_mutex.lock();
 			};
 			
-			inline void unlock() {
-				lock_mutex.unlock();
+			inline bool unlock() {
+				return !lock_mutex.unlock();
 			};
 			
-			inline std::recursive_mutex& mutex() {
+			inline ck_pthread::recursive_mutex& mutex() {
 				return lock_mutex;
 			};
 		

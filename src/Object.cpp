@@ -51,7 +51,7 @@ vobject* Object::create_proto() {
 };
 
 
-Object::Object(const std::map<std::wstring, ck_vobject::vobject*>& objec) {
+Object::Object(const std::map<std::wstring, ck_vobject::vobject*>& objec) : vsobject() {
 	objects = objec;
 	
 	put(wstring(L"proto"), ObjectProto);
@@ -132,14 +132,18 @@ vector<wstring> Object::keys() {
 
 // Scope-independent getter-setter-checker.
 void Object::put(const wstring& name, vobject* object) {
-	//wcout << this->string_value() << " putting " << name << " with value of " << (object == nullptr ? L"nullptr" : object->string_value()) << endl;
+	
+	#ifndef CK_SINGLETHREAD
+		ck_pthread::mutex_lock lck(mutex());
+	#endif
+	
 	objects[name] = object;
 };
 
 vobject* Object::get(const wstring& name) {
 	
 	#ifndef CK_SINGLETHREAD
-		std::unique_lock<std::recursive_mutex> lck(mutex());
+		ck_pthread::mutex_lock lck(mutex());
 	#endif
 	
 	//wcout << this->string_value() << " getting " << name << endl;
@@ -152,7 +156,7 @@ vobject* Object::get(const wstring& name) {
 bool Object::contains(const wstring& name) {
 	
 	#ifndef CK_SINGLETHREAD
-		std::unique_lock<std::recursive_mutex> lck(mutex());
+		ck_pthread::mutex_lock lck(mutex());
 	#endif
 	
 	map<wstring, vobject*>::const_iterator pos = objects.find(name);
@@ -164,7 +168,7 @@ bool Object::contains(const wstring& name) {
 bool Object::remove(const wstring& name) {
 	
 	#ifndef CK_SINGLETHREAD
-		std::unique_lock<std::recursive_mutex> lck(mutex());
+		ck_pthread::mutex_lock lck(mutex());
 	#endif
 	
 	map<wstring, vobject*>::const_iterator pos = objects.find(name);
