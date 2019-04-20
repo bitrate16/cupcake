@@ -105,7 +105,7 @@ int main(int argc, const char** argv) {
 	// Create UTF-8 locale
 	std::locale empty_locale;
 	auto codecvt = new std::codecvt_utf8<wchar_t>();
-	std::locale utf8_locale(empty_locale, codecvt);
+	std::locale utf8_locale(empty_locale, codecvt); 
 	
 	// Apply locale on stdin
 	wcin.imbue(utf8_locale);
