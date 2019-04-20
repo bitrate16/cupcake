@@ -48,26 +48,25 @@ namespace ck_pthread {
 	// Class-wrapper for pthread_mutex
 	class mutex {
 		pthread_mutex_t _mtx;
-		pthread_mutexattr_t _mtx_attr;
 		
 	public:
 		
 		// Allows passing mutex attributes to this instance.
 		mutex(pthread_mutexattr_t& attr) {
-			_mtx_attr = attr;
-			pthread_mutexattr_settype(&_mtx_attr, PTHREAD_MUTEX_NORMAL);
+			pthread_mutexattr_t _mtx_attr = attr;
 			pthread_mutex_init(&_mtx, &_mtx_attr);
 		};
 		
 		mutex() {
+			pthread_mutexattr_t _mtx_attr;
 			pthread_mutexattr_init(&_mtx_attr);
 			pthread_mutexattr_settype(&_mtx_attr, PTHREAD_MUTEX_NORMAL);
 			pthread_mutex_init(&_mtx, &_mtx_attr);
+			pthread_mutexattr_destroy(&_mtx_attr);
 		};
 		
 		~mutex() {
 			pthread_mutex_destroy(&_mtx);
-			pthread_mutexattr_destroy(&_mtx_attr);
 		};
 		
 		pthread_mutex_t& mtx() {
@@ -90,26 +89,22 @@ namespace ck_pthread {
 	// Class-wrapper for pthread_recursive_mutex
 	class recursive_mutex {
 		pthread_mutex_t _mtx;
-		pthread_mutexattr_t _mtx_attr;
 		
 	public:
 		
 		recursive_mutex() {
+			pthread_mutexattr_t _mtx_attr;
 			pthread_mutexattr_init(&_mtx_attr);
 			pthread_mutexattr_settype(&_mtx_attr, PTHREAD_MUTEX_RECURSIVE);
 			pthread_mutex_init(&_mtx, &_mtx_attr);
+			pthread_mutexattr_destroy(&_mtx_attr);
 		};
 		
 		~recursive_mutex() {
 			pthread_mutex_destroy(&_mtx);
-			pthread_mutexattr_destroy(&_mtx_attr);
 		};
 		
 		pthread_mutex_t& mtx() {
-			return _mtx;
-		};
-		
-		pthread_mutex_t& mutex() {
 			return _mtx;
 		};
 		
@@ -130,7 +125,7 @@ namespace ck_pthread {
 	// Performs lock on being created and releases on destroy.
 	// If lock fails, mutex_lock will not perform false unlock on destroy.
 	class mutex_lock {
-		pthread_mutex_t& mtx;
+		pthread_mutex_t& _mtx;
 		bool acquired;
 		
 	public:
@@ -140,6 +135,14 @@ namespace ck_pthread {
 		mutex_lock(ck_pthread::recursive_mutex& mt);
 	
 		mutex_lock(pthread_mutex_t& mt);
+		
+		inline pthread_mutex_t& mtx() {
+			return _mtx;
+		};
+		
+		inline bool is_acquired() {
+			return acquired;
+		};
 		
 		~mutex_lock();
 	};
@@ -180,9 +183,25 @@ namespace ck_pthread {
 				pthread_cond_wait(&cv, &mtx.mtx());
 		};
 		
-		// Sends signal to current cond_var to wake up all threads and check their conditions.
+		// If passed mutex_lock was not qcquired condition variable will never wait
+		bool wait(ck_pthread::mutex_lock& lk, bool (*cond_fun) ()) {
+			if (!lk.is_acquired())
+				return 0;
+			
+			while (!cond_fun())
+				pthread_cond_wait(&cv, &lk.mtx());
+			
+			return 1;
+		};
+		
+		// Sends signal to current cond_var to wake up atleast one thread and check their conditions.
 		void notify() {
 			pthread_cond_signal(&cv);
+		};
+		
+		// Sends signal to current cond_var to wake up all threads and check their conditions.
+		void notify_all() {
+			pthread_cond_broadcast(&cv);
 		};
 	};
 

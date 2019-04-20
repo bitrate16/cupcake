@@ -110,7 +110,6 @@ void GC::attach(gc_object *o) {
 	if (!c)
 		throw OutOfMemory(L"GC list allocation error");
 	
-	ck_pthread::mutex_lock lk1(protect_created_interval);
 	++created_interval;
 	
 	o->gc_record    = 1;
@@ -315,7 +314,7 @@ void GC::collect(bool forced_collect) {
 
 	collecting = 0;	
 	
-	GIL::instance()->free_lock();
+	GIL::instance()->dequest_lock();
 };
 
 void GC::dispose() {	

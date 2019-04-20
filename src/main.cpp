@@ -77,9 +77,21 @@ static int signaled_number;
 //      To indicate the finalization ... what?
 // XXX: 
 //      Still expected solvation for determining whenever thread was killed.
+// SOL: 
+//      Instead of using any type of flags, disable usage of alive, dead
+//      and use only running flag.
 
 // XXX: 
 //      On thread changing it's state to !running executer simple stops and exits.
+
+// The default signal behaviour:
+//     Only main thread receives signals from outer world.
+//      When main receives a signal it causes following spicious wakeup and 
+//      thread checks local condition for a signal being received.
+//     If thread was not waiting on the condition, it calls late_object_call
+//      and process signum on current stack state.
+//     During the signal processing thread ignores all signals and after the
+//      processing finished it returns handler back.
 
 // SIGNALS + THREADS = POSIX
 // https://gist.github.com/rtv/4989304
@@ -95,7 +107,7 @@ static void signal_handler(int sig) {
 	
 	// Forcibly terminate the process
 	if (sig == SIGTERM) {
-		GIL::instance()->terminate();
+		GIL::instance()->stop();
 		return;
 	}
 	
@@ -103,7 +115,7 @@ static void signal_handler(int sig) {
 	//  processing signal with late_call_object().
 	// If executer was finishing it's work while signal received, 
 	//  no signal processing would be done.
-	if (GIL::current_thread()->is_alive()) {
+	if (GIL::current_thread()->is_running()) {
 		// Thread is alive.
 		// Using late_call_object() to execute __defsignalhandler() on the 
 		//  next step of execute_bytecode().
@@ -113,7 +125,7 @@ static void signal_handler(int sig) {
 		vobject* __defsignalhandler = root_scope->get(L"__defsignalhandler");
 		if (__defsignalhandler == nullptr || __defsignalhandler->is_typeof<Undefined>() || __defsignalhandler->is_typeof<Null>()) {
 			// No handler is found. Default action is terminate.
-			GIL::instance()->terminate();
+			GIL::instance()->stop();
 		} else if (GIL::executer_instance()->late_call_size() == 0)
 			// Function should be appended only if there is no other events to prevent corruption.
 			GIL::executer_instance()->late_call_object(__defsignalhandler, nullptr, { new Int(sig) }, L"__defsignalhandler", root_scope);
@@ -272,22 +284,118 @@ int main(int argc, const char** argv) {
 		}
 	}
 	
-	// Normally the next step is make this program wait for signals or other threads to die.
-	/*
-		conditional_variable.wait() => {
-			if (has_signaled) {
-				if (!GIL::lock_required ?)
-					unblock for processing dignal
-			} else if (threads_are_dead)
-				goto end of main
-		}
+	// Bla bla bla, thread finixhed it's work.
+	// Next step is to check other threads for running state.
+	
+	while (1) {
+		// Main thread locks the GIL
+		GIL::instance()->lock();
+		
+		// Main thread starts waiting for other threads to die from he years
+		GIL::instance()->sync_var().wait(GIL::instance()->sync_mtx(), []() -> bool {
+			
+			// Priority race:
+			//  Racing Thread:
+			//   1. locks the GIL::lock()
+			//   2. shuts down, sets running flag to 0
+			//   3. sends signal
+			//   4. unlocks GIL::unlock()
+			//  Main Thread:
+			//   1. locks the GIL::lock()
+			//   2. checks all threads running state
+			//   3. joins GIL::sync_var.wait and unlocks the GIL::unlock().
+			
+			// Waiting for thermal death of the universe
+			
+			bool universe_is_dead = GIL::instance()->get_threads().size();
+			for (int i = 1; i < GIL::instance()->get_threads().size(); ++i) // loop from 1 because main thread index is 0
+				if (GIL::instance()->get_threads()[i]->is_running()) {
+					universe_is_dead = 0;
+					break;
+				}
+			
+			return universe_is_dead || has_signaled;
+		});
+		
+		// Universe is dead..
+		// This thread is the last thread in the entire world.
+		// Latest species in the whole deep and dark cold world.
+		// The world that will never see the daylight or feel a nearby star heat.
+		// The entropy starts decaying and the latest atoms are disposing into
+		// straignt missing energy.
+		// Darkness and cold covers everything and even supermassive black holes
+		// are starting to evaporate and disappear.
+		// Nothing, entirely empty and without echo clack space.
+		// .. or a regular signal wakes it up before the supermassive dark matter collapse.
+		
+		GIL::instance()->unlock();
+		
+		if (!has_signaled)
+			break;
+		
 		vobject* __defsignalhandler = root_scope->get(L"__defsignalhandler");
-		if (__defsignalhandler == nullptr || __defsignalhandler->is_typeof<Undefined>() || __defsignalhandler->is_typeof<Null>()) {
-			// No handler is found. Default action is terminate.
-			GIL::terminate();
-		} else
-			GIL::executer_instance()->late_call_object(__defsignalhandler, nullptr, { new Int(sig) }, L"__defsignalhandler", root_scope);
-	*/
+		if (__defsignalhandler == nullptr || __defsignalhandler->is_typeof<Undefined>() || __defsignalhandler->is_typeof<Null>()) 
+			break;
+		
+		cake_started = 0;
+		
+		while (1) {
+			try {
+				if (!cake_started) {
+					GIL::executer_instance()->clear();
+					GIL::executer_instance()->call_object(__defsignalhandler, nullptr, { new Int(signaled_number) }, L"__defsignalhandler", root_scope);
+					GIL::current_thread()->clear_blocks();
+				
+					// Finish execution loop on success
+					break;
+					
+				} else {
+					GIL::executer_instance()->clear();
+					cake_started = 0;
+					
+					// On cake caught, call stack, windows stack and try stack are empty.
+					// Process cake by calling handler-function.
+					// __defcakehandler(exception)
+					// The default behaviour is calling thread cake handler and then finish thread work.
+					
+					vobject* __defcakehandler = root_scope->get(L"__defcakehandler");
+					if (__defcakehandler == nullptr || __defcakehandler->is_typeof<Undefined>() || __defcakehandler->is_typeof<Null>())
+						if (message.get_type_id() == cake_type::CK_OBJECT && message.get_object() != nullptr)
+							if (message.get_object()->is_typeof<Cake>())
+								((Cake*) message.get_object())->print_backtrace();
+							else
+								wcerr << "Unhandled cake: 	" << message << endl;
+						else
+							wcerr << "Unhandled cake: " << message << endl;
+					else
+						GIL::executer_instance()->call_object(__defcakehandler, nullptr, { 
+								message.get_type_id() == cake_type::CK_OBJECT ? message.get_object() : new Cake(message)
+							}, L"__defcakehandler", root_scope);
+					
+					// Clear thread blocks after each execution of side code to avoid fake blocking of thread.
+					GIL::current_thread()->clear_blocks();
+					
+					// If reached this statement, then exception was processed correctly
+					break;
+				}
+			} catch (const cake& msg) {
+				GIL::current_thread()->clear_blocks();
+				
+				cake_started = 1;
+				message = msg;
+			} catch (const std::exception& msg) {
+				GIL::current_thread()->clear_blocks();
+				
+				cake_started = 1;
+				message = msg;
+			} catch (...) {
+				GIL::current_thread()->clear_blocks();
+				
+				cake_started = 1;
+				message = UnknownException();
+			}
+		}
+	}
 	
 	// Free up heap
 	delete gil_instance;

@@ -94,7 +94,6 @@ namespace ck_core {
 		gc_list *locks;
 		
 		// Number of objects created since last gc_collect pass
-		ck_pthread::mutex protect_created_interval;
 		int created_interval;
 		
         // Number of minimum objects to be created before next GC

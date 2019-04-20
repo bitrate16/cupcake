@@ -443,7 +443,7 @@ vobject* ck_executer::exec_bytecode() {
 	while (!is_eof()) {
 		
 		// Check if thread is dead (suspended or anything else)
-		if (!GIL::current_thread()->is_alive())
+		if (!GIL::current_thread()->is_running())
 			return nullptr;
 		
 		// Check for pending late calls

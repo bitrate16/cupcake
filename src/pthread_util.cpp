@@ -7,27 +7,29 @@
 
 using namespace ck_pthread;
 
-mutex_lock::mutex_lock(ck_pthread::mutex& mt) : mtx(mt.mtx()) {
-	// wcout << "MUTEX_LOCK" << endl;
-	int res = pthread_mutex_lock(&mtx);
+mutex_lock::mutex_lock(ck_pthread::mutex& mt) : _mtx(mt.mtx()) {
+	// wcout << "MUTEX_LOCK " << endl;
+	
+	int res = pthread_mutex_lock(&_mtx);
 	if (res == EBUSY || res == EAGAIN)
 		acquired = 0;
 	else
 		acquired = 1;
 };
 
-mutex_lock::mutex_lock(ck_pthread::recursive_mutex& mt) : mtx(mt.mtx()) {
+mutex_lock::mutex_lock(ck_pthread::recursive_mutex& mt) : _mtx(mt.mtx()) {
 	// wcout << "RECURSIVE_MUTEX_LOCK" << endl;
-	int res = pthread_mutex_lock(&mtx);
+	
+	int res = pthread_mutex_lock(&_mtx);
 	if (res == EBUSY || res == EAGAIN)
 		acquired = 0;
 	else
 		acquired = 1;
 };
 
-mutex_lock::mutex_lock(pthread_mutex_t& mt) : mtx(mt) {
+mutex_lock::mutex_lock(pthread_mutex_t& mt) : _mtx(mt) {
 	// wcout << "PTHREAD_MUTEX_LOCK" << endl;
-	int res = pthread_mutex_lock(&mtx);
+	int res = pthread_mutex_lock(&_mtx);
 	if (res == EBUSY || res == EAGAIN)
 		acquired = 0;
 	else
@@ -37,5 +39,5 @@ mutex_lock::mutex_lock(pthread_mutex_t& mt) : mtx(mt) {
 mutex_lock::~mutex_lock() {
 	// wcout << "MUTEX_UNLOCK" << endl;
 	if (acquired)
-		pthread_mutex_unlock(&mtx);
+		pthread_mutex_unlock(&_mtx);
 };

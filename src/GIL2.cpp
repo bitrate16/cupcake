@@ -58,7 +58,9 @@ GIL::~GIL() {
 	// Program termination.
 	// Waiting till everything is completely dead.
 	// Prevent creating new threads.
-	ck_pthread::mutex_lock lock(vector_threads_lock);
+	
+	// Logically there are no threads left.
+	// ck_pthread::mutex_lock lock(sync_lock);
 	
 	// At this moment ignoring all signals from OS.
 	dummy_signal(-1);
@@ -75,40 +77,3 @@ GIL::~GIL() {
 	delete gc; // Press F to pay respects..
 	delete executer;
 };
-
-
-void GIL::terminate() {
-	ck_pthread::mutex_lock lock(vector_threads_lock);
-	
-	for (int i = 0; i < threads.size(); ++i)
-		threads[i]->set_running(0);
-};
-
-// For first: do nothing
-bool GIL::request_lock() { return 1; };
-		
-bool GIL::try_request_lock() { return 1; };
-
-bool GIL::free_lock() { return 1; };
-
-bool GIL::accept_lock() { return 1; };
-
-bool GIL::io_lock() { return 1; };
-
-bool GIL::io_unlock() { return 1; };
-
-void GIL::spawn_thread(std::function<void ()> body) {
-	// bla-bla-bla
-	// ...
-	// GIL::instance()->notify_sync_lock();
-	// +README: http://www.modernescpp.com/index.php/thread-safe-initialization-of-data
-	// Rethrowing errors to main thread
-	// +README: hhttps://stackoverflow.com/questions/233127/how-can-i-propagate-exceptions-between-threads
-};
-
-void GIL::lock_for_condition(std::function<bool ()> condition_lambda) {};
-
-void GIL::lock_for_time_condition(std::function<bool ()> condition_lambda, long wait_delay) {};
-
-void GIL::notify_sync_lock() {};
-

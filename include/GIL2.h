@@ -23,18 +23,20 @@ namespace ck_core {
 		uint64_t native_thread_id = 0;
 		
 		// Thread state is described by values below.
-		//  is alive is equals to 1 then thread is still running in normal mode.
-		//  is dead is equals to 1 when thread is dieing and performing after-kill handler execution.
+		//  // is alive is equals to 1 then thread is still running in normal mode.
+		//  // is dead is equals to 1 when thread is dieing and performing after-kill handler execution.
 		//  is running is equal to 1 when thread is running and is sef to 0, thread instantly stops.
 		//  is locked set to 1 is thread allowed operator to acquire lock on it.
 		//  is blocked is set to 1 if thread may perform IO operations.
-		//  Performing kill twice on a single thread makes it stop.
+		//  // Performing kill twice on a single thread makes it stop.
 		
-		bool alive   = 1;
-		bool dead    = 0;
 		bool running = 1;
 		bool blocked = 0;
 		bool locked  = 0;
+		
+		// Indicates if this thread is owning GIL lock now.
+		// Used to avoid situuations of incorrect GIL locking/unlocking.
+		bool own_gil = 0;
 		
 		// Passed only from GIL
 		ckthread(ck_pthread::thread* t) {
@@ -57,14 +59,6 @@ namespace ck_core {
 			// XXX: Solve the problem of destructor
 		};
 		
-		inline bool is_alive() {
-			return alive;
-		};
-		
-		inline bool is_dead() {
-			return dead;
-		};
-		
 		inline bool is_running() {
 			return running;
 		};
@@ -75,23 +69,6 @@ namespace ck_core {
 		
 		inline bool is_locked() {
 			return locked;
-		};
-		
-		// kill num:  0        1        2
-		//    alive | 1 | -> | 0 | -> | 0 |
-		//     dead | 0 | -> | 1 | -> | 1 |
-		//  running | 1 | -> | 1 | -> | 0 |
-		// 
-		inline bool kill() {
-			if (running)
-				if (alive) {
-					dead = 1;
-					alive = 0;
-				} else if (dead) {
-					dead = 1;
-					alive = 0;
-					running = 0;
-				}
 		};
 		
 		// Set running state
@@ -125,8 +102,6 @@ namespace ck_core {
 		
 		// Resets state of the thread to the default
 		inline void restate() {
-			alive = 1;
-			dead = 0;
 			running = 1;
 		};
 	};
@@ -136,28 +111,36 @@ namespace ck_core {
 	class ck_executer;
 	
 	class GIL {
-	
-		// friend int main(int argc, const char** argv);
 		
 		// Array of all created threads
 		std::vector<ckthread*> threads;
-		// Protector of threads array
-		ck_pthread::mutex vector_threads_lock;
 		
 		// Main synchronization mutex & conditional var
 		ck_pthread::cond_var sync_condition;
-		ck_pthread::mutex    sync_mutex;
 		
-		// Queue for lock requests
-		// ck_sync::shared_lock_queue sync_lock;
+		// I.
+		//  Locked when one of the threads needs to require a special prior access over 
+		//   the other threads
+		// II.
+		//  Locked when new thread is being created or old thread is being destroyed.
+		//  Also locked during main checking other threads for their running state.
+		//   When main thread finishes it's work, it has to wait on sync_condition
+		//   till other threads will finish their work. To avoid priority race main
+		//   should lock the mutex to avoid other threads change their running state
+		//   before the conditipn checked and then reset state and notify all before 
+		//   main goes into wait and receive the signals.
+		// III.
+		//  Locked on any conditions because the optimal way to sync is use single mutex.
+		ck_pthread::mutex sync_mutex;
 		
+	
 		// Set to 1 if lock is requested by someone
 		bool lock_requested = 0;
 	
 		// Points to the current ckthread
 		// Assigned when thread is being spawned via 
 		// spawn_thread or creation of GIL
-		static thread_local ckthread* current_thread_ptr; // zero-initialized
+		static thread_local ckthread* current_thread_ptr;
 		
 		// Assigned on thread creation. Thread-local instance of executer.
 		static thread_local ck_executer* executer;
@@ -165,10 +148,10 @@ namespace ck_core {
 		// Pointer to itself
 		// Assigned when thread is being spawned via 
 		// spawn_thread or creation of GIL
-		static GIL* gil_instance; // zero-initialized
+		static GIL* gil_instance;
 		
 		// Instance of Garbage Collector
-		GC* gc; // zero-initialized
+		GC* gc;
 	
 	public:
 		
@@ -191,62 +174,186 @@ namespace ck_core {
 			return GIL::instance()->executer;
 		};
 		
-		// Marks all threads with is_alive(0) for forcing them to finish their work.
-		// Used when no __defsignalhandler is not set for tha main thread.
-		void terminate();
+		inline const std::vector<ckthread*>& get_threads() {
+			return threads;
+		};
 		
-		// Add current thread into sync_lock list.
-		// After pass set lock_requested to 1 and wait for other threads to lock.
-		// Returns 1 if locked successfull, 0 else.
-		bool request_lock();
+		inline ck_pthread::cond_var& sync_var() {
+			return sync_condition;
+		};
 		
-		// Tries to request lock of other threads.
-		// Calls sync_lock::try_lock().
-		// Returns 1 if passed and lock is acquired, lock_requested=1, and 0 if it doesn't.
-		bool try_request_lock();
+		inline ck_pthread::mutex& sync_mtx() {
+			return sync_mutex;
+		};
 		
-		// Unlocks all threads. Notifies sync_condition and sync_mutex.
-		// Returns 1 if current thread was locking others, 0 else.
-		bool free_lock();
+		inline bool is_lock_requested() {
+			return lock_requested;
+		};
 		
-		// Thread checks if lock_requested flag set to 1.
-		// If lock was requested, thread will block till 
-		// the operator thread will notify for unblock.
-		// Returns 1 if was locked, 0 else.
-		bool accept_lock();
 		
-		// Mark current thread performing IO operatios.
-		// Returns 1 if passed, 0 else.
-		bool io_lock();
+		// Performs lock of the sync_mutex.
+		// Thread can me locked if the mutex in use, 
+		//  so thread is being marked as locked.
+		// After thread acquires the lock it is unmarked from 
+		//  the locked state and could operate with this mutex.
+		inline void lock() {
+			current_thread()->set_locked(1);
+			
+			// Notify all threads that this thread is locked.
+			// Used to notify operator thread in case when all
+			//  other threads are locked on some mutex and no 
+			//  notification signals are send.
+			notify();
+			sync_mutex.lock();
+			
+			current_thread()->set_locked(0);
+		};
 		
-		// Unmark current thread performing IO operations and do GIL::accept_lock() if needed.
-		// Returns 1 if was performing IO, 0 else and do nothing.
-		bool io_unlock();
+		// Attempts to lock the mutex. Returns 1 on success.
+		inline bool try_lock() {
+			return sync_mutex.try_lock();
+		};
+		
+		// Performs unlocking of the mutex. 
+		// If mutex was not locked or the error ocurred, 
+		//  returns 0.
+		inline bool unlock() {
+			sync_mutex.unlock();
+			
+			// To avoid the situation when other threads waiting for some shit
+			//  on sync_condition, ping them all.
+			notify();
+		};
+		
+		// Called to make other threads lock themselves 
+		//  and wait for unlock on conditional variable.
+		inline void request_lock() {
+			if (current_thread()->own_gil || lock_requested)
+				return;
+			
+			// Request sync_lock
+			lock();
+			
+			// Mark this thread indicate ownership of the GIL lock.
+			current_thread()->own_gil = 1;
+			
+			// Mutex will be locked till thread is not waiting.
+			// Requesting all threads to lock
+			lock_requested = 1;
+			
+			// Wait for other threads to pause by indicating lock_requested
+			sync_condition.wait(sync_mutex, []() -> bool {
+				// Mutex is locked here, so no threads can dispose or create befure it is released.
+				
+				bool all_locked = GIL::instance()->get_threads().size();
+				for (int i = 0; i < GIL::instance()->get_threads().size(); ++i)
+					if (GIL::instance()->get_threads()[i] != current_thread() && !GIL::instance()->get_threads()[i]->locked_state()) {
+						all_locked = 0;
+						break;
+					}
+					
+				return all_locked;
+			});
+			
+			// Here thread owns unique lock beyond other threads.
+		};
+		
+		inline bool try_request_lock() {
+			if (current_thread()->own_gil || lock_requested)
+				return 0;
+			
+			// Request sync_lock
+			if (!try_lock())
+				return 0;
+			
+			// Mark this thread indicate ownership of the GIL lock.
+			current_thread()->own_gil = 1;
+			
+			// Mutex will be locked till thread is not waiting.
+			// Requesting all threads to lock
+			lock_requested = 1;
+			
+			// Wait for other threads to pause by indicating lock_requested
+			sync_condition.wait(sync_mutex, []() -> bool {
+				// Mutex is locked here, so no threads can dispose or create befure it is released.
+				
+				bool all_locked = GIL::instance()->get_threads().size();
+				for (int i = 0; i < GIL::instance()->get_threads().size(); ++i)
+					if (GIL::instance()->get_threads()[i] != current_thread() && !GIL::instance()->get_threads()[i]->locked_state()) {
+						all_locked = 0;
+						break;
+					}
+					
+				return all_locked;
+			});
+			
+			// Here thread owns unique lock beyond other threads.
+			return 1;
+		};
+		
+		// Detaching lock and notifying all other threads that 
+		//  may do some shit when waiting on the condition.
+		inline void dequest_lock() {
+			if (!current_thread()->own_gil || !lock_requested)
+				return;
+			
+			current_thread()->own_gil = 0;
+			lock_requested = 0;
+			notify();
+			unlock();
+		};
+		
+		// Send notify to all threads.
+		inline void notify() {
+			sync_condition.notify_all();
+		};
+		
+		// Stops all threads
+		inline void stop() {
+			for (int i = 0; i < threads.size(); ++i)
+				threads[i]->set_running(0);
+		}
+		
+		// Checks if some threads was requesting for a lock and locks.
+		inline void accept_lock() {
+			if (lock_requested) {
+				// Wait till operator goes to sleep
+				lock();
+				
+				// After that change the flag and go to wait
+				current_thread()->set_locked(1);
+				
+				sync_condition.wait(sync_mutex, []() -> bool {
+					return !GIL::instance()->is_lock_requested();
+				});
+				
+				// Reset da flsg
+				current_thread()->set_locked(0);
+				
+				// Release the mutex and go away
+				unlock();
+			}
+		};
+		
+		// Mark this thread operating with IO and may block.
+		inline void io_block() {
+			current_thread()->set_blocked(1);
+		};
+		
+		// Marks this thread as not operating with IO any more.
+		// Bacaue one of thre threads could locked the others, this thread
+		//  need to accept lock if it was requested.
+		inline void io_unblock() {
+			current_thread()->set_blocked(0);
+			accept_lock();
+		};
+		
 		
 		// Spawns a new thread and registers it in GIL::threads.
 		// On start, GIL global instance is assigned to it and then 
 		// body function is called.
 		// After body finishes, thread is being removed from threads list.
 		void spawn_thread(std::function<void ()> body);
-		
-		// Locks current thread (current = current_ckthread())
-		// with given lambda-condition untill controlling thread 
-		// releases lock with notify_all().
-		// Not safe for mutex in value access or i/o
-		void lock_for_condition(std::function<bool ()> condition_lambda);
-		
-		// Locks current thread (current = current_ckthread())
-		// with given lambda-condition untill controlling thread 
-		// releases lock with notify_all() or timeout of WAIT_FOR_PERIOD period.
-		// Not safe for mutex in value access or i/o
-		void lock_for_time_condition(std::function<bool ()> condition_lambda, long wait_delay = 0);
-		
-		// Used to notify sync_condition to check it's condition.
-		// Used in gil_sync::GIL_NOTIFY_SYNC_LOCK to avoid situation
-		// whan all threads come blocked at the same moment as 
-		// operator thread in GIL::lock_threads() begin waiting to nothing
-		// and all program hangs.
-		void notify_sync_lock();
 	};
 }
 
