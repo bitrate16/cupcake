@@ -6,6 +6,7 @@
 #include <atomic>
 
 #include "exceptions.h"
+#include "pthread_util.h"
 #include "lock_queue.h"
 
 
@@ -14,21 +15,30 @@ namespace ck_core {
 	class ckthread {
 		friend class GIL;
 		
-		// Set to 1 if ckthread has natie instance attached
-		bool         has_native    = 0;
-		std::thread* native_thread = nullptr;
-		std::thread::id native_thread_id;
+		// Set to 1 if current instance has native attached
+		bool has_native = 0;
+		// Contains instance of the native thread
+		ck_pthread::thread* native_thread = nullptr;
+		// Contains native thread id for faster use.
+		uint64_t native_thread_id = 0;
 		
-		// Set to 0 if thread is sed and no more operating
+		// Thread state is described by values below.
+		//  is alive is equals to 1 then thread is still running in normal mode.
+		//  is dead is equals to 1 when thread is dieing and performing after-kill handler execution.
+		//  is running is equal to 1 when thread is running and is sef to 0, thread instantly stops.
+		//  is locked set to 1 is thread allowed operator to acquire lock on it.
+		//  is blocked is set to 1 if thread may perform IO operations.
+		//  Performing kill twice on a single thread makes it stop.
+		
 		bool alive   = 1;
-		// Set to 1 while thread called GIL::io_lock() for io operations
+		bool dead    = 0;
+		bool running = 1;
 		bool blocked = 0;
-		// Set to 1 while thread called GIL::accept_lock() for accepting controller's lock
 		bool locked  = 0;
 		
 		// Passed only from GIL
-		ckthread(std::thread* t) {
-			if (!t) throw ck_exceptions::InvalidState(L"ckthread is null");
+		ckthread(ck_pthread::thread* t) {
+			if (!t) throw ck_exceptions::InvalidState(L"Thread is null");
 			
 			native_thread    = t;
 			// thread_id        = (long long) t->get_id();
@@ -36,7 +46,7 @@ namespace ck_core {
 			has_native       = 1;
 		};
 		
-		ckthread() : native_thread_id(std::this_thread::get_id()) {};
+		ckthread() : native_thread_id(ck_pthread::thread::this_thread().get_id()) {};
 		
 	public:
 		
@@ -51,12 +61,42 @@ namespace ck_core {
 			return alive;
 		};
 		
+		inline bool is_dead() {
+			return dead;
+		};
+		
+		inline bool is_running() {
+			return running;
+		};
+		
 		inline bool is_blocked() {
 			return blocked;
 		};
 		
 		inline bool is_locked() {
 			return locked;
+		};
+		
+		// kill num:  0        1        2
+		//    alive | 1 | -> | 0 | -> | 0 |
+		//     dead | 0 | -> | 1 | -> | 1 |
+		//  running | 1 | -> | 1 | -> | 0 |
+		// 
+		inline bool kill() {
+			if (running)
+				if (alive) {
+					dead = 1;
+					alive = 0;
+				} else if (dead) {
+					dead = 1;
+					alive = 0;
+					running = 0;
+				}
+		};
+		
+		// Set running state
+		inline bool set_running(bool is_running) {
+			running = is_running;
 		};
 		
 		// Set blocked by i/o 
@@ -69,23 +109,25 @@ namespace ck_core {
 			locked = is_locked;
 		};
 		
-		// Set alive state
-		inline bool set_alive(bool is_alive) {
-			alive = is_alive;
-		};
-		
 		// Returns whenever thared is allowing other threads to acquire GIL lock
 		inline bool locked_state() {
-			return !alive || locked || blocked;
+			return !running || locked || blocked;
 		};
 		
-		inline std::thread::id get_native_id() {
+		inline uint64_t get_native_id() {
 			return native_thread_id;
 		};
 	
 		// Set blocked = locked = 0
 		inline void clear_blocks() {
 			blocked = locked = 0;
+		};
+		
+		// Resets state of the thread to the default
+		inline void restate() {
+			alive = 1;
+			dead = 0;
+			running = 1;
 		};
 	};
 	
@@ -95,22 +137,21 @@ namespace ck_core {
 	
 	class GIL {
 	
-		friend int main(int argc, const char** argv);
+		// friend int main(int argc, const char** argv);
 		
 		// Array of all created threads
 		std::vector<ckthread*> threads;
-		
 		// Protector of threads array
-		std::mutex vector_threads_lock;
+		ck_pthread::mutex vector_threads_lock;
 		
-		// Main synchronization mutex & conditional
-		std::condition_variable sync_condition;
-		std::mutex              sync_mutex;
+		// Main synchronization mutex & conditional var
+		ck_pthread::cond_var sync_condition;
+		ck_pthread::mutex    sync_mutex;
 		
 		// Queue for lock requests
-		ck_sync::shared_lock_queue sync_lock;
+		// ck_sync::shared_lock_queue sync_lock;
 		
-		// Set to 1 if lock is requested by somebody
+		// Set to 1 if lock is requested by someone
 		bool lock_requested = 0;
 	
 		// Points to the current ckthread

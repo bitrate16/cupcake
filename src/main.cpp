@@ -50,6 +50,35 @@ static GIL* gil_instance;
 static bool has_signaled;
 static int signaled_number;
 
+// XXX:
+//      Handling signals in any of existing threads
+//      but after signal receiver, handler thread should 
+//      save signum in GIL and notify all threads about it.
+//      any thread will ignore the signal but main thread will woke 
+//      up if it was waiting or check GIL signal flag
+//      and process __defsighandler in a new call_object
+//      subcall. As the result, any thread should hangle a signal as 
+//      a normal signal handle but only main thread should process the signal.
+
+// XXX:
+//      Handling kill on a thread.
+//      When thread changes it's execution state from alive & !dead to !alive & dead
+//      it should stup current execution state as it is and perform thread-die 
+//      operations in __defexithandler. 
+//      There are two ways:
+//       1. On thread being killed, executer handles flag change on the next step 
+//          and fully ternimates it's work.
+//       2. On thread being kille, executer keeps working in any case and only 
+//          after the execution __defexithandler is being called.
+//      As the result the most preferred bahaviour is 1.
+//      On alive state changed executer should handle the state and exit.
+//      To indicate the finalization ... what?
+// XXX: 
+//      Still expected solvation for determining whenever thread was killed.
+
+// XXX: 
+//      On thread changing it's state to !running executer simple stops and exits.
+
 // SIGNALS + THREADS = POSIX
 // https://gist.github.com/rtv/4989304
 // https://habr.com/ru/post/141206/
@@ -90,7 +119,7 @@ static void signal_handler(int sig) {
 		has_signaled = 1;
 		// Clear blocking and mark thread alive
 		GIL::current_thread()->clear_blocks();
-		GIL::current_thread()->set_alive(1);
+		GIL::current_thread()->restate();
 		signaled_number = sig;
 	}
 };

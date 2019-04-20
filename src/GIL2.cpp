@@ -24,7 +24,7 @@ GIL*                      GIL::gil_instance       = nullptr;
 thread_local ck_executer* GIL::executer           = nullptr;
 
 
-GIL::GIL() : sync_lock(sync_mutex, sync_condition) {
+GIL::GIL() { // : sync_lock(sync_mutex, sync_condition) {
 	// Assign self instance
 	GIL::gil_instance = this;
 	GIL::current_thread();
@@ -58,7 +58,7 @@ GIL::~GIL() {
 	// Program termination.
 	// Waiting till everything is completely dead.
 	// Prevent creating new threads.
-	//    std::unique_lock<std::mutex> lock(vector_threads_lock);
+	ck_pthread::mutex_lock lock(vector_threads_lock);
 	
 	// At this moment ignoring all signals from OS.
 	dummy_signal(-1);
@@ -78,10 +78,10 @@ GIL::~GIL() {
 
 
 void GIL::terminate() {
-	//    std::unique_lock<std::mutex> lock(vector_threads_lock);
+	ck_pthread::mutex_lock lock(vector_threads_lock);
 	
 	for (int i = 0; i < threads.size(); ++i)
-		threads[i]->set_alive(0);
+		threads[i]->set_running(0);
 };
 
 // For first: do nothing
