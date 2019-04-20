@@ -1,5 +1,7 @@
 #pragma once
 
+#include "pthread_util.h"
+
 #include <mutex>
 #include <condition_variable>
 #include <atomic>
@@ -82,7 +84,7 @@ namespace ck_core {
 	private:
 	
 		// Protects object from multiple threads access.
-		std::mutex protect_lock;
+		ck_pthread::recursive_mutex protect_lock;
 		int collecting;
 		int size;
 		int roots_size;
@@ -92,7 +94,8 @@ namespace ck_core {
 		gc_list *locks;
 		
 		// Number of objects created since last gc_collect pass
-		std::atomic<int> created_interval;
+		ck_pthread::mutex protect_created_interval;
+		int created_interval;
 		
         // Number of minimum objects to be created before next GC
         // Yes, i like number 64.

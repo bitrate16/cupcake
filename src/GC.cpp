@@ -25,7 +25,7 @@ gc_object::gc_object() :
 gc_object::~gc_object() {};
 		
 void gc_object::gc_mark() {
-	gc_root = 1;
+	gc_reachable = 1;
 };
 		
 void gc_object::gc_finalize() {};
@@ -102,7 +102,7 @@ void GC::attach(gc_object *o) {
 	if (o == nullptr)
 		return;
 	
-	//    std::unique_lock<std::mutex> guard(protect_lock);
+	ck_pthread::mutex_lock lk(protect_lock);
 	if (o->gc_record)
 		return;
 	
@@ -110,7 +110,9 @@ void GC::attach(gc_object *o) {
 	if (!c)
 		throw OutOfMemory(L"GC list allocation error");
 	
+	ck_pthread::mutex_lock lk1(protect_created_interval);
 	++created_interval;
+	
 	o->gc_record    = 1;
 	o->gc_reachable = 0;
 	o->gc_chain     = c;
@@ -126,7 +128,7 @@ void GC::attach_root(gc_object *o) {
 	if (o == nullptr)
 		return;
 	
-	//    std::unique_lock<std::mutex> guard(protect_lock);
+	ck_pthread::mutex_lock lk(protect_lock);
 	if (o->gc_lock)
 		return;
 	
@@ -149,7 +151,7 @@ void GC::deattach_root(gc_object *o) {
 	if (o == nullptr)
 		return;
 	
-	//    std::unique_lock<std::mutex> guard(protect_lock);
+	ck_pthread::mutex_lock lk(protect_lock);
 	if (!o->gc_root)
 		return;
 	
@@ -162,7 +164,7 @@ void GC::lock(gc_object *o) {
 	if (o == nullptr)
 		return;
 	
-	//    std::unique_lock<std::mutex> guard(protect_lock);
+	ck_pthread::mutex_lock lk(protect_lock);
 	if (o->gc_lock)
 		return;
 	
@@ -185,7 +187,7 @@ void GC::unlock(gc_object *o) {
 	if (o == nullptr)
 		return;
 	
-	//    std::unique_lock<std::mutex> guard(protect_lock);
+	ck_pthread::mutex_lock lk(protect_lock);
 	if (!o->gc_lock)
 		return;
 	
@@ -203,16 +205,20 @@ int GC::roots_count() { return roots_size; };
 int GC::locks_count() { return locks_size; };
 
 void GC::collect(bool forced_collect) {
-	//    std::unique_lock<std::mutex> guard(protect_lock);
-	if (collecting)
+	
+	// First check if collection can be performed
+	if (created_interval <= GC::MIN_CREATED_INTERVAL && !forced_collect)
 		return;
 	
-	if (created_interval <= GC::MIN_CREATED_INTERVAL && !forced_collect)
+	// Then try to lock the GC
+	ck_pthread::mutex_lock lk(protect_lock);
+	if (collecting)
 		return;
 	
 	// Call lock on GIL to prevent interruption
 	if (!GIL::instance()->try_request_lock())
 		return;
+	
 	
 	created_interval = 0;
 	collecting = 1;
@@ -231,7 +237,7 @@ void GC::collect(bool forced_collect) {
 			chain         = chain->next;
 			delete tmp;
 		} else if (!chain->obj->gc_root) {
-			attach(chain->obj);
+			// attach(chain->obj);
 			chain->obj->gc_root_chain = nullptr;
 			
 			gc_list *tmp = chain;
@@ -315,7 +321,7 @@ void GC::collect(bool forced_collect) {
 void GC::dispose() {	
 	// Called on GIL dispose, so no GIL.lock needed.
 
-	//    std::unique_lock<std::mutex> guard(protect_lock);
+	ck_pthread::mutex_lock lk(protect_lock);
 	if (collecting)
 		return;
 	

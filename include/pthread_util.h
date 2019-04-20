@@ -50,11 +50,7 @@ namespace ck_pthread {
 	public:
 		
 		mutex() {
-			pthread_mutexattr_t mtx_attr;
-
-			pthread_mutexattr_init(&mtx_attr);
-			pthread_mutexattr_settype(&mtx_attr, PTHREAD_MUTEX_NORMAL);
-			pthread_mutex_init(&_mtx, &mtx_attr);
+			pthread_mutex_init(&_mtx, 0);
 		};
 		
 		~mutex() {
@@ -81,12 +77,11 @@ namespace ck_pthread {
 	// Class-wrapper for pthread_recursive_mutex
 	class recursive_mutex {
 		pthread_mutex_t _mtx;
+		pthread_mutexattr_t mtx_attr;
 		
 	public:
 		
 		recursive_mutex() {
-			pthread_mutexattr_t mtx_attr;
-
 			pthread_mutexattr_init(&mtx_attr);
 			pthread_mutexattr_settype(&mtx_attr, PTHREAD_MUTEX_RECURSIVE);
 			pthread_mutex_init(&_mtx, &mtx_attr);
