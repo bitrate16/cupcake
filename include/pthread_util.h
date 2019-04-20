@@ -114,6 +114,7 @@ namespace ck_pthread {
 	
 	// Equals to std::unique_lock but for pthread_mutex
 	// Performs lock on being created and releases on destroy.
+	// If lock fails, mutex_lock will not perform false unlock on destroy.
 	class mutex_lock {
 		pthread_mutex_t& mtx;
 		bool acquired;
