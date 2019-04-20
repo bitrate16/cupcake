@@ -50,6 +50,8 @@ static GIL* gil_instance;
 static bool has_signaled;
 static int signaled_number;
 
+// https://devarea.com/linux-handling-signals-in-a-multithreaded-application/#.XLsn95gzbIU
+// 
 // XXX:
 //      Handling signals in any of existing threads
 //      but after signal receiver, handler thread should 
