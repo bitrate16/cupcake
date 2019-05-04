@@ -5,6 +5,11 @@
 #include "exceptions.h"
 #include "GIL2.h"
 
+#include "objects/Object.h"
+#include "objects/Array.h"
+#include "objects/Bool.h"
+#include "objects/NativeFunction.h"
+#include "objects/Undefined.h"
 #include "objects/String.h"
 
 using namespace std;
@@ -34,7 +39,25 @@ vobject* Bool::create_proto() {
 	BoolProto = new CallablePrototype(call_handler);
 	GIL::gc_instance()->attach_root(BoolProto);
 	
-	// ...
+	BoolProto->Object::put(L"__typename", new String(L"Bool"));
+	BoolProto->Object::put(L"parse", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (!args.size())
+				return Undefined::instance();
+			
+			if (!args.size() || !args[0])
+				return Undefined::instance();
+			
+			std::wstring str = args[0]->string_value();
+			
+			if (str == L"true")
+				return Bool::True();
+			if (str == L"false")
+				return Bool::False();
+			
+			return Undefined::instance();
+		}));
+	
 	
 	return BoolProto;
 };
@@ -62,7 +85,7 @@ Bool::~Bool() {};
 
 // Delegate to prototype
 vobject* Bool::get(ck_vobject::vscope* scope, const std::wstring& name) {
-	if (name == L"proto")
+	if (name == L"__proto")
 		return BoolProto;
 	
 	return BoolProto ? BoolProto->Object::get(scope, name) : nullptr;
@@ -74,7 +97,7 @@ void Bool::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* obj
 
 // Delegate to prototype
 bool Bool::contains(ck_vobject::vscope* scope, const std::wstring& name) {	
-	if (name == L"proto")
+	if (name == L"__proto")
 		return 1;
 	
 	return BoolProto && BoolProto->Object::contains(scope, name);

@@ -9,6 +9,7 @@
 namespace ck_vobject {
 	
 	// Abstract scope class. Interface for the scope
+	// Used during execution of code as a variable context.
 	class vscope : public ck_vobject::vsobject {
 		
 	public:

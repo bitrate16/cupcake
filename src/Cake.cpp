@@ -14,6 +14,8 @@
 #include "objects/Array.h"
 #include "objects/Int.h"
 #include "objects/Object.h"
+#include "objects/NativeFunction.h"
+#include "objects/Undefined.h"
 
 using namespace std;
 using namespace ck_exceptions;
@@ -38,7 +40,64 @@ vobject* Cake::create_proto() {
 	CakeProto = new CallablePrototype(call_handler);
 	GIL::gc_instance()->attach_root(CakeProto);
 	
-	// ...
+	CakeProto->Object::put(L"__typename", new String(L"Cake"));	
+	CakeProto->Object::put(L"printBacktrace", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<Cake>())
+				return Undefined::instance();
+			
+			static_cast<Cake*>(__this)->print_backtrace();
+			return Undefined::instance();
+		}));
+	CakeProto->Object::put(L"getBacktrace", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<Cake>())
+				return Undefined::instance();
+			
+			Cake* c = static_cast<Cake*>(__this);
+			Array* a = new Array();
+			for (int i = 0; i < c->get_backtrace().size(); ++i) {
+				Object* sf = new Object();
+				sf->put(L"lineno", new Int(c->get_backtrace()[i].lineno));
+				sf->put(L"filename", new String(c->get_backtrace()[i].filename));
+				sf->put(L"function", new String(c->get_backtrace()[i].function));
+				
+				a->items().push_back(sf);
+			}
+			
+			return a;
+		}));
+	CakeProto->Object::put(L"getMessage", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<Cake>())
+				return Undefined::instance();
+			
+			Cake* c = static_cast<Cake*>(__this);
+			
+			return new String(c->get_message());
+		}));
+	CakeProto->Object::put(L"getType", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<Cake>())
+				return Undefined::instance();
+			
+			Cake* c = static_cast<Cake*>(__this);
+			
+			return new String(c->get_type());
+		}));
+	
 	
 	return CakeProto;
 };

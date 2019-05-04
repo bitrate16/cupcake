@@ -5,6 +5,7 @@
 #include "exceptions.h"
 #include "GIL2.h"
 #include "objects/Object.h"
+#include "objects/Array.h"
 #include "objects/Bool.h"
 #include "objects/NativeFunction.h"
 #include "objects/Undefined.h"
@@ -23,8 +24,18 @@ vobject* Object::create_proto() {
 	ObjectProto = new Object();
 	GIL::gc_instance()->attach_root(ObjectProto);
 	
-	// ...
+	// Object represents usable container with natively declared prototype.
+	// Algorhytm of seaching for values is following:
+	//  1. Try to find value in current instance of Object
+	//  2. If self is not ObjectProto and ObjectProto is not null,
+	//      search for value in ObjectProto.
+	//
+	// __proto value is inserted to Object prototype.
+	// So, on being accessed it can not be found in Object instance.
+	// Instance of __proto is contained in ObjectProto and accessed 
+	//  over native prototype chain.
 	ObjectProto->put(L"__typename", new String(L"Object"));
+	ObjectProto->put(L"__proto", ObjectProto);
 	ObjectProto->put(L"contains", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
 			// Validate __this
@@ -46,6 +57,49 @@ vobject* Object::create_proto() {
 			else
 				return Bool::False();
 		}));
+	ObjectProto->put(L"remove", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<Object>())
+				return Undefined::instance();
+			
+			// Validate args
+			bool con = 1;
+			for (auto &i : args)
+				con = con && static_cast<Object*>(__this)->remove(i->string_value());
+			
+			if (con)
+				return Bool::True();
+			else
+				return Bool::False();
+		}));
+	ObjectProto->put(L"keys", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<Object>())
+				return Undefined::instance();
+			
+			std::vector<vobject*> keys;
+	
+			for (const auto& any : static_cast<Object*>(__this)->objects) 
+				keys.push_back(new String(any.first));
+			
+			return new Array(keys);
+		}));
+	
+	// __operator== can be used in other objects because it does not depend on type.
+	ObjectProto->put(L"__operator==", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			return Bool::instance(args.size() && args[0] == args[1]);
+		}));
+	ObjectProto->put(L"__operator!=", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			return Bool::instance(!args.size() || args[0] != args[1]);
+		}));
 	
 	return ObjectProto;
 };
@@ -53,20 +107,11 @@ vobject* Object::create_proto() {
 
 Object::Object(const std::map<std::wstring, ck_vobject::vobject*>& objec) : vsobject() {
 	objects = objec;
-	
-	put(wstring(L"proto"), ObjectProto);
 };
 
-Object::Object() {
-	// if (ObjectProto == nullptr)
-	// 	Object::create_proto();
-	
-	put(wstring(L"proto"), ObjectProto);
-};
+Object::Object() {};
 		
-Object::~Object() {
-	
-};
+Object::~Object() {};
 		
 		
 vobject* Object::get(vscope* scope, const wstring& name) {

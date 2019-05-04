@@ -35,7 +35,7 @@ namespace ck_objects {
 		virtual void gc_mark();
 		
 		
-		// Apply arguments tu the function and return scope
+		// Apply arguments to the function and return scope
 		virtual ck_vobject::vscope* apply(ck_vobject::vobject* this_bind, const std::vector<ck_vobject::vobject*>& argv, ck_vobject::vscope* caller_scope = nullptr);
 		
 		// Returns int to string

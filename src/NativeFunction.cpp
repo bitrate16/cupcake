@@ -3,6 +3,8 @@
 #include "exceptions.h"
 #include "GIL2.h"
 
+#include "objects/String.h"
+
 using namespace std;
 using namespace ck_vobject;
 using namespace ck_objects;
@@ -16,7 +18,7 @@ vobject* NativeFunction::create_proto() {
 	NativeFunctionProto = new Object();
 	GIL::gc_instance()->attach_root(NativeFunctionProto);
 	
-	// ...
+	NativeFunctionProto->Object::put(L"__typename", new String(L"Function"));	
 	
 	return NativeFunctionProto;
 };
@@ -33,7 +35,7 @@ NativeFunction::~NativeFunction() {};
 
 
 vobject* NativeFunction::get(ck_vobject::vscope* scope, const std::wstring& name) {
-	if (name == L"proto")
+	if (name == L"__proto")
 		return NativeFunctionProto;
 	
 	return NativeFunctionProto ? NativeFunctionProto->Object::get(name) : nullptr;
@@ -44,7 +46,7 @@ void NativeFunction::put(ck_vobject::vscope* scope, const std::wstring& name, vo
 };
 
 bool NativeFunction::contains(ck_vobject::vscope* scope, const std::wstring& name) {
-	if (name == L"proto")
+	if (name == L"__proto")
 		return 1;
 	
 	return NativeFunctionProto && NativeFunctionProto->Object::contains(name);

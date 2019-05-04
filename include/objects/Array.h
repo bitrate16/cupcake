@@ -41,6 +41,16 @@ namespace ck_objects {
 		// Else on out of range returns 0 and does nothing.
 		bool     set_item(int, vobject*, bool range_wrap = 0, bool range_check = 0);
 		
+		inline std::vector<ck_vobject::vobject*>& items() { 
+			return elements;
+		}
+		
+		// Must return integer representation of an object
+		virtual long long int_value();
+		
+		// Must return string representation of an object
+		virtual std::wstring string_value();
+		
 		// Called on interpreter start to initialize prototype
 		static vobject* create_proto();
 	};

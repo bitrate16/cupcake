@@ -49,9 +49,10 @@ vscope* ck_objects::primary_init() {
 	// XXX: Use call-wrapper-functions to initialize objects by call.
 	
 	scope->put(L"Object",           Object          ::create_proto());
+	scope->put(L"NativeFunction",   NativeFunction  ::create_proto());
+	scope->put(L"String",           String          ::create_proto());
 	scope->put(L"Scope",            iscope          ::create_proto());
 	scope->put(L"XScope",           xscope          ::create_proto());
-	scope->put(L"String",           String          ::create_proto());
 	scope->put(L"Array",            Array           ::create_proto());
 	scope->put(L"Int",              Int             ::create_proto());
 	scope->put(L"Double",           Double          ::create_proto());
@@ -60,7 +61,6 @@ vscope* ck_objects::primary_init() {
 	scope->put(L"Undefined",        Undefined       ::create_proto());
 	scope->put(L"BytecodeFunction", BytecodeFunction::create_proto());
 	scope->put(L"Cake",             Cake            ::create_proto());
-	scope->put(L"NativeFunction",   NativeFunction  ::create_proto());
 	
 	// Define other objects and fields
 	scope->put(L"print", new NativeFunction(f_print));

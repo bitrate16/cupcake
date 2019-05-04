@@ -1,5 +1,6 @@
 #include "vobject.h"
 
+// Used for pointer casting
 #if defined(__BORLANDC__)
     typedef unsigned char uint8_t;
     typedef __int64 int64_t;
@@ -10,6 +11,7 @@
 #else
     #include <stdint.h>
 #endif
+
 #include <typeinfo>
 
 #include "GC.h"
@@ -24,13 +26,13 @@ using namespace ck_vobject;
 vobject::vobject() {};
 vobject::~vobject() {};
 
-vobject* vobject::get     (vscope* scope, const std::wstring& name) { return nullptr; };
+vobject* vobject::get     (vscope* scope, const std::wstring& name)               { return nullptr; };
 void     vobject::put     (vscope* scope, const std::wstring& name, vobject* obj) {};
-bool     vobject::contains(vscope* scope, const std::wstring& name) {return 0; };
-bool     vobject::remove  (vscope* scope, const std::wstring& name) { return 0; };
-vobject* vobject::call    (vscope* scope, const std::vector<vobject*>& args) { return nullptr; };
+bool     vobject::contains(vscope* scope, const std::wstring& name)               { return 0; };
+bool     vobject::remove  (vscope* scope, const std::wstring& name)               { return 0; };
+vobject* vobject::call    (vscope* scope, const std::vector<vobject*>& args)      { return nullptr; };
 
-void vobject::gc_mark() { ck_core::gc_object::gc_reachable = 1; };
+void vobject::gc_mark()     { ck_core::gc_object::gc_reachable = 1; };
 void vobject::gc_finalize() {};
 
 // Must return integer representation of an object

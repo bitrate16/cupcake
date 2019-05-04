@@ -10,6 +10,7 @@
 #else
     #include <stdint.h>
 #endif
+
 #include <typeinfo>
 #include <string>
 
@@ -45,13 +46,16 @@ vobject* iscope::create_proto() {
 	ScopeProto = new Object();
 	GIL::gc_instance()->attach_root(ScopeProto);
 	
+	// __proto value has to be inserted after definition of all objects.
+	//  So it can not be inserted to scope instance and has to be accessed 
+	//   over constant check.
 	ScopeProto->put(L"__typename", new String(L"Scope"));
 	ScopeProto->put(L"parent", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Object>())
+			if (!__this || !__this->is_typeof<iscope>())
 				return Undefined::instance();
 			
 			vobject* parent = static_cast<iscope*>(__this)->parent;
@@ -62,7 +66,7 @@ vobject* iscope::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Object>())
+			if (!__this || !__this->is_typeof<iscope>())
 				return Undefined::instance();
 			
 			vobject* root = static_cast<iscope*>(__this)->get_root();
@@ -73,7 +77,7 @@ vobject* iscope::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Object>())
+			if (!__this || !__this->is_typeof<iscope>())
 				return Undefined::instance();
 			
 			// Validate args
@@ -94,7 +98,7 @@ vobject* iscope::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Object>())
+			if (!__this || !__this->is_typeof<iscope>())
 				return Undefined::instance();
 			
 			// Validate args
@@ -112,7 +116,7 @@ vobject* iscope::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Object>())
+			if (!__this || !__this->is_typeof<iscope>())
 				return Undefined::instance();
 			
 			std::vector<vobject*> keys;
@@ -121,6 +125,16 @@ vobject* iscope::create_proto() {
 				keys.push_back(new String(any.first));
 			
 			return new Array(keys);
+		}));
+	
+	// __operator== can be used in other objects because it does not depend on type.
+	ScopeProto->put(L"__operator==", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			return Bool::instance(args.size() && args[0] == args[1]);
+		}));
+	ScopeProto->put(L"__operator!=", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			return Bool::instance(!args.size() || args[0] != args[1]);
 		}));
 	
 	return ScopeProto;
@@ -134,8 +148,119 @@ vobject* xscope::create_proto() {
 	ProxyScopeProto = new Object();
 	GIL::gc_instance()->attach_root(ProxyScopeProto);
 	
-	// Typename match typename for Scope. Difference only in #::Scope funciton
+	// __proto value has to be inserted after definition of all objects.
+	//  So it can not be inserted to scope instance and has to be accessed 
+	//   over constant check.
 	ProxyScopeProto->put(L"__typename", new String(L"Scope"));
+	ProxyScopeProto->put(L"parent", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<xscope>())
+				return Undefined::instance();
+			
+			vobject* parent = static_cast<xscope*>(__this)->parent;
+			return parent ? parent : Undefined::instance();
+		}));
+	ProxyScopeProto->put(L"root", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<xscope>())
+				return Undefined::instance();
+			
+			vobject* root = static_cast<xscope*>(__this)->get_root();
+			return root ? root : Undefined::instance();
+		}));
+	ProxyScopeProto->put(L"contains", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<xscope>())
+				return Undefined::instance();
+			
+			// Validate args
+			bool con = 1;
+			for (auto &i : args)
+				if (!i || !static_cast<xscope*>(__this)->contains(i->string_value())) {
+					con = 0;
+					break;
+				}
+			
+			if (con)
+				return Bool::True();
+			else
+				return Bool::False();
+		}));
+	ProxyScopeProto->put(L"remove", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<xscope>())
+				return Undefined::instance();
+			
+			// Validate args
+			bool con = 1;
+			for (auto &i : args)
+				con = con && static_cast<xscope*>(__this)->remove(i->string_value());
+			
+			if (con)
+				return Bool::True();
+			else
+				return Bool::False();
+		}));
+	// Keys has undefined behaviour for proxies
+	/*ProxyScopeProto->put(L"keys", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<xscope>())
+				return Undefined::instance();
+			
+			std::vector<vobject*> keys;
+	
+			for (const auto& any : static_cast<xscope*>(__this)->objects) 
+				keys.push_back(new String(any.first));
+			
+			return new Array(keys);
+		}));*/
+	
+	// __operator== can be used in other objects because it does not depend on type.
+	ProxyScopeProto->put(L"__operator==", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this)
+				return Undefined::instance();
+			
+			bool eq = args.size();
+			
+			for (int i = 0; i < args.size(); ++i)
+				if (args[i] != __this)
+					return Bool::False();
+			
+			return Bool::instance(eq);
+		}));
+	ProxyScopeProto->put(L"__operator!=", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this)
+				return Undefined::instance();
+			
+			for (int i = 0; i < args.size(); ++i)
+				if (args[i] == __this)
+					return Bool::False();
+			
+			return Bool::True();
+		}));
 	
 	return ProxyScopeProto;
 };
@@ -143,15 +268,16 @@ vobject* xscope::create_proto() {
 
 iscope::iscope(vscope* parent) : vscope(parent) { 
 	this->parent = parent; 
-	
-	put(wstring(L"parent"), parent == nullptr ? (vobject*) Null::instance() : (vobject*) parent);
-	put(wstring(L"proto"),  ScopeProto);
 };
 
 iscope::~iscope() {};
 
 
 vobject* iscope::get(vscope* scope, const wstring& name) {
+	// Wrap return of __proto
+	if (name == L"__proto")
+		return ScopeProto;
+	
 	vobject* ret = get(name, 1);
 	if (!ret && ScopeProto)
 		return ScopeProto->get(scope, name);
@@ -159,14 +285,23 @@ vobject* iscope::get(vscope* scope, const wstring& name) {
 };
 
 void iscope::put(vscope* scope, const wstring& name, vobject* object) {
+	if (name == L"__proto")
+		return;
+	
 	put(name, object);
 };
 
 bool iscope::contains(vscope* scope, const wstring& name) {
+	if (name == L"__proto")
+		return 1;
+	
 	return contains(name) || (ScopeProto && ScopeProto->contains(scope, name));
 };
 
 bool iscope::remove(vscope* scope, const wstring& name) {
+	if (name == L"__proto")
+		return 0;
+	
 	if (remove(name))
 		return 1;
 	if (ScopeProto && ScopeProto->remove(scope, name))
@@ -335,6 +470,10 @@ xscope::~xscope() {};
 
 
 vobject* xscope::get(vscope* scope, const wstring& name) {
+	// Wrap return of __proto
+	if (name == L"__proto")
+		return ProxyScopeProto;
+	
 	vobject* ret = get(name, 1);
 	if (!ret && ProxyScopeProto)
 		return ProxyScopeProto->get(scope, name);
@@ -342,14 +481,23 @@ vobject* xscope::get(vscope* scope, const wstring& name) {
 };
 
 void xscope::put(vscope* scope, const wstring& name, vobject* object) {
+	if (name == L"__proto")
+		return;
+	
 	put(name, object);
 };
 
 bool xscope::contains(vscope* scope, const wstring& name) {
+	if (name == L"__proto")
+		return 1;
+	
 	return contains(name) || (ProxyScopeProto && ProxyScopeProto->contains(scope, name));
 };
 
 bool xscope::remove(vscope* scope, const wstring& name) {
+	if (name == L"__proto")
+		return 0;
+	
 	if (remove(name))
 		return 1;
 	if (ProxyScopeProto && ProxyScopeProto->remove(scope, name))

@@ -6,6 +6,7 @@
 #include "GIL2.h"
 
 #include "objects/Array.h"
+#include "objects/String.h"
 
 using namespace std;
 using namespace ck_exceptions;
@@ -25,7 +26,7 @@ vobject* BytecodeFunction::create_proto() {
 	BytecodeFunctionProto = new CallablePrototype(call_handler);
 	GIL::gc_instance()->attach_root(BytecodeFunctionProto);
 	
-	// ...
+	BytecodeFunctionProto->Object::put(L"__typename", new String(L"Function"));	
 	
 	return BytecodeFunctionProto;
 };
@@ -39,7 +40,7 @@ BytecodeFunction::~BytecodeFunction() {
 
 // Delegate to prototype
 vobject* BytecodeFunction::get(ck_vobject::vscope* scope, const std::wstring& name) {
-	if (name == L"proto")
+	if (name == L"__proto")
 		return BytecodeFunctionProto;
 	
 	return BytecodeFunctionProto ? BytecodeFunctionProto->Object::get(name) : nullptr;
@@ -51,7 +52,7 @@ void BytecodeFunction::put(ck_vobject::vscope* scope, const std::wstring& name, 
 
 // Delegate to prototype
 bool BytecodeFunction::contains(ck_vobject::vscope* scope, const std::wstring& name) {	
-	if (name == L"proto")
+	if (name == L"__proto")
 		return 1;
 	
 	return BytecodeFunctionProto && BytecodeFunctionProto->Object::contains(name);

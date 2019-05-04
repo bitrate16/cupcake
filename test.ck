@@ -1,3 +1,8 @@
+var arr = ['foo', ['er', 12], 'bsds', 23]
+
+print(arr)
+print(Object.keys(), '\n')
+
 var a = function() { b() }
 var b = function() { c() }
 var c = function() { d() }
