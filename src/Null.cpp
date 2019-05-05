@@ -5,6 +5,12 @@
 #include "exceptions.h"
 #include "GIL2.h"
 
+#include "objects/String.h"
+#include "objects/Double.h"
+#include "objects/NativeFunction.h"
+#include "objects/Bool.h"
+#include "objects/Undefined.h"
+
 using namespace std;
 using namespace ck_exceptions;
 using namespace ck_vobject;
@@ -28,7 +34,34 @@ vobject* Null::create_proto() {
 		GIL::gc_instance()->attach_root(NullInstance);
 	}
 	
-	// ...
+	NullProto->Object::put(L"__typename", new String(L"Null"));
+	
+	NullProto->Object::put(L"__operator==", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2)
+				return Bool::False();
+			
+			if (!args[0] && !args[1])
+				return Bool::True();
+			
+			if (args[0] && args[1] && dynamic_cast<Null*>(args[0]) && dynamic_cast<Null*>(args[1]))
+				return Bool::True();
+			
+			return Bool::False();
+		}));
+	NullProto->Object::put(L"__operator!=", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2)
+				return Bool::False();
+			
+			if (args[0] || args[1])
+				return Bool::True();
+			
+			if (args[0] && args[1] && dynamic_cast<Null*>(args[0]) && dynamic_cast<Null*>(args[1]))
+				return Bool::False();
+			
+			return Bool::True();
+		}));
 	
 	return NullProto;
 };

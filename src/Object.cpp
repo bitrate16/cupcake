@@ -4,7 +4,9 @@
 
 #include "exceptions.h"
 #include "GIL2.h"
+
 #include "objects/Object.h"
+#include "objects/Int.h"
 #include "objects/Array.h"
 #include "objects/Bool.h"
 #include "objects/NativeFunction.h"
@@ -90,15 +92,35 @@ vobject* Object::create_proto() {
 			
 			return new Array(keys);
 		}));
+	ObjectProto->Object::put(L"string", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this)
+				return Undefined::instance();
+			
+			return new String(__this->string_value());
+		}));
+	ObjectProto->Object::put(L"int", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this)
+				return Undefined::instance();
+			
+			return new Int(__this->int_value());
+		}));
 	
 	// __operator== can be used in other objects because it does not depend on type.
 	ObjectProto->put(L"__operator==", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
-			return Bool::instance(args.size() && args[0] == args[1]);
+			return Bool::instance(args.size() >= 2 && args[0] == args[1]);
 		}));
 	ObjectProto->put(L"__operator!=", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
-			return Bool::instance(!args.size() || args[0] != args[1]);
+			return Bool::instance(!args.size() < 2 || args[0] != args[1]);
 		}));
 	
 	return ObjectProto;

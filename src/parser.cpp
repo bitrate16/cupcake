@@ -1160,7 +1160,7 @@ ASTNode *parser::multiplication_expression() {
 		return NULL;
 	
 	while (1) {
-		if (match(MUL) || match(DIV) || match(HASH) || match(DIR) || match(PATH) || match(MOD) || match(HASH)) {
+		if (match(MUL) || match(DIV) || match(HASH) || match(DIR) || match(PATH) || match(MOD) || match(HASH) || match(PUSH)) {
 			ASTNode *exp   = new ASTNode(get(-1)->lineno, get(-1)->token);
 			exp->addChild(left);
 			ASTNode *right = unary_expression();
@@ -1191,7 +1191,7 @@ ASTNode *parser::addiction_expression() {
 		return NULL;
 	
 	while (1) {
-		if (match(PLUS) || match(MINUS)) {
+		if (match(PLUS) || match(MINUS) || match(PATH) || match(ARROW)) {
 			ASTNode *exp   = new ASTNode(get(-1)->lineno, get(-1)->token);
 			exp->addChild(left);
 			ASTNode *right = multiplication_expression();

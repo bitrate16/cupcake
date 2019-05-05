@@ -1,12 +1,15 @@
 #include "objects/Double.h"
 
 #include <string>
+#include <sstream>
 
 #include "exceptions.h"
 #include "GIL2.h"
 
 #include "objects/String.h"
 #include "objects/Int.h"
+#include "objects/NativeFunction.h"
+#include "objects/Undefined.h"
 
 using namespace std;
 using namespace ck_exceptions;
@@ -42,7 +45,28 @@ vobject* Double::create_proto() {
 	DoubleProto = new CallablePrototype(call_handler);
 	GIL::gc_instance()->attach_root(DoubleProto);
 	
-	// ...
+	DoubleProto->Object::put(L"__typename", new String(L"Double"));
+	DoubleProto->Object::put(L"parse", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (!args.size())
+				return Undefined::instance();
+			
+			if (!args.size() || !args[0])
+				return Undefined::instance();
+			
+			std::wstring str = args[0]->string_value();
+			
+			double dbl = 0.0;
+			std::wistringstream num(str);
+
+			num >> dbl;
+
+			if(!num.fail() && num.eof())
+				return new Double(dbl);
+			else
+				return Undefined::instance();
+		})); 
+	
 	
 	return DoubleProto;
 };
@@ -54,7 +78,7 @@ Double::~Double() {};
 
 // Delegate to prototype
 vobject* Double::get(ck_vobject::vscope* scope, const std::wstring& name) {
-	if (name == L"proto")
+	if (name == L"__proto")
 		return IntProto;
 	
 	return DoubleProto ? DoubleProto->Object::get(scope, name) : nullptr;
@@ -66,7 +90,7 @@ void Double::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* o
 
 // Delegate to prototype
 bool Double::contains(ck_vobject::vscope* scope, const std::wstring& name) {	
-	if (name == L"proto")
+	if (name == L"__proto")
 		return 1;
 	
 	return DoubleProto && DoubleProto->Object::contains(scope, name);

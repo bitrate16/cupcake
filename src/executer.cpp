@@ -857,6 +857,7 @@ vobject* ck_executer::exec_bytecode() {
 					case ck_bytecodes::OPT_LT     : fun_name = (L"<"); break;
 					case ck_bytecodes::OPT_LE     : fun_name = (L"<="); break;
 					case ck_bytecodes::OPT_PUSH   : fun_name = (L"=>"); break;
+					case ck_bytecodes::OPT_ARROW  : fun_name = (L"->"); break;
 					case ck_bytecodes::OPT_BITXOR : fun_name = (L"^"); break;
 				}
 				

@@ -1,12 +1,15 @@
 #include "objects/Int.h"
 
 #include <string>
+#include <sstream>
 
 #include "exceptions.h"
 #include "GIL2.h"
 
 #include "objects/String.h"
 #include "objects/Double.h"
+#include "objects/NativeFunction.h"
+#include "objects/Undefined.h"
 
 using namespace std;
 using namespace ck_exceptions;
@@ -42,7 +45,27 @@ vobject* Int::create_proto() {
 	IntProto = new CallablePrototype(call_handler);
 	GIL::gc_instance()->attach_root(IntProto);
 	
-	// ...
+	IntProto->Object::put(L"__typename", new String(L"Int"));
+	IntProto->Object::put(L"parse", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (!args.size())
+				return Undefined::instance();
+			
+			if (!args.size() || !args[0])
+				return Undefined::instance();
+			
+			std::wstring str = args[0]->string_value();
+			
+			long long dbl = 0.0;
+			std::wistringstream num(str);
+
+			num >> dbl;
+
+			if(!num.fail() && num.eof())
+				return new Int(dbl);
+			else
+				return Undefined::instance();
+		})); 
 	
 	return IntProto;
 };
