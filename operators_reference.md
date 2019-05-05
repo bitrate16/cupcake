@@ -49,6 +49,9 @@ a may not have __operator+ defined. So __roperator+ would be called from b
 ```
 __roperator+(b, a)
 ```
+while normal __operator+ is called like
+```
+__operator+(a, b)
 
 Usage of this in operator overload
 ----------------------------------
