@@ -20,6 +20,8 @@
 #include "objects/Int.h"
 #include "objects/Undefined.h"
 #include "objects/Null.h"
+#include "objects/Array.h"
+#include "objects/String.h"
 
 // #define DEBUG_OUTPUT
 
@@ -157,18 +159,33 @@ int main(int argc, const char** argv) {
 	wcout.imbue(utf8_locale);
 	wcerr.imbue(utf8_locale);
 	
-	// Set up input stream
-	std::wifstream file("test.ck");
+	// Preserve file name
+	wstring wfilename;
+	std::wifstream file;
+	
+	// Process filename
+	if (argc < 2) {
+		// Default file is in.ck
+		file = std::wifstream("in.ck");
+		wfilename = L"test.ck";
+	} else {
+		file = std::wifstream(argv[1]);
+		std::string tmp(argv[1]);
+		wfilename = std::wstring(tmp.begin(), tmp.end());
+	}
+	
 	// Preserve whitespaces for parser
 	file >> std::noskipws;
 	// Apply encoding UTF-8
 	file.imbue(utf8_locale);
 	
-	// Preserve file name
-	wstring wfilename(L"test.ck");
-	
-	if (file.fail())
+	if (file.fail()) {
+		if (argc < 2)
+			std::wcerr << "No input file" << std::endl;
+		else
+			std::wcerr << "File " << wfilename << " not found" << std::endl;
 		return 1;
+	}
 	
 	// Convert input file to AST
 	stream_wrapper sw(file);
@@ -216,6 +233,13 @@ int main(int argc, const char** argv) {
 	
 	root_scope = ck_objects::primary_init(); // ?? XXX: Use prototype object for all classes
 	root_scope->root();
+	
+	Array* __args = new Array();
+	for (int i = 2; i < argc; ++i) {
+		std::string tmp(argv[i]);
+		__args->items().push_back(new String(std::wstring(tmp.begin(), tmp.end())));
+	}
+	root_scope->put(L"__args", __args);
 	
 	// Set up signals handling
 	signal(SIGINT,  signal_handler); // <-- user interrupt

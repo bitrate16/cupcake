@@ -275,19 +275,19 @@ void Cake::gc_finalize() {
 
 void Cake::print_backtrace() {
 	if (type == L"" && message != L"")
-		wcout << "Cake: " << message << endl;
+		wcerr << "Cake: " << message << endl;
 	else if (type != L"" && message == L"")
-		wcout << type << endl;
+		wcerr << type << endl;
 	else if (type != L"" && message != L"")
-		wcout << type << ": " << message << endl;
+		wcerr << type << ": " << message << endl;
 	else
-		wcout << "Cake thrown" << endl;
+		wcerr << "Cake thrown" << endl;
 	
 	for (int i = 0; i < backtrace.size(); ++i) {
-		wcout << " at File <" << backtrace[i].filename << "> line " << backtrace[i].lineno;
+		wcerr << " at File <" << backtrace[i].filename << "> line " << backtrace[i].lineno;
 		
 		if (backtrace[i].function.size() != 0)
-			wcout << " " << backtrace[i].function << "()";
+			wcerr << " " << backtrace[i].function << "()";
 		
 		int amount = 0;
 		while (i + amount + 1 < backtrace.size()) {
@@ -303,9 +303,9 @@ void Cake::print_backtrace() {
 		i += amount;
 		
 		if (amount) 
-			wcout << " + " << amount << " more" << endl;
+			wcerr << " + " << amount << " more" << endl;
 		else
-			wcout << endl;
+			wcerr << endl;
 	}
 };
 
