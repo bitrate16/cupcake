@@ -38,10 +38,17 @@ should be
 a['__operator+'](a, b)
 ```
   
-Left-side expressions
+Right-side expressions
 ---------------------
 
-unsupporned now
+while evaluating expression
+```
+a + b
+```
+a may not have __operator+ defined. So __roperator+ would be called from b
+```
+__roperator+(b, a)
+```
 
 Usage of this in operator overload
 ----------------------------------
