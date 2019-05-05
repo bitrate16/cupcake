@@ -825,11 +825,21 @@ vobject* ck_executer::exec_bytecode() {
 				if (objects.size() < 2)
 					throw StackCorruption(L"objects stack corrupted");
 				
+				// ref <op> rref
+				// ref.__opreator<op>
+				// rref.__roperator<op>
+				
+				// reference
 				vobject *ref = objects.rbegin()[1];
+				// right reference
+				vobject *rref = objects.rbegin()[0];
 				vobject *fun = nullptr;
 				
 				if (ref == nullptr)
 					throw TypeError(L"undefined reference to operator");
+				
+				if (rref == nullptr)
+					throw TypeError(L"undefined reference to operator rvalue");
 				
 				wstring fun_name;
 				
@@ -865,29 +875,35 @@ vobject* ck_executer::exec_bytecode() {
 				wcout << "> OPERATOR [" << fun_name << ']' << endl;
 #endif
 				
+				// Get __operator<op> from left-side
 				fun = ref->get(scopes.back(), L"__operator" + fun_name);
 				
-				// rvalue operator
-				if (fun == nullptr || fun->is_typeof<Undefined>() || fun->is_typeof<Null>()) 
-					fun = ref->get(scopes.back(), L"__roperator" + fun_name);
-				else
-					fun_name = L"__operator" + fun_name;
-				
-				fun = ref->get(scopes.back(), L"__operator" + fun_name);				
+				// Check if it exists
+				if (fun == nullptr || fun->is_typeof<Undefined>() || fun->is_typeof<Null>()) {
+					// Try to call r-value operator
+					fun = rref->get(scopes.back(), L"__roperator" + fun_name);
 					
-				// no operator
-				if (fun == nullptr || fun->is_typeof<Undefined>() || fun->is_typeof<Null>()) 
-					throw TypeError(L"undefined reference to operator " + fun_name);
-				else
-					fun_name = L"__roperator" + fun_name;
-				
-				vobject* res = call_object(fun, ref, { ref, objects.rbegin()[0] }, fun_name);
-				
-				vpop(); 
-				vpop();
-				vpush(res);
-				
-				break;
+					if (fun == nullptr || fun->is_typeof<Undefined>() || fun->is_typeof<Null>()) 
+						throw TypeError(L"undefined reference to operator " + fun_name);
+					
+					// Right-side operator has swapped arguments
+					// aka: a + b -> __roperator+(b, a)
+					vobject* res = call_object(fun, ref, { rref, ref }, fun_name);
+					
+					vpop(); 
+					vpop();
+					vpush(res);
+					
+					break;
+				} else {
+					vobject* res = call_object(fun, ref, { ref, rref }, fun_name);
+					
+					vpop(); 
+					vpop();
+					vpush(res);
+					
+					break;
+				}
 			}
 			
 			case ck_bytecodes::STORE_VAR: {

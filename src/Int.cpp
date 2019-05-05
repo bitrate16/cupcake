@@ -2,6 +2,7 @@
 
 #include <string>
 #include <sstream>
+#include <climits>
 
 #include "exceptions.h"
 #include "GIL2.h"
@@ -10,6 +11,7 @@
 #include "objects/Double.h"
 #include "objects/NativeFunction.h"
 #include "objects/Undefined.h"
+#include "objects/Bool.h"
 
 using namespace std;
 using namespace ck_exceptions;
@@ -46,6 +48,8 @@ vobject* Int::create_proto() {
 	GIL::gc_instance()->attach_root(IntProto);
 	
 	IntProto->Object::put(L"__typename", new String(L"Int"));
+	IntProto->Object::put(L"MAX_VALUE", new Int(LLONG_MAX));
+	IntProto->Object::put(L"MIN_VALUE", new Int(LLONG_MIN));
 	IntProto->Object::put(L"parse", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
 			if (!args.size())
@@ -66,6 +70,23 @@ vobject* Int::create_proto() {
 			else
 				return Undefined::instance();
 		})); 
+	
+	// Operators
+	IntProto->Object::put(L"__operator==", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			return Bool::instance(args[0]->int_value() == args[1]->int_value());
+		}));
+	IntProto->Object::put(L"__operator!=", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			return Bool::instance(args[0]->int_value() != args[1]->int_value());
+		}));
+	
 	
 	return IntProto;
 };

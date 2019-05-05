@@ -1,7 +1,11 @@
 var arr = ['foo', ['er', 12], 'bsds', 23]
 
+print ('"asdfdsa" == "1234" = ', 'asdfgfs' == '1231', '\n')
+print ('"1234" == "1234" = ', '1234' == '1234', '\n')
+
 print(arr)
-print(Object.keys(), '\n')
+print('Object keys: ', Object.keys(), '\n')
+print('String keys: ', String.keys(), '\n')
 
 var a = function() { b() }
 var b = function() { c() }

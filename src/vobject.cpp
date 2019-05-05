@@ -42,5 +42,5 @@ long long vobject::int_value() {
 
 // Must return string representation of an object
 std::wstring vobject::string_value() { 
-	return std::wstring(L"[vobject ") + std::to_wstring((int) (intptr_t) this) + std::wstring(L"]"); 
+	return std::wstring(L"[vobject ") + std::to_wstring((intptr_t) this) + std::wstring(L"]"); 
 };

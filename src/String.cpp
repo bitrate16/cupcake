@@ -1,10 +1,18 @@
 #include "objects/String.h"
 
 #include <string>
+#include <sstream>
 #include <algorithm>
 
 #include "exceptions.h"
 #include "GIL2.h"
+
+#include "objects/Double.h"
+#include "objects/NativeFunction.h"
+#include "objects/Undefined.h"
+#include "objects/Bool.h"
+#include "objects/Int.h"
+#include "objects/Array.h"
 
 using namespace std;
 using namespace ck_exceptions;
@@ -30,18 +38,251 @@ vobject* String::create_proto() {
 	StringProto = new CallablePrototype(call_handler);
 	GIL::gc_instance()->attach_root(StringProto);
 	
-	// ...
+	StringProto->Object::put(L"__typename", new String(L"String"));	
+	StringProto->Object::put(L"isCharacter", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<String>())
+				return Undefined::instance();
+			
+			String* s = static_cast<String*>(__this);
+			
+			return Bool::instance(s->value().size() == 1);
+		}));
+	StringProto->Object::put(L"charAt", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<String>())
+				return Undefined::instance();
+			
+			String* s = static_cast<String*>(__this);
+			
+			std::wstringstream charat;
+			for (int i = 0; i < args.size(); ++i) 
+				if (!args[i])
+					return Undefined::instance();
+				else
+					charat << s->charAt(args[i]->int_value());
+			
+			return new String(charat.str());
+		}));
+	StringProto->Object::put(L"cancatenate", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {			
+			std::wstringstream cat;
+			for (int i = 0; i < args.size(); ++i) 
+				if (!args[i])
+					return Undefined::instance();
+				else
+					cat << args[i]->string_value();
+			
+			return new String(cat.str());
+		}));
+	StringProto->Object::put(L"stripLeading", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<String>())
+				return Undefined::instance();
+			
+			String* s = static_cast<String*>(__this);
+			
+			return new String(s->stripLeading());
+		}));
+	StringProto->Object::put(L"stripTrailing", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<String>())
+				return Undefined::instance();
+			
+			String* s = static_cast<String*>(__this);
+			
+			return new String(s->stripTrailing());
+		}));
+	StringProto->Object::put(L"strip", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<String>())
+				return Undefined::instance();
+			
+			String* s = static_cast<String*>(__this);
+			
+			return new String(s->strip());
+		}));
+	StringProto->Object::put(L"isEmpty", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<String>())
+				return Undefined::instance();
+			
+			String* s = static_cast<String*>(__this);
+			
+			return Bool::instance(s->isEmpty());
+		}));
+	StringProto->Object::put(L"isBlank", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<String>())
+				return Undefined::instance();
+			
+			String* s = static_cast<String*>(__this);
+			
+			return Bool::instance(s->isBlank());
+		}));
+	StringProto->Object::put(L"indexOf", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<String>())
+				return Undefined::instance();
+			
+			String* s = static_cast<String*>(__this);
+			
+			if (args.size() == 0 || !args[0])
+				return Undefined::instance();
+			
+			return new Int(s->indexOf(args[0]->string_value()));
+		}));
+	StringProto->Object::put(L"lastIndexOf", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<String>())
+				return Undefined::instance();
+			
+			String* s = static_cast<String*>(__this);
+			
+			if (args.size() == 0 || !args[0])
+				return Undefined::instance();
+			
+			return new Int(s->lastIndexOf(args[0]->string_value()));
+		}));
+	StringProto->Object::put(L"replace", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<String>())
+				return Undefined::instance();
+			
+			String* s = static_cast<String*>(__this);
+			
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			return new String(s->replace(args[0]->string_value(), args[1]->string_value()));
+		}));
+	StringProto->Object::put(L"replaceAll", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<String>())
+				return Undefined::instance();
+			
+			String* s = static_cast<String*>(__this);
+			
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			return new String(s->replaceAll(args[0]->string_value(), args[1]->string_value()));
+		}));
+	StringProto->Object::put(L"containsString", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<String>())
+				return Undefined::instance();
+			
+			String* s = static_cast<String*>(__this);
+			
+			if (args.size() < 1 || !args[0])
+				return Undefined::instance();
+			
+			return Bool::instance(s->contains(args[0]->string_value()));
+		}));
+	StringProto->Object::put(L"containsString", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<String>())
+				return Undefined::instance();
+			
+			String* s = static_cast<String*>(__this);
+			
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			return new String(s->substring(args[0]->int_value(), args[1]->int_value()));
+		}));
+	StringProto->Object::put(L"split", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<String>())
+				return Undefined::instance();
+			
+			String* s = static_cast<String*>(__this);
+			
+			if (args.size() == 1 && args[0]) {
+				auto splt = s->split(args[0]->string_value());
+				std::vector<ck_vobject::vobject*> arr(splt.size());
+				
+				for (int i = 0; i < splt.size(); ++i)
+					arr[i] = new String(splt[i]);
+				
+				return new Array(arr);
+			} else if (args.size() > 1 && args[0] && args[1]) {
+				auto splt = s->split(args[0]->string_value(), args[1]->int_value());
+				std::vector<ck_vobject::vobject*> arr(splt.size());
+				
+				for (int i = 0; i < splt.size(); ++i)
+					arr[i] = new String(splt[i]);
+				
+				return new Array(arr);
+			} else
+				return Undefined::instance();
+		}));
+	
+	// Operators
+	StringProto->Object::put(L"__operator==", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			return Bool::instance(args[0]->string_value() == args[1]->string_value());
+		}));
+	StringProto->Object::put(L"__operator!=", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			return Bool::instance(args[0]->string_value() != args[1]->string_value());
+		}));
+		
 	
 	return StringProto;
 };
 
 
-String::String() {
-	if (StringProto == nullptr)
-		String::create_proto();
-	
-	Object::put(wstring(L"proto"), StringProto);
-};
+String::String() {};
 
 String::String(const std::wstring* s) : String() {
 	str = *s;
@@ -51,24 +292,20 @@ String::String(const std::wstring& s) : String() {
 	str = s;
 };
 
-String::~String() {
-	
-};
+String::~String() {};
 
 // Map any sign index to [0, size]
 vobject* String::get(ck_vobject::vscope* scope, const std::wstring& name) {
+	if (name == L"__proto")
+		return StringProto;
+	
 	// Check if string is valid number
-	bool is_int = 1;
-	int chk_ind = 0;
-	if (name[chk_ind] == U'-' || name[chk_ind] == U'+')
-		++chk_ind;
-	for (; chk_ind < name.size(); ++chk_ind)
-		if (U'0' <= name[chk_ind] && U'9' <= name[chk_ind]) {
-			is_int = 0;
-			break;
-		}
-		
-	if (is_int) {
+	int index = 0;
+	std::wistringstream num(name);
+
+	num >> index;
+
+	if(!num.fail() && num.eof()) {
 		int index = std::stoi(name);
 		index = ((index % str.size()) + str.size()) % str.size();
 		
@@ -77,48 +314,36 @@ vobject* String::get(ck_vobject::vscope* scope, const std::wstring& name) {
 	}
 	
 	// Else return variable by name
-	vobject* ret = Object::get(name);
-	if (!ret && StringProto)
-		return StringProto->get(scope, name);
-	return ret;
+	return StringProto ? StringProto->get(scope, name) : nullptr;
 };
 
 // Map any sign index to [0, size]
 // Disallow assignment of characters.
 void String::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* object) {
+	if (name == L"__proto")
+		return;
+	
 	// Check if string is valid number
-	bool is_int = 1;
-	int chk_ind = 0;
-	if (name[chk_ind] == U'-' || name[chk_ind] == U'+')
-		++chk_ind;
-	for (; chk_ind < name.size(); ++chk_ind)
-		if (U'0' <= name[chk_ind] && U'9' <= name[chk_ind]) {
-			is_int = 0;
-			break;
-		}
-	
-	// If valid integer
-	if (is_int) 
+	int index = 0;
+	std::wistringstream num(name);
+
+	num >> index;
+
+	if(!num.fail() && num.eof()) 
 		throw UnsupportedOperation(L"can not change const string");
-	
-	// Else put variable by name
-	Object::put(name, object);
 };
 
 bool String::contains(ck_vobject::vscope* scope, const std::wstring& name) {
-	// Check if string is valid number
-	bool is_int = 1;
-	int chk_ind = 0;
-	if (name[chk_ind] == U'-' || name[chk_ind] == U'+')
-		++chk_ind;
-	for (; chk_ind < name.size(); ++chk_ind)
-		if (U'0' <= name[chk_ind] && U'9' <= name[chk_ind]) {
-			is_int = 0;
-			break;
-		}
+	if (name == L"__proto")
+		return 1;
 	
-	// If valid integer
-	if (is_int) {
+	// Check if string is valid number			
+	int index = 0;
+	std::wistringstream num(name);
+
+	num >> index;
+
+	if(!num.fail() && num.eof()) {
 		int index = std::stoi(name);
 		if (index < 0)
 			return 0;
@@ -129,30 +354,20 @@ bool String::contains(ck_vobject::vscope* scope, const std::wstring& name) {
 		return 0;
 	}
 	
-	return Object::contains(name) || (StringProto && StringProto->contains(scope, name));
+	return StringProto && StringProto->contains(scope, name);
 };
 
 bool String::remove(ck_vobject::vscope* scope, const std::wstring& name) {
 	// Check if string is valid number
-	bool is_int = 1;
-	int chk_ind = 0;
-	if (name[chk_ind] == U'-' || name[chk_ind] == U'+')
-		++chk_ind;
-	for (; chk_ind < name.size(); ++chk_ind)
-		if (U'0' <= name[chk_ind] && U'9' <= name[chk_ind]) {
-			is_int = 0;
-			break;
-		}
-	
-	// If valid integer
-	if (is_int) 
+	int index = 0;
+	std::wistringstream num(name);
+
+	num >> index;
+
+	if(!num.fail() && num.eof()) 
 		throw UnsupportedOperation(L"can not change const string");
 	
-	if (Object::remove(name))
-		return 1;
-	if (StringProto && StringProto->remove(scope, name))
-		return 1;
-	return 0;
+	return StringProto && StringProto->remove(scope, name);
 };
 
 vobject* String::call(ck_vobject::vscope* scope, const std::vector<vobject*>& args) {
@@ -160,39 +375,16 @@ vobject* String::call(ck_vobject::vscope* scope, const std::vector<vobject*>& ar
 };
 
 void String::gc_mark() {
-	Object::gc_mark();
+	gc_reachable = 1;
 };
 
-void String::gc_finalize() {
-	Object::gc_finalize();
-};
+void String::gc_finalize() {};
 
 
 // String functions only
 
-// I. If string length == 1 -> returns charcode at [0].
-// II. If string length == 0 -> returns 0.
-// III. If string is format of int -> return parsed int.
-// IIII. Else return length.
+// Returns length
 long long String::int_value() {
-	if (str.size() == 1) 
-		return str[0];
-	if (str.size() == 0)
-		return 0;
-	
-	bool is_int = 1;
-	int chk_ind = 0;
-	if (str[chk_ind] == U'-' || str[chk_ind] == U'+')
-		++chk_ind;
-	for (; chk_ind < str.size(); ++chk_ind)
-		if (U'0' <= str[chk_ind] && U'9' <= str[chk_ind]) {
-			is_int = 0;
-			break;
-		}
-	
-	if (is_int)
-		return std::stoi(str);;
-	
 	return str.size();
 };
 
@@ -232,10 +424,11 @@ bool String::operator!=(const String& s) {
 // Returns char at position.
 //  Returns -1 if out of bounds.
 wchar_t String::charAt(int index) {
-	// XXX: Maybe throw range error?
-	if (index < 0 || index >= str.size())
-		return -1;
-
+	if (str.size() == 0)
+		throw RangeError(L"String is empty");
+	
+	index = (index % str.size() + str.size()) % str.size();
+	
 	return str[index];
 };
 

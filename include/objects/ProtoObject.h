@@ -3,6 +3,8 @@
 #include "vobject.h"
 #include "vscope.h"
 
+// U N U S E D
+
 // Object created by prototype::call
 template<typename ProtoClass, typename std::enable_if<std::is_base_of<vobject, ProtoClass>::value>::type* = nullptr>
 class ProtoObject<ProtoClass> : public vobject {

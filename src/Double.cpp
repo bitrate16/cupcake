@@ -10,6 +10,7 @@
 #include "objects/Int.h"
 #include "objects/NativeFunction.h"
 #include "objects/Undefined.h"
+#include "objects/Bool.h"
 
 using namespace std;
 using namespace ck_exceptions;
@@ -66,6 +67,38 @@ vobject* Double::create_proto() {
 			else
 				return Undefined::instance();
 		})); 
+	
+	// Operators
+	DoubleProto->Object::put(L"__operator==", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			Double *a, *b;
+			
+			a = dynamic_cast<Double*>(args[0]);
+			b = dynamic_cast<Double*>(args[1]);
+			
+			double av = a ? a->value() : args[0]->int_value();
+			double bv = b ? b->value() : args[1]->int_value();
+			
+			return Bool::instance(av == bv);
+		}));
+	DoubleProto->Object::put(L"__operator!=", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			Double *a, *b;
+			
+			a = dynamic_cast<Double*>(args[0]);
+			b = dynamic_cast<Double*>(args[1]);
+			
+			double av = a ? a->value() : args[0]->int_value();
+			double bv = b ? b->value() : args[1]->int_value();
+			
+			return Bool::instance(av != bv);
+		}));
 	
 	
 	return DoubleProto;

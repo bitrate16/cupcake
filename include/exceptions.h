@@ -152,6 +152,10 @@ namespace ck_exceptions {
 	
 	// Decorators for different string types
 	
+	static inline cake RangeError(const std::wstring& message = L"") {
+		return cake(L"RangeError", message);
+	};
+	
 	static inline cake TypeError(const std::wstring& message = L"") {
 		return cake(L"TypeError", message);
 	};

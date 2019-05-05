@@ -3,12 +3,13 @@
 #include <vector>
 #include <cwchar>
 
+#include "vobject.h"
 #include "Object.h"
 #include "CallablePrototype.h"
 
 namespace ck_objects {	
 
-	class String : public ck_objects::Object {
+	class String : public ck_vobject::vobject {
 		
 	protected:
 		
