@@ -297,6 +297,67 @@ vobject* Int::create_proto() {
 			return Undefined::instance();
 		}));
 	
+	IntProto->Object::put(L"__operator-x", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 1 || !args[0])
+				return Undefined::instance();
+			
+			if (Int* i = dynamic_cast<Int*>(args[0]); i) 
+				return new Int(-i->value());
+			
+			return Undefined::instance();
+		}));
+	IntProto->Object::put(L"__operator+x", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 1 || !args[0])
+				return Undefined::instance();
+			
+			if (Int* i = dynamic_cast<Int*>(args[0]); i) 
+				return i;
+			
+			return Undefined::instance();
+		}));
+	IntProto->Object::put(L"__operator++", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 1 || !args[0])
+				return Undefined::instance();
+			
+			if (Int* i = dynamic_cast<Int*>(args[0]); i) 
+				return new Int(i->value() + 1);
+			
+			return Undefined::instance();
+		}));
+	IntProto->Object::put(L"__operator--", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 1 || !args[0])
+				return Undefined::instance();
+			
+			if (Int* i = dynamic_cast<Int*>(args[0]); i) 
+				return new Int(i->value() - 1);
+			
+			return Undefined::instance();
+		}));
+	IntProto->Object::put(L"__operator!x", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 1 || !args[0])
+				return Undefined::instance();
+			
+			if (Int* i = dynamic_cast<Int*>(args[0]); i) 
+				return new Int(!i->value());
+			
+			return Undefined::instance();
+		}));
+	IntProto->Object::put(L"__operator~x", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 1 || !args[0])
+				return Undefined::instance();
+			
+			if (Int* i = dynamic_cast<Int*>(args[0]); i) 
+				return new Int(~i->value());
+			
+			return Undefined::instance();
+		}));
+	
 	
 	return IntProto;
 };

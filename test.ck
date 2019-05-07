@@ -13,6 +13,15 @@ print(ca() && ca() && ca() && cb())
 print('\n')
 print(cb() || cb() || cb() || ca())
 print('\n')
+
+print('args:', __args, '\n');
+
+var i = 0
+while (i < 1000) {
+	if (i % 2)
+		print(i, '\n')
+	i += 1
+}
 /*
 print ('"asdfdsa" == "1234" = ', 'asdfgfs' == '1231', '\n')
 print ('"1234" == "1234" = ', '1234' == '1234', '\n')

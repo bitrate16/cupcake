@@ -87,6 +87,16 @@ vobject* Bool::create_proto() {
 			
 			return Bool::instance(args[0]->int_value() || args[1]->int_value());
 		}));
+	BoolProto->Object::put(L"__operator!x", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 1 || !args[0])
+				return Undefined::instance();
+			
+			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) 
+				return Bool::instance(!i->value());
+			
+			return Undefined::instance();
+		}));
 	
 	
 	return BoolProto;
