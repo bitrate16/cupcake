@@ -8,7 +8,7 @@ LDFLAGS := -rdynamic -w -g -std=c++17 -pthread -ldl
 CPPFLAGS := -rdynamic -w -g -std=c++17 -pthread
 CXXFLAGS := 
 
-test: $(OBJ_FILES)
+ck: $(OBJ_FILES)
 	g++ $(LDFLAGS) -o $@ $^
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp

@@ -7,7 +7,7 @@ Supported list of operators
 * unary
   * <div>+x, -x, ++x, --x, x++, x-- (__operator--, __operator++), !x, ~x, @x</div>
 * binary
-  * <div>+, -, *, /, \, \\, ->, =>, #, %, &, &&, |, ||, ^</div>
+  * <div>+, -, *, /, \, \\, >, <, >=, <=, ==, !=, ->, =>, #, %, &, &&, |, ||, ^</div>
 * terniary
   * <div>?:</div>
 * others

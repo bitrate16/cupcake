@@ -35,7 +35,7 @@ vobject* String::create_proto() {
 	if (StringProto != nullptr)
 		return StringProto;
 	
-	StringProto = new CallablePrototype(call_handler);
+	StringProto = new CallableObject(call_handler);
 	GIL::gc_instance()->attach_root(StringProto);
 	
 	StringProto->Object::put(L"__typename", new String(L"String"));	

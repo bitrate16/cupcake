@@ -1,11 +1,26 @@
 var arr = ['foo', ['er', 12], 'bsds', 23]
 
+ca = function() {
+	print('CA ');
+	return 1;
+};
+cb = function() {
+	print('CB ');
+	return 0;
+};
+
+print(ca() && ca() && ca() && cb())
+print('\n')
+print(cb() || cb() || cb() || ca())
+print('\n')
+/*
 print ('"asdfdsa" == "1234" = ', 'asdfgfs' == '1231', '\n')
 print ('"1234" == "1234" = ', '1234' == '1234', '\n')
 
 print(arr)
 print('Object keys: ', Object.keys(), '\n')
 print('String keys: ', String.keys(), '\n')
+print(13 + 10)
 
 var a = function() { b() }
 var b = function() { c() }
@@ -66,4 +81,4 @@ var recur = function() { recur() }
 
 print ('asdfgыыh')
 
-//recur()
+//recur()*/

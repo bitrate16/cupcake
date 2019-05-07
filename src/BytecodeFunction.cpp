@@ -23,7 +23,7 @@ vobject* BytecodeFunction::create_proto() {
 	if (BytecodeFunctionProto != nullptr)
 		return BytecodeFunctionProto;
 	
-	BytecodeFunctionProto = new CallablePrototype(call_handler);
+	BytecodeFunctionProto = new CallableObject(call_handler);
 	GIL::gc_instance()->attach_root(BytecodeFunctionProto);
 	
 	BytecodeFunctionProto->Object::put(L"__typename", new String(L"Function"));	

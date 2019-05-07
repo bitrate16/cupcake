@@ -5,7 +5,7 @@
 
 #include "vobject.h"
 #include "Object.h"
-#include "CallablePrototype.h"
+#include "CallableObject.h"
 
 namespace ck_objects {	
 
@@ -126,5 +126,5 @@ namespace ck_objects {
 	};
 	
 	// Defined on interpreter start.
-	static CallablePrototype* StringProto = nullptr;
+	static CallableObject* StringProto = nullptr;
 };

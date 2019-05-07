@@ -6,7 +6,7 @@
 #include "../exceptions.h"
 
 #include "Object.h"
-#include "CallablePrototype.h"
+#include "CallableObject.h"
 
 namespace ck_objects {
 
@@ -67,5 +67,5 @@ namespace ck_objects {
 	};
 	
 	// Defined on interpreter start.
-	static CallablePrototype* CakeProto = nullptr;
+	static CallableObject* CakeProto = nullptr;
 };

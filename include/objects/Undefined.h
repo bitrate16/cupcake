@@ -6,7 +6,7 @@
 #include "vobject.h"
 #include "vscope.h"
 
-#include "CallablePrototype.h"
+#include "CallableObject.h"
 
 namespace ck_objects {	
 
@@ -41,5 +41,5 @@ namespace ck_objects {
 	static Undefined* UndefinedInstance = nullptr;
 	
 	// Defined on interpreter start.
-	static CallablePrototype* UndefinedProto = nullptr;
+	static CallableObject* UndefinedProto = nullptr;
 };

@@ -835,12 +835,6 @@ vobject* ck_executer::exec_bytecode() {
 				vobject *rref = objects.rbegin()[0];
 				vobject *fun = nullptr;
 				
-				if (ref == nullptr)
-					throw TypeError(L"undefined reference to operator");
-				
-				if (rref == nullptr)
-					throw TypeError(L"undefined reference to operator rvalue");
-				
 				wstring fun_name;
 				
 				// lvalue operator
@@ -871,6 +865,12 @@ vobject* ck_executer::exec_bytecode() {
 					case ck_bytecodes::OPT_BITXOR : fun_name = (L"^"); break;
 				}
 				
+				if (ref == nullptr)
+					throw TypeError(L"undefined reference in operator " + fun_name);
+				
+				if (rref == nullptr)
+					throw TypeError(L"undefined reference in operator rvalue " + fun_name);
+				
 #ifdef DEBUG_OUTPUT
 				wcout << "> OPERATOR [" << fun_name << ']' << endl;
 #endif
@@ -888,7 +888,7 @@ vobject* ck_executer::exec_bytecode() {
 					
 					// Right-side operator has swapped arguments
 					// aka: a + b -> __roperator+(b, a)
-					vobject* res = call_object(fun, ref, { rref, ref }, fun_name);
+					vobject* res = call_object(fun, ref, { rref, ref }, fun_name); 
 					
 					vpop(); 
 					vpop();
@@ -1026,9 +1026,6 @@ vobject* ck_executer::exec_bytecode() {
 				vobject *ref = objects.rbegin()[0];
 				vobject *fun = nullptr;
 				
-				if (ref == nullptr)
-					throw TypeError(L"undefined reference to operator");
-				
 				wstring fun_name;
 				
 				// lvalue operator
@@ -1042,25 +1039,18 @@ vobject* ck_executer::exec_bytecode() {
 					case ck_bytecodes::OPT_DEC   : fun_name = (L"--x"); break;
 				}
 				
+				if (ref == nullptr)
+					throw TypeError(L"undefined reference in operator " + fun_name);
+				
 #ifdef DEBUG_OUTPUT
 				wcout << "> OPERATOR [" << fun_name << ']' << endl;
 #endif
 				
 				fun = ref->get(scopes.back(), L"__operator" + fun_name);
 				
-				// rvalue operator
-				if (fun == nullptr || fun->is_typeof<Undefined>() || fun->is_typeof<Null>()) 
-					fun = ref->get(scopes.back(), L"__roperator" + fun_name);
-				else
-					fun_name = L"__operator" + fun_name;
-				
-				fun = ref->get(scopes.back(), L"__operator" + fun_name);				
-					
 				// no operator
 				if (fun == nullptr || fun->is_typeof<Undefined>() || fun->is_typeof<Null>()) 
 					throw TypeError(L"undefined reference to operator " + fun_name);
-				else
-					fun_name = L"__roperator" + fun_name;
 				
 				vobject* res = call_object(fun, ref, { ref }, fun_name);
 				

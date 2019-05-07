@@ -36,7 +36,7 @@ vobject* Bool::create_proto() {
 	if (BoolProto != nullptr)
 		return BoolProto;
 	
-	BoolProto = new CallablePrototype(call_handler);
+	BoolProto = new CallableObject(call_handler);
 	GIL::gc_instance()->attach_root(BoolProto);
 	
 	BoolProto->Object::put(L"__typename", new String(L"Bool"));
@@ -56,6 +56,36 @@ vobject* Bool::create_proto() {
 				return Bool::False();
 			
 			return Undefined::instance();
+		}));
+	
+	BoolProto->Object::put(L"__operator==", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			return Bool::instance(args[0]->int_value() == args[1]->int_value());
+		}));
+	BoolProto->Object::put(L"__operator!=", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			return Bool::instance(args[0]->int_value() != args[1]->int_value());
+		}));
+	
+	BoolProto->Object::put(L"__operator&&", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			return Bool::instance(args[0]->int_value() && args[1]->int_value());
+		}));
+	BoolProto->Object::put(L"__operator||", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			return Bool::instance(args[0]->int_value() || args[1]->int_value());
 		}));
 	
 	

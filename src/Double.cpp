@@ -2,6 +2,8 @@
 
 #include <string>
 #include <sstream>
+#include <cfloat>
+#include <climits>
 
 #include "exceptions.h"
 #include "GIL2.h"
@@ -43,10 +45,14 @@ vobject* Double::create_proto() {
 	if (DoubleProto != nullptr)
 		return DoubleProto;
 	
-	DoubleProto = new CallablePrototype(call_handler);
+	DoubleProto = new CallableObject(call_handler);
 	GIL::gc_instance()->attach_root(DoubleProto);
 	
 	DoubleProto->Object::put(L"__typename", new String(L"Double"));
+	DoubleProto->Object::put(L"MAX_VALUE", new Double(DBL_MAX));
+	DoubleProto->Object::put(L"MIN_VALUE", new Double(DBL_MIN));
+	DoubleProto->Object::put(L"EPSILON", new Double(DBL_EPSILON));
+	DoubleProto->Object::put(L"SIZEOF", new Int(sizeof(double)));
 	DoubleProto->Object::put(L"parse", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
 			if (!args.size())

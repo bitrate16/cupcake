@@ -26,7 +26,7 @@ vobject* Undefined::create_proto() {
 	if (UndefinedProto != nullptr)
 		return UndefinedProto;
 	
-	UndefinedProto = new CallablePrototype(call_handler);
+	UndefinedProto = new CallableObject(call_handler);
 	GIL::gc_instance()->attach_root(UndefinedProto);
 	
 	if (UndefinedInstance == nullptr) {

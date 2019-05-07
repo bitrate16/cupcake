@@ -28,7 +28,7 @@ vobject* Array::create_proto() {
 	if (ArrayProto != nullptr)
 		return ArrayProto;
 	
-	ArrayProto = new CallablePrototype(call_handler);
+	ArrayProto = new CallableObject(call_handler);
 	GIL::gc_instance()->attach_root(ArrayProto);
 	
 	ArrayProto->Object::put(L"__typename", new String(L"Array"));

@@ -1127,8 +1127,6 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 		case HASH   : { VISIT(n->left); VISIT(n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_HASH   ); break; }
 		case EQ     : { VISIT(n->left); VISIT(n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_EQ     ); break; }
 		case NEQ    : { VISIT(n->left); VISIT(n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_NEQ    ); break; }
-		case OR     : { VISIT(n->left); VISIT(n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_OR     ); break; }
-		case AND    : { VISIT(n->left); VISIT(n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_AND    ); break; }
 		case GT     : { VISIT(n->left); VISIT(n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_GT     ); break; }
 		case GE     : { VISIT(n->left); VISIT(n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_GE     ); break; }
 		case LT     : { VISIT(n->left); VISIT(n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_LT     ); break; }
@@ -1136,6 +1134,91 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 		case PUSH   : { VISIT(n->left); VISIT(n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_PUSH   ); break; }
 		case ARROW  : { VISIT(n->left); VISIT(n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_ARROW  ); break; }
 		case BITXOR : { VISIT(n->left); VISIT(n->right); push_byte(bytemap, ck_bytecodes::OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_BITXOR  ); break; }
+		case OR: {
+			// A || B
+			// if A is true then return value of A
+			// else
+			//   return value of A || B
+		
+			//  VISIT(left)
+			//  VSTACK_DUP
+			//  JMP_IF_ZERO secondary_jmp
+			//  JMP .end_jmp
+			// .secondary_jmp:
+			//  VISIT(right)
+			//  OPERATOR ||
+			// .end_jmp:
+			
+			VISIT(n->left);
+			
+			// Duplicate A value on stack
+			push_byte(bytemap, ck_bytecodes::VSTACK_DUP);
+			
+			push_byte(bytemap, ck_bytecodes::JMP_IF_ZERO);
+			
+			// Insert jump point if A is false
+			int secondary_jmp_addr = absolute_address(bytemap);
+			push(bytemap, sizeof(int), &secondary_jmp_addr);
+			
+			push_byte(bytemap, ck_bytecodes::JMP);
+			
+			// Insert jump point to the end of expression
+			int end_jmp_addr = absolute_address(bytemap);
+			push(bytemap, sizeof(int), &end_jmp_addr);
+			
+			// Insert address
+			int secondary_jmp = relative_address(bytemap);
+			for (int i = 0; i < sizeof(int); ++i) 
+				bytemap[i + secondary_jmp_addr] = ((unsigned char*) &secondary_jmp)[i];
+			
+			VISIT(n->right);
+			
+			push_byte(bytemap, ck_bytecodes::OPERATOR); 
+			push_byte(bytemap, ck_bytecodes::OPT_OR);
+			
+			// Insert address
+			int end_jmp = relative_address(bytemap);
+			for (int i = 0; i < sizeof(int); ++i) 
+				bytemap[i + end_jmp_addr] = ((unsigned char*) &end_jmp)[i];
+
+			break; 
+		}
+		case AND: {
+			// A && B
+			// if A is true then return value of A
+			// else
+			//   return value of A && B
+		
+			//  VISIT(left)
+			//  VSTACK_DUP
+			//  JMP_IF_ZERO end_jmp
+			//  VISIT(right)
+			//  OPERATOR &&
+			// .end_jmp:
+			
+			VISIT(n->left);
+			
+			// Duplicate A value on stack
+			push_byte(bytemap, ck_bytecodes::VSTACK_DUP);
+			
+			push_byte(bytemap, ck_bytecodes::JMP_IF_ZERO);
+			
+			// Insert jump point to the end of expression
+			int end_jmp_addr = absolute_address(bytemap);
+			push(bytemap, sizeof(int), &end_jmp_addr);
+			
+			VISIT(n->right);
+			
+			push_byte(bytemap, ck_bytecodes::OPERATOR); 
+			push_byte(bytemap, ck_bytecodes::OPT_AND);
+			
+			// Insert address
+			int end_jmp = relative_address(bytemap);
+			for (int i = 0; i < sizeof(int); ++i) 
+				bytemap[i + end_jmp_addr] = ((unsigned char*) &end_jmp)[i];
+
+			break; 
+		}
 	
 		case DOG   : { VISIT(n->left); push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_DOG); break; }
 		case NOT   : { VISIT(n->left); push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR); push_byte(bytemap, ck_bytecodes::OPT_NOT); break; }

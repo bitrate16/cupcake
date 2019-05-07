@@ -4,7 +4,7 @@
 #include <cwchar>
 
 #include "Object.h"
-#include "CallablePrototype.h"
+#include "CallableObject.h"
 
 namespace ck_objects {	
 
@@ -57,5 +57,5 @@ namespace ck_objects {
 	static Bool* FalseInstance = nullptr;
 	
 	// Defined on interpreter start.
-	static CallablePrototype* BoolProto = nullptr;
+	static CallableObject* BoolProto = nullptr;
 };

@@ -47,7 +47,7 @@ vobject* Cake::create_proto() {
 	if (CakeProto != nullptr)
 		return CakeProto;
 	
-	CakeProto = new CallablePrototype(call_handler);
+	CakeProto = new CallableObject(call_handler);
 	GIL::gc_instance()->attach_root(CakeProto);
 	
 	CakeProto->Object::put(L"__typename", new String(L"Cake"));	

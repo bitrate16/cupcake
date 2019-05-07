@@ -28,8 +28,12 @@ static vobject* f_print(vscope* scope, const vector<vobject*>& args) {
 		if (args[i] != nullptr)
 			if (args[i]->is_typeof<Cake>())
 				((Cake*) args[i])->print_backtrace();
-			else
-				wcout << args[i]->string_value() << ' ';
+			else {
+				if (i == args.size() - 1)
+					wcout << args[i]->string_value();
+				else
+					wcout << args[i]->string_value() << ' ';
+			}
 		else
 			wcout << "undefined" << ' ';
 		

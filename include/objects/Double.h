@@ -4,7 +4,7 @@
 #include <cwchar>
 
 #include "Object.h"
-#include "CallablePrototype.h"
+#include "CallableObject.h"
 
 namespace ck_objects {	
 
@@ -42,5 +42,5 @@ namespace ck_objects {
 	};
 	
 	// Defined on interpreter start.
-	static CallablePrototype* DoubleProto = nullptr;
+	static CallableObject* DoubleProto = nullptr;
 };

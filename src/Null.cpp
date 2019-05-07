@@ -26,7 +26,7 @@ vobject* Null::create_proto() {
 	if (NullProto != nullptr)
 		return NullProto;
 	
-	NullProto = new CallablePrototype(call_handler);
+	NullProto = new CallableObject(call_handler);
 	GIL::gc_instance()->attach_root(NullProto);
 	
 	if (NullInstance == nullptr) {
