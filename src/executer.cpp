@@ -1035,9 +1035,9 @@ vobject* ck_executer::exec_bytecode() {
 					case ck_bytecodes::OPT_BITNOT: fun_name = (L"~x"); break;
 					case ck_bytecodes::OPT_POS   : fun_name = (L"+x"); break;
 					case ck_bytecodes::OPT_NEG   : fun_name = (L"-x"); break;
-					case ck_bytecodes::OPT_INC   : fun_name = (L"++x"); break;
-					case ck_bytecodes::OPT_DEC   : fun_name = (L"--x"); break;
-				}
+					case ck_bytecodes::OPT_INC   : fun_name = (L"++"); break;
+					case ck_bytecodes::OPT_DEC   : fun_name = (L"--"); break;
+				}std::wcout << ref->string_value() << " <= ref ";
 				
 				if (ref == nullptr)
 					throw TypeError(L"undefined reference in operator " + fun_name);

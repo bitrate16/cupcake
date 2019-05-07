@@ -37,9 +37,14 @@ namespace ck_objects {
 			return val;
 		};
 		
+		static Double* NaN();
+		
 		// Called on interpreter start to initialize prototype
 		static vobject* create_proto();
 	};
+	
+	// NaN value for Double
+	static Double* Double_NAN;
 	
 	// Defined on interpreter start.
 	static CallableObject* DoubleProto = nullptr;

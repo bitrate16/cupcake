@@ -11,6 +11,8 @@
 #include "objects/NativeFunction.h"
 #include "objects/Undefined.h"
 #include "objects/String.h"
+#include "objects/Double.h"
+#include "objects/Int.h"
 
 using namespace std;
 using namespace ck_exceptions;
@@ -58,19 +60,160 @@ vobject* Bool::create_proto() {
 			return Undefined::instance();
 		}));
 	
+	// Operators
 	BoolProto->Object::put(L"__operator==", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
 			if (args.size() < 2 || !args[0] || !args[1])
 				return Undefined::instance();
 			
-			return Bool::instance(args[0]->int_value() == args[1]->int_value());
+			return Bool::instance(args[0]->int_value() != 0 == args[1]->int_value() != 0);
 		}));
 	BoolProto->Object::put(L"__operator!=", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
 			if (args.size() < 2 || !args[0] || !args[1])
 				return Undefined::instance();
 			
-			return Bool::instance(args[0]->int_value() != args[1]->int_value());
+			return Bool::instance(args[0]->int_value() != 0 != args[1]->int_value() != 0);
+		}));
+	BoolProto->Object::put(L"__operator>", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) 
+				return Bool::instance(i->value() && !args[1]->int_value());
+			return Undefined::instance();
+		}));
+	BoolProto->Object::put(L"__operator>=", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) 
+				return Bool::instance(i->value());
+			return Undefined::instance();
+		}));
+	BoolProto->Object::put(L"__operator<", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) 
+				return Bool::instance(!i->value() && args[1]->int_value());
+			return Undefined::instance();
+		}));
+	BoolProto->Object::put(L"__operator<=", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) 
+				return Bool::instance(!i->value());
+			return Undefined::instance();
+		}));
+	
+	BoolProto->Object::put(L"__operator+", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) {
+				if (String* s = dynamic_cast<String*>(args[1]); s) 
+					return new String(i->string_value() + s->value());
+				if (Double* d = dynamic_cast<Double*>(args[1]); d)
+					return new Double(i->value() + d->value());
+				return Bool::instance(i->value() + args[1]->int_value());
+			}
+			return Undefined::instance();
+		}));
+	BoolProto->Object::put(L"__operator-", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) {
+				if (Double* d = dynamic_cast<Double*>(args[1]); d)
+					return new Double(i->value() - d->value());
+				return new Int(i->value() - args[1]->int_value());
+			}
+			return Undefined::instance();
+		}));
+	BoolProto->Object::put(L"__operator*", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) 
+				return Bool::instance(i->value() && args[1]->int_value() != 0);
+			return Undefined::instance();
+		}));
+		
+	BoolProto->Object::put(L"__operator&", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) {
+				long long b = args[1]->int_value();
+				return new Int(i->value() & b);
+			}
+			return Undefined::instance();
+		}));
+	BoolProto->Object::put(L"__operator|", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) {
+				long long b = args[1]->int_value();
+				return new Int(i->value() | b);
+			}
+			return Undefined::instance();
+		}));
+	BoolProto->Object::put(L"__operator^", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) {
+				long long b = args[1]->int_value();
+				return Bool::instance(i->value() ^ (b != 0));
+			}
+			return Undefined::instance();
+		}));
+	BoolProto->Object::put(L"__operator<<", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) {
+				long long b = args[1]->int_value();
+				return new Int(i->value() << b);
+			}
+			return Undefined::instance();
+		}));
+	BoolProto->Object::put(L"__operator>>", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) {
+				long long b = args[1]->int_value();
+				return new Int(i->value() >> b);
+			}
+			return Undefined::instance();
+		}));
+	BoolProto->Object::put(L"__operator>>>", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) {
+				unsigned long long a = i->value();
+				unsigned long long b = args[1]->int_value();
+				return new Int(a >> b);
+			}
+			return Undefined::instance();
 		}));
 	
 	BoolProto->Object::put(L"__operator&&", new NativeFunction(
@@ -78,14 +221,65 @@ vobject* Bool::create_proto() {
 			if (args.size() < 2 || !args[0] || !args[1])
 				return Undefined::instance();
 			
-			return Bool::instance(args[0]->int_value() && args[1]->int_value());
+			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) {
+				long long a = i->value();
+				long long b = args[1]->int_value();
+				return Bool::instance(a && b);
+			}
+			return Undefined::instance();
 		}));
 	BoolProto->Object::put(L"__operator||", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
 			if (args.size() < 2 || !args[0] || !args[1])
 				return Undefined::instance();
 			
-			return Bool::instance(args[0]->int_value() || args[1]->int_value());
+			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) {
+				long long a = i->value();
+				long long b = args[1]->int_value();
+				return Bool::instance(a || b);
+			}
+			return Undefined::instance();
+		}));
+	
+	BoolProto->Object::put(L"__operator-x", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 1 || !args[0])
+				return Undefined::instance();
+			
+			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) 
+				return Bool::instance(!i->value());
+			
+			return Undefined::instance();
+		}));
+	BoolProto->Object::put(L"__operator+x", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 1 || !args[0])
+				return Undefined::instance();
+			
+			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) 
+				return i;
+			
+			return Undefined::instance();
+		}));
+	BoolProto->Object::put(L"__operator++", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 1 || !args[0])
+				return Undefined::instance();
+			
+			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) 
+				return Bool::instance(!i->value());
+			
+			return Undefined::instance();
+		}));
+	BoolProto->Object::put(L"__operator--", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 1 || !args[0])
+				return Undefined::instance();
+			
+			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) 
+				return Bool::instance(!i->value());
+			
+			return Undefined::instance();
 		}));
 	BoolProto->Object::put(L"__operator!x", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
@@ -93,6 +287,16 @@ vobject* Bool::create_proto() {
 				return Undefined::instance();
 			
 			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) 
+				return Bool::instance(!i->value());
+			
+			return Undefined::instance();
+		}));
+	BoolProto->Object::put(L"__operator~x", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 1 || !args[0])
+				return Undefined::instance();
+			
+			if (Int* i = dynamic_cast<Int*>(args[0]); i) 
 				return Bool::instance(!i->value());
 			
 			return Undefined::instance();
@@ -128,7 +332,7 @@ vobject* Bool::get(ck_vobject::vscope* scope, const std::wstring& name) {
 	if (name == L"__proto")
 		return BoolProto;
 	
-	return BoolProto ? BoolProto->Object::get(scope, name) : nullptr;
+	return BoolProto ? BoolProto->Object::get(name) : nullptr;
 };
 
 void Bool::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* object) {
@@ -140,7 +344,7 @@ bool Bool::contains(ck_vobject::vscope* scope, const std::wstring& name) {
 	if (name == L"__proto")
 		return 1;
 	
-	return BoolProto && BoolProto->Object::contains(scope, name);
+	return BoolProto && BoolProto->Object::contains(name);
 };
 
 bool Bool::remove(ck_vobject::vscope* scope, const std::wstring& name) {

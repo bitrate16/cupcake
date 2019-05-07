@@ -777,8 +777,8 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 			break;
 		}
 	
-		case PRE_INC:
-		case PRE_DEC: {
+		case POS_INC:
+		case POS_DEC: {
 			if (n->left->type == FIELD) { // STORE_FIELD [name]
 			
 				VISIT(n->left->left);
@@ -940,8 +940,8 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 			break;
 		}
 		
-		case POS_INC:
-		case POS_DEC: {
+		case PRE_INC:
+		case PRE_DEC: {
 			if (n->left->type == FIELD) { // STORE_FIELD [name]
 			
 				VISIT(n->left->left);
@@ -974,7 +974,6 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 					push_byte(bytemap, ck_bytecodes::OPT_DEC);
 				
 				// STACK:
-				// val
 				// ref
 				// result
 				
@@ -1034,7 +1033,6 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 				// STACK:
 				// ref
 				// key
-				// val
 				// result
 				
 				push_byte(bytemap, ck_bytecodes::VSTACK_DUP);

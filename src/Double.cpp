@@ -4,6 +4,7 @@
 #include <sstream>
 #include <cfloat>
 #include <climits>
+#include <cmath>
 
 #include "exceptions.h"
 #include "GIL2.h"
@@ -53,6 +54,9 @@ vobject* Double::create_proto() {
 	DoubleProto->Object::put(L"MIN_VALUE", new Double(DBL_MIN));
 	DoubleProto->Object::put(L"EPSILON", new Double(DBL_EPSILON));
 	DoubleProto->Object::put(L"SIZEOF", new Int(sizeof(double)));
+	DoubleProto->Object::put(L"NAN", Double_NAN = new Double(nan("")));
+	GIL::gc_instance()->attach_root(Double_NAN);
+	
 	DoubleProto->Object::put(L"parse", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
 			if (!args.size())
@@ -105,6 +109,287 @@ vobject* Double::create_proto() {
 			
 			return Bool::instance(av != bv);
 		}));
+	DoubleProto->Object::put(L"__operator>", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Int* i = dynamic_cast<Int*>(args[0]); i) {
+				if (Double* d = dynamic_cast<Double*>(args[1]); d)
+					return Bool::instance(i->value() > d->value());
+				return Bool::instance(i->value() > args[1]->int_value());
+			}
+			return Undefined::instance();
+		}));
+	DoubleProto->Object::put(L"__operator>=", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Double* i = dynamic_cast<Double*>(args[0]); i) {
+				if (Double* d = dynamic_cast<Double*>(args[1]); d)
+					return Bool::instance(i->value() >= d->value());
+				return Bool::instance(i->value() >= args[1]->int_value());
+			}
+			return Undefined::instance();
+		}));
+	DoubleProto->Object::put(L"__operator<", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Double* i = dynamic_cast<Double*>(args[0]); i) {
+				if (Double* d = dynamic_cast<Double*>(args[1]); d)
+					return Bool::instance(i->value() < d->value());
+				return Bool::instance(i->value() < args[1]->int_value());
+			}
+			return Undefined::instance();
+		}));
+	DoubleProto->Object::put(L"__operator<=", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Double* i = dynamic_cast<Double*>(args[0]); i) {
+				if (Double* d = dynamic_cast<Double*>(args[1]); d)
+					return Bool::instance(i->value() <= d->value());
+				return Bool::instance(i->value() <= args[1]->int_value());
+			}
+			return Undefined::instance();
+		}));
+	
+	DoubleProto->Object::put(L"__operator+", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Double* i = dynamic_cast<Double*>(args[0]); i) {
+				if (String* s = dynamic_cast<String*>(args[1]); s) 
+					return new String(i->string_value() + s->value());
+				if (Double* d = dynamic_cast<Double*>(args[1]); d)
+					return new Double(i->value() + d->value());
+				return new Double(i->value() + args[1]->int_value());
+			}
+			return Undefined::instance();
+		}));
+	DoubleProto->Object::put(L"__operator-", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Double* i = dynamic_cast<Double*>(args[0]); i) {
+				if (Double* d = dynamic_cast<Double*>(args[1]); d)
+					return new Double(i->value() - d->value());
+				return new Double(i->value() - args[1]->int_value());
+			}
+			return Undefined::instance();
+		}));
+	DoubleProto->Object::put(L"__operator*", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Double* i = dynamic_cast<Double*>(args[0]); i) {
+				if (Double* d = dynamic_cast<Double*>(args[1]); d)
+					return new Double(i->value() * d->value());
+				return new Double(i->value() * args[1]->int_value());
+			}
+			return Undefined::instance();
+		}));
+	DoubleProto->Object::put(L"__operator/", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Double* i = dynamic_cast<Double*>(args[0]); i) {
+				if (Double* d = dynamic_cast<Double*>(args[1]); d)
+					return new Double(i->value() / d->value());
+				
+				if (long long b = args[1]->int_value(); b)
+					return new Double(i->value() / static_cast<double>(b));
+				else
+					return Double::NaN();
+			}
+			return Undefined::instance();
+		}));
+	DoubleProto->Object::put(L"__operator#", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Double* i = dynamic_cast<Double*>(args[0]); i) {
+				if (long long b = args[1]->int_value(); b)
+					return new Int(static_cast<long long>(round(i->value() / b)));
+				else
+					return Undefined::instance();
+			}
+			return Undefined::instance();
+		}));
+	DoubleProto->Object::put(L"__operator%", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Double* i = dynamic_cast<Double*>(args[0]); i) {
+				if (long long b = args[1]->int_value(); b)
+					return new Double(fmod(i->value(), b));
+				else
+					return Undefined::instance();
+			}
+			return Undefined::instance();
+		}));
+		
+	DoubleProto->Object::put(L"__operator&", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Double* i = dynamic_cast<Double*>(args[0]); i) {
+				long long b = args[1]->int_value();
+				return new Int(static_cast<long long>(round(i->value())) & b);
+			}
+			return Undefined::instance();
+		}));
+	DoubleProto->Object::put(L"__operator|", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Double* i = dynamic_cast<Double*>(args[0]); i) {
+				long long b = args[1]->int_value();
+				return new Int(static_cast<long long>(round(i->value())) | b);
+			}
+			return Undefined::instance();
+		}));
+	DoubleProto->Object::put(L"__operator^", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Double* i = dynamic_cast<Double*>(args[0]); i) {
+				long long b = args[1]->int_value();
+				return new Int(static_cast<long long>(round(i->value())) ^ b);
+			}
+			return Undefined::instance();
+		}));
+	DoubleProto->Object::put(L"__operator<<", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Double* i = dynamic_cast<Double*>(args[0]); i) {
+				long long b = args[1]->int_value();
+				return new Int(static_cast<long long>(round(i->value())) << b);
+			}
+			return Undefined::instance();
+		}));
+	DoubleProto->Object::put(L"__operator>>", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Double* i = dynamic_cast<Double*>(args[0]); i) {
+				long long b = args[1]->int_value();
+				return new Int(static_cast<long long>(round(i->value())) >> b);
+			}
+			return Undefined::instance();
+		}));
+	DoubleProto->Object::put(L"__operator>>>", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Double* i = dynamic_cast<Double*>(args[0]); i) {
+				unsigned long long a = static_cast<long long>(round(i->value()));
+				unsigned long long b = args[1]->int_value();
+				return new Int(a >> b);
+			}
+			return Undefined::instance();
+		}));
+	
+	DoubleProto->Object::put(L"__operator&&", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Double* i = dynamic_cast<Double*>(args[0]); i) {
+				long long b = args[1]->int_value();
+				return Bool::instance(i->value() != 0 && b);
+			}
+			return Undefined::instance();
+		}));
+	DoubleProto->Object::put(L"__operator||", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Double* i = dynamic_cast<Double*>(args[0]); i) {
+				long long b = args[1]->int_value();
+				return Bool::instance(i->value() != 0 || b);
+			}
+			return Undefined::instance();
+		}));
+	
+	DoubleProto->Object::put(L"__operator-x", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 1 || !args[0])
+				return Undefined::instance();
+			
+			if (Double* i = dynamic_cast<Double*>(args[0]); i) 
+				return new Double(-i->value());
+			
+			return Undefined::instance();
+		}));
+	DoubleProto->Object::put(L"__operator+x", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 1 || !args[0])
+				return Undefined::instance();
+			
+			if (Double* i = dynamic_cast<Double*>(args[0]); i) 
+				return i;
+			
+			return Undefined::instance();
+		}));
+	DoubleProto->Object::put(L"__operator++", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 1 || !args[0])
+				return Undefined::instance();
+			
+			if (Double* i = dynamic_cast<Double*>(args[0]); i) 
+				return new Double(i->value() + 1.0);
+			
+			return Undefined::instance();
+		}));
+	DoubleProto->Object::put(L"__operator--", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 1 || !args[0])
+				return Undefined::instance();
+			
+			if (Double* i = dynamic_cast<Double*>(args[0]); i) 
+				return new Double(i->value() - 1.0);
+			
+			return Undefined::instance();
+		}));
+	DoubleProto->Object::put(L"__operator!x", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 1 || !args[0])
+				return Undefined::instance();
+			
+			if (Double* i = dynamic_cast<Double*>(args[0]); i) 
+				return new Double(i->value() == 0.0);
+			
+			return Undefined::instance();
+		}));
+	DoubleProto->Object::put(L"__operator~x", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 1 || !args[0])
+				return Undefined::instance();
+			
+			if (Double* i = dynamic_cast<Double*>(args[0]); i) 
+				return new Int(~static_cast<long long>(round(i->value())));
+			
+			return Undefined::instance();
+		}));
 	
 	
 	return DoubleProto;
@@ -118,9 +403,9 @@ Double::~Double() {};
 // Delegate to prototype
 vobject* Double::get(ck_vobject::vscope* scope, const std::wstring& name) {
 	if (name == L"__proto")
-		return IntProto;
+		return DoubleProto;
 	
-	return DoubleProto ? DoubleProto->Object::get(scope, name) : nullptr;
+	return DoubleProto ? DoubleProto->Object::get(name) : nullptr;
 };
 
 void Double::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* object) {
@@ -132,7 +417,7 @@ bool Double::contains(ck_vobject::vscope* scope, const std::wstring& name) {
 	if (name == L"__proto")
 		return 1;
 	
-	return DoubleProto && DoubleProto->Object::contains(scope, name);
+	return DoubleProto && DoubleProto->Object::contains(name);
 };
 
 bool Double::remove(ck_vobject::vscope* scope, const std::wstring& name) {
@@ -143,9 +428,17 @@ vobject* Double::call(ck_vobject::vscope* scope, const std::vector<vobject*>& ar
 	throw UnsupportedOperation(L"Double is not callable");
 };
 
+Double* Double::NaN() {
+	if (Double_NAN)
+		return Double_NAN;
+	
+	Double_NAN = new Double(nan(""));
+	GIL::gc_instance()->attach_root(Double_NAN);
+	return Double_NAN;
+}
 
 long long Double::int_value() {
-	return val;
+	return static_cast<long long>(round(val));
 };
 
 wstring Double::string_value() {

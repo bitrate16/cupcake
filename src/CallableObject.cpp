@@ -15,15 +15,15 @@ vobject* CallableObject::call(ck_vobject::vscope* scope, const std::vector<vobje
 };
 
 vobject* CallableObject::get(ck_vobject::vscope* scope, const std::wstring& name) {
-	return Object::get(scope, name);
+	return Object::get(name);
 };
 
 void CallableObject::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* object) {
-	Object::put(scope, name, object);
+	Object::put(name, object);
 };
 
 bool CallableObject::contains(ck_vobject::vscope* scope, const std::wstring& name) {	
-	return Object::contains(scope, name);
+	return Object::contains(name);
 };
 
 bool CallableObject::remove(ck_vobject::vscope* scope, const std::wstring& name) {

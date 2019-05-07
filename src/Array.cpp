@@ -297,7 +297,7 @@ bool Array::contains(vscope* scope, const wstring& name) {
 		}
 	}
 	
-	return Object::contains(name) || (ArrayProto && ArrayProto->contains(scope, name));
+	return Object::contains(name) || (ArrayProto && ArrayProto->Object::contains(name));
 };
 
 // index < 0 ~ bound to [0, size] -> remove
@@ -338,7 +338,7 @@ bool Array::remove(vscope* scope, const wstring& name) {
 	
 	if (Object::remove(name))
 		return 1;
-	if (ArrayProto && ArrayProto->remove(scope, name))
+	if (ArrayProto && ArrayProto->Object::remove(name))
 		return 1;
 	return 0;
 };

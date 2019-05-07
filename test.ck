@@ -13,13 +13,16 @@ print(ca() && ca() && ca() && cb())
 print('\n')
 print(cb() || cb() || cb() || ca())
 print('\n')
-
 print('args:', __args, '\n');
 
 var i = 0
+var b = false
+print(b.__proto['__operator++'](b))
 while (i < 1000) {
 	if (i % 2)
-		print(i, '\n')
+		;print(i, '\n')
+	b = ++b;
+	print(b++)
 	i += 1
 }
 /*

@@ -354,7 +354,7 @@ bool String::contains(ck_vobject::vscope* scope, const std::wstring& name) {
 		return 0;
 	}
 	
-	return StringProto && StringProto->contains(scope, name);
+	return StringProto && StringProto->Object::contains(name);
 };
 
 bool String::remove(ck_vobject::vscope* scope, const std::wstring& name) {
@@ -367,7 +367,7 @@ bool String::remove(ck_vobject::vscope* scope, const std::wstring& name) {
 	if(!num.fail() && num.eof()) 
 		throw UnsupportedOperation(L"can not change const string");
 	
-	return StringProto && StringProto->remove(scope, name);
+	return StringProto && StringProto->Object::remove(name);
 };
 
 vobject* String::call(ck_vobject::vscope* scope, const std::vector<vobject*>& args) {

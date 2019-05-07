@@ -3,6 +3,7 @@
 #include <string>
 #include <sstream>
 #include <climits>
+#include <cmath>
 
 #include "exceptions.h"
 #include "GIL2.h"
@@ -184,7 +185,20 @@ vobject* Int::create_proto() {
 					return new Double(i->value() / d->value());
 				
 				if (long long b = args[1]->int_value(); b)
-					return new Int(i->value() / b);
+					return new Int(i->value() / static_cast<double>(b));
+				else
+					return Undefined::instance();
+			}
+			return Undefined::instance();
+		}));
+	IntProto->Object::put(L"__operator#", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Int* i = dynamic_cast<Int*>(args[0]); i) {
+				if (long long b = args[1]->int_value(); b)
+					return new Int(static_cast<long long>(round(i->value() / b)));
 				else
 					return Undefined::instance();
 			}
@@ -372,7 +386,7 @@ vobject* Int::get(ck_vobject::vscope* scope, const std::wstring& name) {
 	if (name == L"__proto")
 		return IntProto;
 	
-	return IntProto ? IntProto->Object::get(scope, name) : nullptr;
+	return IntProto ? IntProto->Object::get(name) : nullptr;
 };
 
 void Int::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* object) {
@@ -384,7 +398,7 @@ bool Int::contains(ck_vobject::vscope* scope, const std::wstring& name) {
 	if (name == L"__proto")
 		return 1;
 	
-	return IntProto && IntProto->Object::contains(scope, name);
+	return IntProto && IntProto->Object::contains(name);
 };
 
 bool Int::remove(ck_vobject::vscope* scope, const std::wstring& name) {
