@@ -27,8 +27,18 @@ using namespace ck_core;
 static vobject* call_handler(vscope* scope, const vector<vobject*>& args) {
 	Cake* err = new Cake();
 	
-	if (args.size() != 0)
+	if (args.size() == 0)
+		return err;
+	if (args.size() == 1 && args[0]) {
 		err->Object::put(L"message", args[0]);
+		err->set_message(args[0]->string_value());
+	}
+	if (args.size() > 1 && args[0] && args[1]) {
+		err->Object::put(L"type", args[0]);
+		err->Object::put(L"message", args[1]);
+		err->set_type(args[0]->string_value());
+		err->set_message(args[1]->string_value());
+	}
 	
 	return err;
 };

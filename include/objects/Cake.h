@@ -35,6 +35,14 @@ namespace ck_objects {
 		virtual void gc_finalize();
 		
 		
+		inline void set_type(const std::wstring& t) {
+			type = t;
+		};
+		
+		inline void set_message(const std::wstring& m) {
+			message = m;
+		};
+		
 		inline const std::wstring& get_type() {
 			return type;
 		};
