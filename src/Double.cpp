@@ -52,9 +52,10 @@ vobject* Double::create_proto() {
 	DoubleProto->Object::put(L"__typename", new String(L"Double"));
 	DoubleProto->Object::put(L"MAX_VALUE", new Double(DBL_MAX));
 	DoubleProto->Object::put(L"MIN_VALUE", new Double(DBL_MIN));
-	DoubleProto->Object::put(L"EPSILON", new Double(DBL_EPSILON));
+	DoubleProto->Object::put(L"expsilon", new Double(DBL_EPSILON));
+	DoubleProto->Object::put(L"infinity", new Double(std::numeric_limits<T>::infinity()));
 	DoubleProto->Object::put(L"SIZEOF", new Int(sizeof(double)));
-	DoubleProto->Object::put(L"NAN", Double_NAN = new Double(nan("")));
+	DoubleProto->Object::put(L"NaN", Double_NAN = new Double(nan("")));
 	GIL::gc_instance()->attach_root(Double_NAN);
 	
 	DoubleProto->Object::put(L"parse", new NativeFunction(
@@ -77,6 +78,30 @@ vobject* Double::create_proto() {
 			else
 				return Undefined::instance();
 		})); 
+	DoubleProto->Object::put(L"isNaN", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (!args.size())
+				return Undefined::instance();
+			
+			if (!args.size() || !args[0])
+				return Undefined::instance();
+			
+			Double* d = dynamic_cast<Double*>(args[0]);
+			
+			return Bool::instance(isnan(d->value()));
+		}));
+	DoubleProto->Object::put(L"isInfinity", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (!args.size())
+				return Undefined::instance();
+			
+			if (!args.size() || !args[0])
+				return Undefined::instance();
+			
+			Double* d = dynamic_cast<Double*>(args[0]);
+			
+			return Bool::instance(isinf(d->value()));
+		}));
 	
 	// Operators
 	DoubleProto->Object::put(L"__operator==", new NativeFunction(
