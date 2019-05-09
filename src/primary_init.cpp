@@ -109,7 +109,7 @@ vscope* ck_objects::primary_init() {
 	scope->put(L"print",   new NativeFunction(f_print));
 	scope->put(L"println", new NativeFunction(f_println));
 	// Execute native interpreter script command
-	scope->put(L"system",  new NativeFunction(f_exec));
+	scope->put(L"system",  new NativeFunction(f_system));
 	
 	return scope;
 };
