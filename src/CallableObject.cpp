@@ -1,5 +1,5 @@
 #include "objects/CallableObject.h"
-
+#include <iostream>
 using namespace std;
 using namespace ck_vobject;
 using namespace ck_objects;
@@ -15,15 +15,15 @@ vobject* CallableObject::call(ck_vobject::vscope* scope, const std::vector<vobje
 };
 
 vobject* CallableObject::get(ck_vobject::vscope* scope, const std::wstring& name) {
-	return Object::get(name);
+	return Object::get(scope, name);
 };
 
 void CallableObject::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* object) {
-	Object::put(name, object);
+	Object::put(scope, name, object);
 };
 
 bool CallableObject::contains(ck_vobject::vscope* scope, const std::wstring& name) {	
-	return Object::contains(name);
+	return Object::contains(scope, name);
 };
 
 bool CallableObject::remove(ck_vobject::vscope* scope, const std::wstring& name) {

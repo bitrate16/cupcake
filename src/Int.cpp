@@ -191,6 +191,7 @@ vobject* Int::create_proto() {
 			}
 			return Undefined::instance();
 		}));
+	// Integral division
 	IntProto->Object::put(L"__operator#", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
 			if (args.size() < 2 || !args[0] || !args[1])
@@ -386,7 +387,7 @@ vobject* Int::get(ck_vobject::vscope* scope, const std::wstring& name) {
 	if (name == L"__proto")
 		return IntProto;
 	
-	return IntProto ? IntProto->Object::get(name) : nullptr;
+	return IntProto ? IntProto->Object::get(scope, name) : nullptr;
 };
 
 void Int::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* object) {
@@ -398,7 +399,7 @@ bool Int::contains(ck_vobject::vscope* scope, const std::wstring& name) {
 	if (name == L"__proto")
 		return 1;
 	
-	return IntProto && IntProto->Object::contains(name);
+	return IntProto && IntProto->Object::contains(scope, name);
 };
 
 bool Int::remove(ck_vobject::vscope* scope, const std::wstring& name) {

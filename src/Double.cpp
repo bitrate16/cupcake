@@ -53,7 +53,7 @@ vobject* Double::create_proto() {
 	DoubleProto->Object::put(L"MAX_VALUE", new Double(DBL_MAX));
 	DoubleProto->Object::put(L"MIN_VALUE", new Double(DBL_MIN));
 	DoubleProto->Object::put(L"expsilon", new Double(DBL_EPSILON));
-	DoubleProto->Object::put(L"infinity", new Double(std::numeric_limits<T>::infinity()));
+	DoubleProto->Object::put(L"infinity", new Double(std::numeric_limits<double>::infinity()));
 	DoubleProto->Object::put(L"SIZEOF", new Int(sizeof(double)));
 	DoubleProto->Object::put(L"NaN", Double_NAN = new Double(nan("")));
 	GIL::gc_instance()->attach_root(Double_NAN);
@@ -237,6 +237,7 @@ vobject* Double::create_proto() {
 			}
 			return Undefined::instance();
 		}));
+	// Integral division
 	DoubleProto->Object::put(L"__operator#", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
 			if (args.size() < 2 || !args[0] || !args[1])
@@ -430,7 +431,7 @@ vobject* Double::get(ck_vobject::vscope* scope, const std::wstring& name) {
 	if (name == L"__proto")
 		return DoubleProto;
 	
-	return DoubleProto ? DoubleProto->Object::get(name) : nullptr;
+	return DoubleProto ? DoubleProto->Object::get(scope, name) : nullptr;
 };
 
 void Double::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* object) {
@@ -442,7 +443,7 @@ bool Double::contains(ck_vobject::vscope* scope, const std::wstring& name) {
 	if (name == L"__proto")
 		return 1;
 	
-	return DoubleProto && DoubleProto->Object::contains(name);
+	return DoubleProto && DoubleProto->Object::contains(scope, name);
 };
 
 bool Double::remove(ck_vobject::vscope* scope, const std::wstring& name) {

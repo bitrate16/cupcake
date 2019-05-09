@@ -32,12 +32,28 @@ vobject* Array::create_proto() {
 	GIL::gc_instance()->attach_root(ArrayProto);
 	
 	ArrayProto->Object::put(L"__typename", new String(L"Array"));
+	// Concatenate two arrays
+	ArrayProto->Object::put(L"__operator+", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (Array* i = dynamic_cast<Array*>(args[0]); i) 
+				if (Array* s = dynamic_cast<Array*>(args[1]); s) {
+					Array* oba = new Array(i->items());
+					oba->items().insert(oba->items().end(), s->items().begin(), s->items().end());
+					return oba;
+				}
+				return Undefined::instance();
+			return Undefined::instance();
+		}));
+	
 	ArrayProto->Object::put(L"size", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Object>())
+			if (!__this || !__this->is_typeof<Array>())
 				return Undefined::instance();
 			
 			// Validate args
@@ -58,7 +74,7 @@ vobject* Array::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Object>())
+			if (!__this || !__this->is_typeof<Array>())
 				return Undefined::instance();
 			
 			if (static_cast<Array*>(__this)->elements.size()) {
@@ -72,7 +88,7 @@ vobject* Array::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Object>())
+			if (!__this || !__this->is_typeof<Array>())
 				return Undefined::instance();
 			
 			return Bool::instance(static_cast<Array*>(__this)->elements.size());
@@ -82,7 +98,7 @@ vobject* Array::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Object>())
+			if (!__this || !__this->is_typeof<Array>())
 				return Undefined::instance();
 			
 			for (int i = 0; i < args.size(); ++i)
@@ -95,7 +111,7 @@ vobject* Array::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Object>())
+			if (!__this || !__this->is_typeof<Array>())
 				return Undefined::instance();
 			
 			Array* a = static_cast<Array*>(__this);
@@ -110,7 +126,7 @@ vobject* Array::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Object>())
+			if (!__this || !__this->is_typeof<Array>())
 				return Undefined::instance();
 			
 			Array *a = static_cast<Array*>(__this);
@@ -139,7 +155,7 @@ vobject* Array::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Object>())
+			if (!__this || !__this->is_typeof<Array>())
 				return Undefined::instance();
 			
 			Array *a = static_cast<Array*>(__this);
@@ -162,6 +178,26 @@ vobject* Array::create_proto() {
 			vobject* o = a->elements.front();
 			a->elements.erase(a->elements.begin());
 			return o;
+		}));
+	// Append another array
+	ArrayProto->Object::put(L"append", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->is_typeof<Array>())
+				return Undefined::instance();
+			
+			Array *a = static_cast<Array*>(__this);
+			
+			for (int i = 0; i < args.size(); ++i)
+				if (!args[i] || !args[i]->is_typeof<Array>())
+					return Undefined::instance();
+				else {
+					Array* b = static_cast<Array*>(args[i]);
+					a->items().insert(a->items().end(), b->items().begin(), b->items().end());
+				}
+			return a;
 		}));
 	
 	
@@ -218,7 +254,7 @@ vobject* Array::get(vscope* scope, const wstring& name) {
 	// Else return variable by name
 	vobject* ret = Object::get(name);
 	if (!ret && ArrayProto)
-		return ArrayProto->get(scope, name);
+		return ArrayProto->Object::get(scope, name);
 	return ret;
 };
 
@@ -297,7 +333,7 @@ bool Array::contains(vscope* scope, const wstring& name) {
 		}
 	}
 	
-	return Object::contains(name) || (ArrayProto && ArrayProto->Object::contains(name));
+	return Object::contains(name) || (ArrayProto && ArrayProto->Object::contains(scope, name));
 };
 
 // index < 0 ~ bound to [0, size] -> remove

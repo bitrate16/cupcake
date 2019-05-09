@@ -276,7 +276,130 @@ vobject* String::create_proto() {
 			
 			return Bool::instance(args[0]->string_value() != args[1]->string_value());
 		}));
+	
+	StringProto->Object::put(L"__operator!x", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			// Substract substring
+			if (String* i = dynamic_cast<String*>(args[0]); i) 
+				return Bool::instance(i->value().size() != 0);
+			
+			return Undefined::instance();
+		}));
 		
+	StringProto->Object::put(L"__operator+", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			if (String* i = dynamic_cast<String*>(args[0]); i) {
+				if (String* s = dynamic_cast<String*>(args[1]); s) 
+					return new String(i->value() + s->value());
+				return new String(i->value() + args[1]->string_value());
+			}
+			return Undefined::instance();
+		}));
+	// Erase substring if exists
+	StringProto->Object::put(L"__operator-", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			// Substract substring
+			if (String* i = dynamic_cast<String*>(args[0]); i) {
+				std::wstring sub = args[1]->string_value();
+				size_t found = i->value().find(sub); 
+				if (found != string::npos) {
+					std::wstring cpy = i->value();
+					cpy.erase(found, sub.size());
+					return new String(cpy);
+				}
+				return i;
+			}
+			return Undefined::instance();
+		}));
+	// Duplicate string N times
+	StringProto->Object::put(L"__operator*", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			// Duplicate string N times
+			if (String* i = dynamic_cast<String*>(args[0]); i) {
+				std::wostringstream wos;
+				int N = args[1]->int_value();
+				if (N < 0) {
+					std::wstring rev = i->value();
+					std::reverse(rev.begin(), rev.end());
+					N = -N;
+					for (int i = 0; i < N; ++i)
+						wos << rev;
+				} else if (N > 0)
+					for (int j = 0; j < N; ++j)
+						wos << i->value();
+				return new String(wos.str());
+			}
+			return Undefined::instance();
+		}));
+	// Shift string left
+	StringProto->Object::put(L"__operator<<", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			// Duplicate string N times
+			if (String* i = dynamic_cast<String*>(args[0]); i) {
+				if (i->value().size() == 0)
+					return i;
+				
+				int shift = args[1]->int_value() % i->value().size();
+				if (shift == 0)
+					return i;
+				
+				std::wstring sh = i->value();
+				std::rotate(sh.begin(), sh.begin() + shift, sh.end());
+				return new String(sh);
+			}
+			return Undefined::instance();
+		}));
+	// Shift string right
+	StringProto->Object::put(L"__operator>>", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			// Duplicate string N times
+			if (String* i = dynamic_cast<String*>(args[0]); i) {
+				if (i->value().size() == 0)
+					return i;
+				
+				int shift = (i->value().size() - args[1]->int_value() % i->value().size()) % i->value().size();
+				if (shift == 0)
+					return i;
+				
+				std::wstring sh = i->value();
+				std::rotate(sh.begin(), sh.begin() + shift, sh.end());
+				return new String(sh);
+			}
+			return Undefined::instance();
+		}));
+	// Check for substring containment
+	StringProto->Object::put(L"__operator#", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			// Duplicate string N times
+			if (String* i = dynamic_cast<String*>(args[0]); i) {
+				std::wstring sub = args[1]->string_value();
+				size_t found = i->value().find(sub); 
+				return Bool::instance(found != string::npos);
+			}
+			return Undefined::instance();
+		}));
+	
 	
 	return StringProto;
 };

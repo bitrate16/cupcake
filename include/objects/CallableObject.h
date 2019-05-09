@@ -18,10 +18,10 @@ namespace ck_objects {
 		
 		CallableObject(ck_vobject::vobject* (*handler) (ck_vobject::vscope*, const std::vector<ck_vobject::vobject*>&));
 		
-		vobject* get         (ck_vobject::vscope*, const std::wstring&);
-		void     put         (ck_vobject::vscope*, const std::wstring&, vobject*);
-		bool     contains    (ck_vobject::vscope*, const std::wstring&);
-		bool     remove      (ck_vobject::vscope*, const std::wstring&);
+		virtual vobject* get         (ck_vobject::vscope*, const std::wstring&);
+		virtual void     put         (ck_vobject::vscope*, const std::wstring&, vobject*);
+		virtual bool     contains    (ck_vobject::vscope*, const std::wstring&);
+		virtual bool     remove      (ck_vobject::vscope*, const std::wstring&);
 		virtual vobject* call(ck_vobject::vscope*, const std::vector<vobject*>&);
 	};
 };

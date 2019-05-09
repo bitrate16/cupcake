@@ -250,7 +250,7 @@ Cake::Cake(const cake& c) {
 vobject* Cake::get(ck_vobject::vscope* scope, const std::wstring& name) {
 	vobject* ret = Object::get(name);
 	if (!ret && CakeProto)
-		return CakeProto->Object::get(name);
+		return CakeProto->Object::get(scope, name);
 	return ret;
 };
 
@@ -259,7 +259,7 @@ void Cake::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* obj
 };
 
 bool Cake::contains(ck_vobject::vscope* scope, const std::wstring& name) {
-	return Object::contains(name) || (CakeProto && CakeProto->Object::contains(name));
+	return Object::contains(name) || (CakeProto && CakeProto->Object::contains(scope, name));
 };
 
 bool Cake::remove(ck_vobject::vscope* scope, const std::wstring& name) {

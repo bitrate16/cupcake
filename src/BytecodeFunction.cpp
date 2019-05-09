@@ -43,7 +43,7 @@ vobject* BytecodeFunction::get(ck_vobject::vscope* scope, const std::wstring& na
 	if (name == L"__proto")
 		return BytecodeFunctionProto;
 	
-	return BytecodeFunctionProto ? BytecodeFunctionProto->Object::get(name) : nullptr;
+	return BytecodeFunctionProto ? BytecodeFunctionProto->Object::get(scope, name) : nullptr;
 };
 
 void BytecodeFunction::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* object) {
@@ -55,7 +55,7 @@ bool BytecodeFunction::contains(ck_vobject::vscope* scope, const std::wstring& n
 	if (name == L"__proto")
 		return 1;
 	
-	return BytecodeFunctionProto && BytecodeFunctionProto->Object::contains(name);
+	return BytecodeFunctionProto && BytecodeFunctionProto->Object::contains(scope, name);
 };
 
 bool BytecodeFunction::remove(ck_vobject::vscope* scope, const std::wstring& name) {

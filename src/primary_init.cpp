@@ -50,8 +50,6 @@ vscope* ck_objects::primary_init() {
 	
 	// Define root prototypes
 	
-	// XXX: Use call-wrapper-functions to initialize objects by call.
-	
 	scope->put(L"Object",           Object          ::create_proto());
 	scope->put(L"NativeFunction",   NativeFunction  ::create_proto());
 	scope->put(L"String",           String          ::create_proto());

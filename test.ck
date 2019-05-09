@@ -1,4 +1,19 @@
-var arr = ['foo', ['er', 12], 'bsds', 23]
+var str = "1234567890"
+
+__defsignalhandler = function() { str = ""; print('SIGNALED', '\n') }
+
+
+
+while (!str) {
+	str >>= 1
+	print(str, '\n');
+}
+
+var arr = [];
+print(Array.keys(), '\n')
+print([1, 2, 3] + [4, 'foo'], '\n')
+
+/*var arr = ['foo', ['er', 12], 'bsds', 23]
 
 ca = function() {
 	print('CA ');

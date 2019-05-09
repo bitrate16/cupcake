@@ -38,7 +38,7 @@ vobject* NativeFunction::get(ck_vobject::vscope* scope, const std::wstring& name
 	if (name == L"__proto")
 		return NativeFunctionProto;
 	
-	return NativeFunctionProto ? NativeFunctionProto->Object::get(name) : nullptr;
+	return NativeFunctionProto ? NativeFunctionProto->Object::get(scope, name) : nullptr;
 };
 
 void NativeFunction::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* object) {
@@ -49,7 +49,7 @@ bool NativeFunction::contains(ck_vobject::vscope* scope, const std::wstring& nam
 	if (name == L"__proto")
 		return 1;
 	
-	return NativeFunctionProto && NativeFunctionProto->Object::contains(name);
+	return NativeFunctionProto && NativeFunctionProto->Object::contains(scope, name);
 };
 
 bool NativeFunction::remove(ck_vobject::vscope* scope, const std::wstring& name) {

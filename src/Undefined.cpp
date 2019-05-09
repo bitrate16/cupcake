@@ -81,7 +81,7 @@ Undefined::~Undefined() {};
 
 // Delegate to prototype
 vobject* Undefined::get(ck_vobject::vscope* scope, const std::wstring& name) {
-	vobject* o = UndefinedProto ? UndefinedProto->Object::get(name) : nullptr;
+	vobject* o = UndefinedProto ? UndefinedProto->Object::get(scope, name) : nullptr;
 	
 	// Do not trigger on __names
 	if (!o && !(name.size() >= 2 && name[0] != L'_' && name[1] != L'_'))
@@ -95,7 +95,7 @@ void Undefined::put(ck_vobject::vscope* scope, const std::wstring& name, vobject
 
 // Delegate to prototype
 bool Undefined::contains(ck_vobject::vscope* scope, const std::wstring& name) {	
-	return UndefinedProto && UndefinedProto->Object::contains(name);
+	return UndefinedProto && UndefinedProto->Object::contains(scope, name);
 };
 
 bool Undefined::remove(ck_vobject::vscope* scope, const std::wstring& name) {

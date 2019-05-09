@@ -332,7 +332,7 @@ vobject* Bool::get(ck_vobject::vscope* scope, const std::wstring& name) {
 	if (name == L"__proto")
 		return BoolProto;
 	
-	return BoolProto ? BoolProto->Object::get(name) : nullptr;
+	return BoolProto ? BoolProto->Object::get(scope, name) : nullptr;
 };
 
 void Bool::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* object) {
@@ -344,7 +344,7 @@ bool Bool::contains(ck_vobject::vscope* scope, const std::wstring& name) {
 	if (name == L"__proto")
 		return 1;
 	
-	return BoolProto && BoolProto->Object::contains(name);
+	return BoolProto && BoolProto->Object::contains(scope, name);
 };
 
 bool Bool::remove(ck_vobject::vscope* scope, const std::wstring& name) {
