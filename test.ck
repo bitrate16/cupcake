@@ -12,6 +12,7 @@ while (!str) {
 var arr = [];
 print(Array.keys(), '\n')
 print([1, 2, 3] + [4, 'foo'], '\n')
+exec('pause')
 
 /*var arr = ['foo', ['er', 12], 'bsds', 23]
 

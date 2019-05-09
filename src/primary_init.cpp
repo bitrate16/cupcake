@@ -1,5 +1,6 @@
 #include "primary_init.h"
 
+#include <cstdlib>
 #include <iostream>
 
 #include "GIL2.h"
@@ -35,11 +36,50 @@ static vobject* f_print(vscope* scope, const vector<vobject*>& args) {
 					wcout << args[i]->string_value() << ' ';
 			}
 		else
-			wcout << "undefined" << ' ';
+			if (i == args.size() - 1)
+				wcout << "null";
+			else
+				wcout << "null ";
 		
 	wcout.flush();
 		
-	return nullptr;
+	return Undefined::instance();
+};
+
+static vobject* f_println(vscope* scope, const vector<vobject*>& args) {
+	for (int i = 0; i < args.size(); ++i)
+		if (args[i] != nullptr)
+			if (args[i]->is_typeof<Cake>())
+				((Cake*) args[i])->print_backtrace();
+			else {
+				if (i == args.size() - 1)
+					wcout << args[i]->string_value();
+				else
+					wcout << args[i]->string_value() << ' ';
+			}
+		else
+			if (i == args.size() - 1)
+				wcout << "null";
+			else
+				wcout << "null ";
+	
+	wcout << endl;
+		
+	wcout.flush();
+		
+	return Undefined::instance();
+};
+
+static vobject* f_system(vscope* scope, const vector<vobject*>& args) {
+	if (args.size() == 0)
+		return Undefined::instance();
+	
+	std::wstring arg = args[0]->string_value();
+	std::string  exe(arg.begin(), arg.end());
+	
+	int status = system(exe.c_str());
+		
+	return new Int(status);
 };
 
 
@@ -48,7 +88,8 @@ vscope* ck_objects::primary_init() {
 	vscope* scope = new iscope();
 	
 	
-	// Define root prototypes
+	// Define root prototypes in new root scope.
+	//  By default these values are not restroyed till interpreter finishes it's work.
 	
 	scope->put(L"Object",           Object          ::create_proto());
 	scope->put(L"NativeFunction",   NativeFunction  ::create_proto());
@@ -65,7 +106,10 @@ vscope* ck_objects::primary_init() {
 	scope->put(L"Cake",             Cake            ::create_proto());
 	
 	// Define other objects and fields
-	scope->put(L"print", new NativeFunction(f_print));
+	scope->put(L"print",   new NativeFunction(f_print));
+	scope->put(L"println", new NativeFunction(f_println));
+	// Execute native interpreter script command
+	scope->put(L"system",  new NativeFunction(f_exec));
 	
 	return scope;
 };
