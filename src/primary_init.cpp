@@ -19,6 +19,7 @@
 #include "objects/BytecodeFunction.h"
 #include "objects/Cake.h"
 #include "objects/NativeFunction.h"
+#include "objects/Thread.h"
 
 using namespace std;
 using namespace ck_objects;
@@ -104,6 +105,7 @@ vscope* ck_objects::primary_init() {
 	scope->put(L"Undefined",        Undefined       ::create_proto());
 	scope->put(L"BytecodeFunction", BytecodeFunction::create_proto());
 	scope->put(L"Cake",             Cake            ::create_proto());
+	scope->put(L"Thread",           Thread          ::create_proto());
 	
 	// Define other objects and fields
 	scope->put(L"print",   new NativeFunction(f_print));

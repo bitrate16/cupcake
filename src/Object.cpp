@@ -5,7 +5,6 @@
 #include "exceptions.h"
 #include "GIL2.h"
 
-#include "objects/Object.h"
 #include "objects/Int.h"
 #include "objects/Array.h"
 #include "objects/Bool.h"
@@ -154,8 +153,6 @@ bool Object::contains(vscope* scope, const wstring& name) {
 
 bool Object::remove(vscope* scope, const wstring& name) {
 	if (remove(name))
-		return 1;
-	if (ObjectProto != this && ObjectProto && ObjectProto->remove(scope, name))
 		return 1;
 	return 0;
 };

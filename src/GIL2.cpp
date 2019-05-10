@@ -19,9 +19,10 @@ using namespace ck_exceptions;
 
 
 // Init with nothing
-thread_local ckthread*    GIL::current_thread_ptr = nullptr;
-GIL*                      GIL::gil_instance       = nullptr;
-thread_local ck_executer* GIL::executer           = nullptr;
+thread_local ckthread*         GIL::current_thread_ptr = nullptr;
+GIL*                           GIL::gil_instance       = nullptr;
+thread_local ck_executer*      GIL::executer           = nullptr;
+uint64_t                  ckthread::thread_counter     = 0;
 
 
 GIL::GIL() { // : sync_lock(sync_mutex, sync_condition) {

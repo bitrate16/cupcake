@@ -21,6 +21,9 @@ namespace ck_core {
 		ck_pthread::thread* native_thread = nullptr;
 		// Contains native thread id for faster use.
 		uint64_t native_thread_id = 0;
+		// Thread amount counter
+		static uint64_t thread_counter;
+		uint64_t thread_id;
 		
 		// Thread state is described by values below.
 		//  // is alive is equals to 1 then thread is still running in normal mode.
@@ -41,6 +44,7 @@ namespace ck_core {
 		// Passed only from GIL
 		ckthread(ck_pthread::thread* t) {
 			if (!t) throw ck_exceptions::InvalidState(L"Thread is null");
+			thread_id = thread_counter++;
 			
 			native_thread    = t;
 			// thread_id        = (long long) t->get_id();
@@ -48,7 +52,7 @@ namespace ck_core {
 			has_native       = 1;
 		};
 		
-		ckthread() : native_thread_id(ck_pthread::thread::this_thread().get_id()) {};
+		ckthread() : native_thread_id(ck_pthread::thread::this_thread().get_id()) { thread_id = thread_counter++; };
 		
 	public:
 		
@@ -98,6 +102,14 @@ namespace ck_core {
 		// Set blocked = locked = 0
 		inline void clear_blocks() {
 			blocked = locked = 0;
+		};
+		
+		inline uint64_t count() {
+			return thread_counter;
+		};
+		
+		inline uint64_t count_id() {
+			return thread_id;
 		};
 		
 		// Resets state of the thread to the default
