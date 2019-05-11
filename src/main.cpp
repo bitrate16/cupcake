@@ -103,9 +103,12 @@ static int signaled_number;
 static void signal_handler(int sig) {
 	// Set up ignore signals during signal processing
 	signal(SIGINT,  signal_handler); // <-- user interrupt
-	signal(SIGKILL, signal_handler); // <-- kill signal
-	signal(SIGTERM, signal_handler); // <-- Terminate request
-	signal(SIGABRT, signal_handler); // <-- abortion is murder
+	signal(SIGUSR1, signal_handler);
+	signal(SIGUSR2, signal_handler);
+	// signal(SIGKILL, signal_handler); // <-- kill signal
+	// signal(SIGTERM, signal_handler); // <-- Terminate request
+	// signal(SIGABRT, signal_handler); // <-- abortion is murder
+	
 	
 	// Forcibly terminate the process
 	if (sig == SIGTERM) {
@@ -138,6 +141,8 @@ static void signal_handler(int sig) {
 		GIL::current_thread()->restate();
 		signaled_number = sig;
 	}
+	
+	// GIL::instance()->notify();
 };
 
 int main(int argc, const char** argv) {
@@ -165,9 +170,9 @@ int main(int argc, const char** argv) {
 	
 	// Process filename
 	if (argc < 2) {
-		// Default file is in.ck
-		file = std::wifstream("in.ck");
-		wfilename = L"test.ck";
+		// Default file is cake.ck
+		file = std::wifstream("cake.ck");
+		wfilename = L"cake.ck";
 	} else {
 		file = std::wifstream(argv[1]);
 		std::string tmp(argv[1]);
@@ -252,6 +257,8 @@ int main(int argc, const char** argv) {
 	// Instance of catched cake
 	cake message;
 	
+	// E X E C U T E _ P R O G R A M
+	
 	while (1) {
 		try {
 			if (!cake_started) {
@@ -271,15 +278,18 @@ int main(int argc, const char** argv) {
 				// The default behaviour is calling thread cake handler and then finish thread work.
 				
 				vobject* __defcakehandler = root_scope->get(L"__defcakehandler");
-				if (__defcakehandler == nullptr || __defcakehandler->is_typeof<Undefined>() || __defcakehandler->is_typeof<Null>())
+				if (__defcakehandler == nullptr || __defcakehandler->is_typeof<Undefined>() || __defcakehandler->is_typeof<Null>()) {
 					if (message.get_type_id() == cake_type::CK_OBJECT && message.get_object() != nullptr)
 						if (message.get_object()->is_typeof<Cake>())
 							((Cake*) message.get_object())->print_backtrace();
 						else
-							wcerr << "Unhandled cake: 	" << message << endl;
+							wcerr << "Unhandled cake: " << message << endl;
 					else
 						wcerr << "Unhandled cake: " << message << endl;
-				else
+					
+					// Unhandled exception -> terminate
+					GIL::instance()->stop();
+				} else
 					GIL::executer_instance()->call_object(__defcakehandler, nullptr, { 
 							message.get_type_id() == cake_type::CK_OBJECT ? message.get_object() : new Cake(message)
 						}, L"__defcakehandler", root_scope);
@@ -308,10 +318,12 @@ int main(int argc, const char** argv) {
 		}
 	}
 	
-	// Bla bla bla, thread finixhed it's work.
-	// Next step is to check other threads for running state.
+	// W A I T _ F O R _ T H R E A D S _ O R _ S I G N A L S
 	
 	while (1) {
+		// Mark main thread as stopped
+		GIL::current_thread()->set_running(0);
+	
 		// Main thread locks the GIL
 		GIL::instance()->lock();
 		
@@ -331,8 +343,8 @@ int main(int argc, const char** argv) {
 			
 			// Waiting for thermal death of the universe
 			
-			bool universe_is_dead = GIL::instance()->get_threads().size();
-			for (int i = 1; i < GIL::instance()->get_threads().size(); ++i) // loop from 1 because main thread index is 0
+			bool universe_is_dead = 1;
+			for (int i = 1; i < GIL::instance()->get_threads().size() && universe_is_dead; ++i) // loop from 1 because main thread index is 0
 				if (GIL::instance()->get_threads()[i]->is_running()) {
 					universe_is_dead = 0;
 					break;
@@ -358,10 +370,15 @@ int main(int argc, const char** argv) {
 			break;
 		
 		vobject* __defsignalhandler = root_scope->get(L"__defsignalhandler");
-		if (__defsignalhandler == nullptr || __defsignalhandler->is_typeof<Undefined>() || __defsignalhandler->is_typeof<Null>()) 
+		if (__defsignalhandler == nullptr || __defsignalhandler->is_typeof<Undefined>() || __defsignalhandler->is_typeof<Null>()) {
+			GIL::instance()->stop();
 			break;
+		}
 		
 		cake_started = 0;
+		
+		// Reset blocks keys
+		GIL::current_thread()->set_running(1);
 		
 		while (1) {
 			try {
@@ -420,6 +437,31 @@ int main(int argc, const char** argv) {
 			}
 		}
 	}
+	
+	// W A I T _ F O R _ T E R M I N A T E
+	
+	// Finally wait for all threads to finish if process was terminated via GIL::terminate()
+	GIL::current_thread()->set_running(0);
+	
+	// Main thread locks the GIL
+	GIL::instance()->lock();
+	
+	// Main thread starts waiting for other threads to die from he years
+	GIL::instance()->sync_var().wait(GIL::instance()->sync_mtx(), []() -> bool {
+		
+		// Waiting for thermal death of the universe
+		
+		bool universe_is_dead = 1;
+		for (int i = 1; i < GIL::instance()->get_threads().size() && universe_is_dead; ++i) // loop from 1 because main thread index is 0
+			if (GIL::instance()->get_threads()[i]->is_running()) {
+				universe_is_dead = 0;
+				break;
+			}
+		
+		return universe_is_dead;
+	});
+	
+	GIL::instance()->unlock();
 	
 	// Free up heap
 	delete gil_instance;

@@ -1,4 +1,44 @@
-var str = "1234567890"
+var lock = {}
+lock.cnt = 0;
+
+var f = function() while (1) print(Thread.currentThread().getId(), '\n');
+
+Thread(f)
+Thread(f)
+
+
+
+/*var t = Thread(function(x) {
+	while (1)
+		print(gc_count(), '\n')
+}, 'foo')
+*/
+
+/*
+var e2 = function() { 
+
+gc_count() }
+var e1 = function() { e2() }
+var f2 = function() { Thread(e1) }
+var f1 = function() { f2() }
+
+//f1()
+
+
+var c = function() { f1() }
+var b = function() { c() }
+var a = function() { b() }
+
+var f = function () {
+	
+	Thread(
+	a)
+	
+	}
+
+f()
+
+/*var str = "1234567890"
 
 __defsignalhandler = function() { str = ""; print('SIGNALED', '\n') }
 
@@ -11,7 +51,7 @@ while (!str) {
 
 var arr = [];
 print(Array.keys(), '\n')
-//print(Thread.currentThread().getId(), '\n')
+print(Thread.keys(), '\n')
 print([1, 2, 3] + [4, 'foo'], '\n')
 system('pause')
 

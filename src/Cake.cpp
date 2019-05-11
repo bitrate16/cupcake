@@ -295,7 +295,7 @@ void Cake::print_backtrace() {
 		wcerr << " at File <" << backtrace[i].filename << "> line " << backtrace[i].lineno;
 		
 		if (backtrace[i].function.size() != 0)
-			wcerr << " " << backtrace[i].function << "()";
+			wcerr << " from " << backtrace[i].function << "()";
 		
 		int amount = 0;
 		while (i + amount + 1 < backtrace.size()) {

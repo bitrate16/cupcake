@@ -122,6 +122,9 @@ namespace ck_core {
 		// New frame being inserted on execute()
 		std::vector<stack_frame> window_stack;
 		
+		// Appended backtrace
+		std::vector<ck_exceptions::BacktraceFrame> appended_backtrace;
+		
 		// Points to the current command address.
 		int pointer = 0;
 		
@@ -202,6 +205,17 @@ namespace ck_core {
 		
 		// Jumps on the address of bytecode map
 		void goto_address(int bytecode_address);
+		
+		// Collectes existing backtrace
+		std::vector<ck_exceptions::BacktraceFrame> collect_backtrace();
+		
+		inline void append_backtrace(const std::vector<ck_exceptions::BacktraceFrame>& bt) {
+			appended_backtrace = bt;
+		};
+		
+		inline const std::vector<ck_exceptions::BacktraceFrame>& get_appended_backtrace() {
+			return appended_backtrace;
+		};
 		
 		// Dangerous. Erase all data, stacks and pointers absolutely deallocating all infomation.
 		//  Use only when processing high-level elevated exceptions.

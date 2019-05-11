@@ -102,7 +102,9 @@ void GC::attach(gc_object *o) {
 	if (o == nullptr)
 		return;
 	
-	ck_pthread::mutex_lock lk(protect_lock);
+	#ifndef CK_SINGLETHREAD
+		ck_pthread::mutex_lock lk(protect_lock);
+	#endif
 	if (o->gc_record)
 		return;
 	
@@ -127,7 +129,9 @@ void GC::attach_root(gc_object *o) {
 	if (o == nullptr)
 		return;
 	
-	ck_pthread::mutex_lock lk(protect_lock);
+	#ifndef CK_SINGLETHREAD
+		ck_pthread::mutex_lock lk(protect_lock);
+	#endif
 	if (o->gc_lock)
 		return;
 	
@@ -150,7 +154,9 @@ void GC::deattach_root(gc_object *o) {
 	if (o == nullptr)
 		return;
 	
-	ck_pthread::mutex_lock lk(protect_lock);
+	#ifndef CK_SINGLETHREAD
+		ck_pthread::mutex_lock lk(protect_lock);
+	#endif
 	if (!o->gc_root)
 		return;
 	
@@ -163,7 +169,9 @@ void GC::lock(gc_object *o) {
 	if (o == nullptr)
 		return;
 	
-	ck_pthread::mutex_lock lk(protect_lock);
+	#ifndef CK_SINGLETHREAD
+		ck_pthread::mutex_lock lk(protect_lock);
+	#endif
 	if (o->gc_lock)
 		return;
 	
@@ -186,7 +194,9 @@ void GC::unlock(gc_object *o) {
 	if (o == nullptr)
 		return;
 	
-	ck_pthread::mutex_lock lk(protect_lock);
+	#ifndef CK_SINGLETHREAD
+		ck_pthread::mutex_lock lk(protect_lock);
+	#endif
 	if (!o->gc_lock)
 		return;
 	
@@ -210,7 +220,9 @@ void GC::collect(bool forced_collect) {
 		return;
 	
 	// Then try to lock the GC
-	ck_pthread::mutex_lock lk(protect_lock);
+	#ifndef CK_SINGLETHREAD
+		ck_pthread::mutex_lock lk(protect_lock);
+	#endif
 	if (collecting)
 		return;
 	
@@ -320,7 +332,9 @@ void GC::collect(bool forced_collect) {
 void GC::dispose() {	
 	// Called on GIL dispose, so no GIL.lock needed.
 
-	ck_pthread::mutex_lock lk(protect_lock);
+	#ifndef CK_SINGLETHREAD
+		ck_pthread::mutex_lock lk(protect_lock);
+	#endif
 	if (collecting)
 		return;
 	

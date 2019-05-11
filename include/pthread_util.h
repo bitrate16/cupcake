@@ -222,20 +222,18 @@ namespace ck_pthread {
 		
 		// Starts new thread by executing passed function (fun)
 		//  and calling it with passes list of arguments
-		template<typename... Args>
-		thread(void (*fun) (Args...), Args... args) {
+		thread(void* (*fun) (void*), void* args) {
 			_own_attr = 1;
 			pthread_attr_init(&_thread_attr);
-			pthread_create(&_thread, &_thread_attr, fun, args...);
+			pthread_create(&_thread, &_thread_attr, fun, args);
 		};
 		
 		// Starts new thread by executing passed function (fun)
 		//  and calling it with passes list of arguments
 		// Allows passing thread attributes to the thread.
-		template<typename... Args>
-		thread(pthread_attr_t& thread_attr, void (*fun) (Args...), Args... args) {
+		thread(pthread_attr_t& thread_attr, void* (*fun) (void*), void* args) {
 			_thread_attr = thread_attr;
-			pthread_create(&_thread, &_thread_attr, fun, args...);
+			pthread_create(&_thread, &_thread_attr, fun, args);
 		};
 		
 		// Returns reference to the native thread

@@ -52,7 +52,6 @@ static void print_objects(vector<vobject*>& objects) {
 
 ck_executer_gc_object::ck_executer_gc_object(ck_executer* exec_instance) {
 	this->exec_instance = exec_instance;
-	GIL::gc_instance()->attach_root(this);
 };
 
 ck_executer_gc_object::~ck_executer_gc_object() {};
@@ -92,6 +91,7 @@ void ck_executer_gc_object::gc_finalize() {};
 ck_executer::ck_executer() {
 	// Will be disposed by GC.
 	gc_marker = new ck_executer_gc_object(this);
+	GIL::gc_instance()->attach_root(gc_marker);
 		
 	// Limit size of total stack usage when calculating
 	//  call, try and windows stacks sizes in constructor.
@@ -111,7 +111,7 @@ ck_executer::ck_executer() {
 };
 
 ck_executer::~ck_executer() {
-	
+	GIL::gc_instance()->deattach_root(gc_marker);
 };
 
 
@@ -187,7 +187,7 @@ int ck_executer::lineno() {
 		return scripts.back()->bytecode.lineno_table.rbegin()[1];
 	
 	for (int i = 0; i < scripts.back()->bytecode.lineno_table.size() - 2; i += 2) {
-		if (i >= scripts.back()->bytecode.lineno_table[i + 1] && i < scripts.back()->bytecode.lineno_table[i + 3])
+		if (pointer >= scripts.back()->bytecode.lineno_table[i + 1] && pointer < scripts.back()->bytecode.lineno_table[i + 3])
 			return scripts.back()->bytecode.lineno_table[i];
 	}
 	
@@ -332,7 +332,7 @@ void ck_executer::follow_exception(const cake& msg) {
 		
 		// Collect backtrace for this cake (and do not collect for object)
 		cake copy(msg);
-		if (!copy.has_backtrace() && copy.get_type_id() != cake_type::CK_OBJECT) copy.collect_backtrace();
+		if (!copy.has_backtrace()) copy.collect_backtrace();
 		
 		throw copy;	
 	}
@@ -1151,7 +1151,7 @@ vobject* ck_executer::exec_bytecode() {
 				wcout << "> THROW_NOARG" << endl;
 #endif
 				
-				throw ObjectCake(nullptr);
+				throw ObjectCake(Undefined::instance());
 				
 				break;
 			}
@@ -1479,7 +1479,7 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 	
 	if (obj->is_typeof<BytecodeFunction>()) {
 		// Apply new scope
-		Function* f = (Function*) obj;
+		BytecodeFunction* f = (BytecodeFunction*) obj;
 		
 		// Overwrite binded __this reference
 		ref = f->get_bind() ? f->get_bind() : ref;
@@ -1635,6 +1635,71 @@ void ck_executer::goto_address(int bytecode_address) {
 		throw InvalidState(L"goto out of range [" + to_wstring(bytecode_address) + L"] for range [0, " + to_wstring(scripts.back()->bytecode.bytemap.size()) + L"]");
 	
 	pointer = bytecode_address;
+};
+
+std::vector<ck_exceptions::BacktraceFrame> ck_executer::collect_backtrace() {
+	std::vector<ck_exceptions::BacktraceFrame> backtrace;
+	
+	// Append appended frames
+	backtrace.insert(backtrace.end(), appended_backtrace.begin(), appended_backtrace.end());
+	
+	/*
+	for (int i = 0; i < call_stack.size(); ++i) {
+		wcout << i << ' ' << call_stack[i].name << ' ' << endl;
+	}
+	*/
+	
+	// Other frames
+	for (int i = 0; i < call_stack.size(); ++i) {		
+		int pointer = call_stack[i].pointer;
+		int script_id = call_stack[i].script_id;
+		int lineno = 0;
+		if (script_id >= scripts.size())
+			continue;
+		
+		backtrace.push_back(ck_exceptions::BacktraceFrame());
+		
+		ck_script* script = scripts[script_id];
+		
+		if (script->bytecode.lineno_table.size() == 0)
+			lineno = -1;
+		
+		if (pointer >= script->bytecode.bytemap.size()) 
+			lineno = script->bytecode.lineno_table.rbegin()[1];
+		
+		for (int i = 0; i < script->bytecode.lineno_table.size() - 2; i += 2) {
+			if (pointer >= script->bytecode.lineno_table[i + 1] && pointer < script->bytecode.lineno_table[i + 3]) {
+				lineno = script->bytecode.lineno_table[i];
+				break;
+			}
+		}
+		
+		backtrace.back().lineno = lineno;
+		backtrace.back().filename = script->filename;
+		if (i > 0)
+			backtrace.back().function = call_stack[i - 1].name;
+		
+		/*
+		wcout << "--> " << i << ' ' << backtrace.back().function << ' ' << lineno << endl;
+		wcout << "Function Bytecode: " << endl;
+		ck_translator::print(script->bytecode.bytemap);
+		wcout << endl;
+		
+		wcout << "Function Lineno Table: " << endl;
+		ck_translator::print_lineno_table(script->bytecode.lineno_table);
+		wcout << endl;	
+		*/		
+		
+	}
+	
+	// Last frame
+	backtrace.push_back(ck_exceptions::BacktraceFrame());
+	backtrace.back().lineno   = lineno();
+	backtrace.back().filename = scripts.back()->filename;
+	if (call_stack.size())
+		backtrace.back().function = call_stack.back().name;
+	
+	return backtrace;
 };
 
 void ck_executer::clear() {

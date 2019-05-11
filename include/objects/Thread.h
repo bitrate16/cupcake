@@ -12,15 +12,15 @@ namespace ck_objects {
 		
 	protected:
 		
-		// Pointer to allocated thread/requested thread
-		ck_core::ckthread* thread_ptr;
+		// Id of binded thread
+		uint64_t thread_id;
 		
 	public:
 	
 		// Bind instance to this object
-		Thread(ck_core::ckthread* th, ck_vobject::vobject* runnable = nullptr);
+		Thread(uint64_t tid);
 		// Get current_thread from GIL
-		Thread(ck_vobject::vobject* runnable = nullptr);
+		Thread();
 		virtual ~Thread();
 		
 		virtual vobject* get     (ck_vobject::vscope*, const std::wstring&);
@@ -34,8 +34,8 @@ namespace ck_objects {
 		
 		// Thread functions only
 		
-		inline void bind(ck_core::ckthread* th) { thread_ptr = th; };
-		inline ck_core::ckthread* get() { return thread_ptr; };
+		inline void bind_id(uint64_t tid) { thread_id = tid; };
+		inline uint64_t get_id() { return thread_id; };
 		
 		// Must return integer representation of an object
 		virtual long long int_value();

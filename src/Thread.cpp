@@ -4,12 +4,15 @@
 
 #include "exceptions.h"
 #include "GIL2.h"
+#include "executer.h"
 
 #include "objects/Object.h"
 #include "objects/Int.h"
 #include "objects/Array.h"
 #include "objects/Bool.h"
 #include "objects/NativeFunction.h"
+#include "objects/Null.h"
+#include "objects/Cake.h"
 #include "objects/Undefined.h"
 #include "objects/String.h"
 
@@ -21,8 +24,108 @@ using namespace ck_core;
 
 
 static vobject* call_handler(vscope* scope, const vector<vobject*>& args) {
-	// XXX: Make new thread
-	return nullptr;
+	if (!args.size())
+		return Undefined::instance();
+	
+	// Copy arguments
+	vector<vobject*>* argv = new vector<vobject*>(args);
+	// Copy backtrace from parent thread
+	vector<BacktraceFrame>* backtrace = new vector<BacktraceFrame>(GIL::executer_instance()->collect_backtrace());
+	
+	Thread* t = new Thread(GIL::instance()->spawn_thread([scope, argv, backtrace]() -> void {
+		// Create new scope for this thread
+		vscope* nscope = new iscope(scope);
+		
+		// Unlock when entered this function call to be sure there 
+		//  was no priority race and arguments and score are still relevant
+		GIL::instance()->unlock();
+		
+		// Copy arguments
+		std::vector<vobject*> argso(argv->size() ? argv->size() - 1 : 0);
+		for (int i = 1; i < argv->size(); ++i)
+			argso[i - 1] = (*argv)[i];
+		
+		// Append parent thread backtrae to this executer
+		GIL::executer_instance()->append_backtrace(*backtrace);
+		
+		vobject* runnable = (*argv)[0];
+		
+		// dipose copy of backtrace
+		delete backtrace;
+		// Dispose copy of arguments
+		delete argv;
+		
+		// Indicates if main returned an exception
+		bool cake_started = 0;
+		// Instance of catched cake
+		cake message;
+		vscope* root_scope = nscope->get_root();
+		
+		// E X E C U T E _ T H R E A D
+		
+		while (1) {
+			try {
+				if (!cake_started) {
+					GIL::executer_instance()->call_object(runnable, nullptr, argso, L"<thread_runnable>", nscope);
+					GIL::current_thread()->clear_blocks();
+				
+					// Finish execution loop on success
+					break;
+					
+				} else {
+					GIL::executer_instance()->clear();
+					cake_started = 0;
+					
+					// On cake caught, call stack, windows stack and try stack are empty.
+					// Process cake by calling handler-function.
+					// __defcakehandler(exception)
+					// The default behaviour is calling thread cake handler and then finish thread work.
+					
+					vobject* __defcakehandler = root_scope->get(L"__defcakehandler");
+					if (__defcakehandler == nullptr || __defcakehandler->is_typeof<Undefined>() || __defcakehandler->is_typeof<Null>()) {
+						if (message.get_type_id() == cake_type::CK_OBJECT && message.get_object() != nullptr)
+							if (message.get_object()->is_typeof<Cake>())
+								((Cake*) message.get_object())->print_backtrace();
+							else
+								wcerr << "Unhandled cake: " << message << endl;
+						else
+							wcerr << "Unhandled cake: " << message << endl;
+						
+						// Unhandled exception -> terminate
+						GIL::instance()->stop();
+					} else
+						GIL::executer_instance()->call_object(__defcakehandler, nullptr, { 
+								message.get_type_id() == cake_type::CK_OBJECT ? message.get_object() : new Cake(message)
+							}, L"__defcakehandler", root_scope);
+					
+					// Clear thread blocks after each execution of side code to avoid fake blocking of thread.
+					GIL::current_thread()->clear_blocks();
+					
+					// If reached this statement, then exception was processed correctly
+					break;
+				}
+			} catch (const cake& msg) {
+				GIL::current_thread()->clear_blocks();
+				
+				cake_started = 1;
+				message = msg;
+			} catch (const std::exception& msg) {
+				GIL::current_thread()->clear_blocks();
+				
+				cake_started = 1;
+				message = msg;
+			} catch (...) {
+				GIL::current_thread()->clear_blocks();
+				
+				cake_started = 1;
+				message = UnknownException();
+			}
+		}
+	}));
+	
+	t->Object::put(L"runnable", args[0]);
+	
+	return t;
 };
 
 vobject* Thread::create_proto() {
@@ -48,12 +151,21 @@ vobject* Thread::create_proto() {
 			
 			Thread* t = static_cast<Thread*>(__this);
 			
-			ck_core::ckthread* th = t->get();
+			// Acquire lock over threads array
+			GIL::instance()->lock();
 			
+			ck_core::ckthread* th = GIL::instance()->thread_by_id(t->get_id());
+			vobject* ret;
 			if (th)
-				return Bool::instance(th->is_running());
+				ret = Bool::instance(th->is_running());
 			else
-				return Undefined::instance();
+				ret = Undefined::instance();
+			
+			GIL::instance()->unlock();
+			// Is called after call on executer
+			// GIL::instance()->accept_lock();
+			
+			return ret;
 		}));
 	ThreadProto->Object::put(L"isLocked", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
@@ -65,12 +177,21 @@ vobject* Thread::create_proto() {
 			
 			Thread* t = static_cast<Thread*>(__this);
 			
-			ck_core::ckthread* th = t->get();
+			// Acquire lock over threads array
+			GIL::instance()->lock();
 			
+			ck_core::ckthread* th = GIL::instance()->thread_by_id(t->get_id());
+			vobject* ret;
 			if (th)
-				return Bool::instance(th->is_locked());
+				ret = Bool::instance(th->is_locked());
 			else
-				return Undefined::instance();
+				ret = Undefined::instance();
+			
+			GIL::instance()->unlock();
+			// Is called after call on executer
+			// GIL::instance()->accept_lock();
+			
+			return ret;
 		}));
 	ThreadProto->Object::put(L"isBlocked", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
@@ -82,12 +203,21 @@ vobject* Thread::create_proto() {
 			
 			Thread* t = static_cast<Thread*>(__this);
 			
-			ck_core::ckthread* th = t->get();
+			// Acquire lock over threads array
+			GIL::instance()->lock();
 			
+			ck_core::ckthread* th = GIL::instance()->thread_by_id(t->get_id());
+			vobject* ret;
 			if (th)
-				return Bool::instance(th->is_blocked());
+				ret = Bool::instance(th->is_blocked());
 			else
-				return Undefined::instance();
+				ret = Undefined::instance();
+			
+			GIL::instance()->unlock();
+			// Is called after call on executer
+			// GIL::instance()->accept_lock();
+			
+			return ret;
 		}));
 	ThreadProto->Object::put(L"getId", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
@@ -99,12 +229,34 @@ vobject* Thread::create_proto() {
 			
 			Thread* t = static_cast<Thread*>(__this);
 			
-			ck_core::ckthread* th = t->get();
+			return new Int(t->get_id());
+		}));
+	
+	ThreadProto->Object::put(L"__operator==", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2)
+				return Bool::False();
 			
-			if (th)
-				return new Int(th->count_id());
-			else
-				return Undefined::instance();
+			if (!args[0] && !args[1])
+				return Bool::True();
+			
+			if (args[0] && args[1] && args[0]->is_typeof<Thread>() && args[1]->is_typeof<Thread>())
+				return Bool::instance(static_cast<Thread*>(args[0])->get_id() == static_cast<Thread*>(args[1])->get_id());
+			
+			return Bool::False();
+		}));
+	ThreadProto->Object::put(L"__operator!=", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2)
+				return Bool::False();
+			
+			if (args[0] || args[1])
+				return Bool::True();
+			
+			if (args[0] && args[1] && args[0]->is_typeof<Thread>() && args[1]->is_typeof<Thread>())
+				return Bool::instance(static_cast<Thread*>(args[0])->get_id() != static_cast<Thread*>(args[1])->get_id());
+			
+			return Bool::True();
 		}));
 		
 	
@@ -112,14 +264,12 @@ vobject* Thread::create_proto() {
 };
 
 
-Thread::Thread(ck_core::ckthread* th, vobject* runnable) : Object() {
-	Object::put(L"runnable", runnable);
-	bind(th);
+Thread::Thread(uint64_t tid) : Object() {
+	bind_id(tid);
 };
 
-Thread::Thread(vobject* runnable) {
-	Object::put(L"runnable", runnable);
-	bind(GIL::instance()->current_thread());
+Thread::Thread() {
+	bind_id(GIL::instance()->current_thread()->get_id());
 };
 		
 Thread::~Thread() {};
@@ -168,9 +318,6 @@ long long Thread::int_value() {
 
 // Must return string representation of an object
 std::wstring Thread::string_value() { 
-	if (get())
-		return std::wstring(L"[Thread ") + std::to_wstring(get()->count()) + std::wstring(L"]"); 
-	else
-		return std::wstring(L"[Thread nullptr]"); 
+	return std::wstring(L"[Thread ") + std::to_wstring(get_id()) + std::wstring(L"]"); 
 };
 

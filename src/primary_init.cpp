@@ -22,6 +22,7 @@
 #include "objects/Thread.h"
 
 using namespace std;
+using namespace ck_core;
 using namespace ck_objects;
 using namespace ck_vobject;
 
@@ -83,6 +84,15 @@ static vobject* f_system(vscope* scope, const vector<vobject*>& args) {
 	return new Int(status);
 };
 
+static vobject* f_exit(vscope* scope, const vector<vobject*>& args) {
+	GIL::instance()->stop();
+	return Undefined::instance();
+};
+
+static vobject* f_gc_objects(vscope* scope, const vector<vobject*>& args) {
+	return new Int(GIL::gc_instance()->count());
+};
+
 
 vscope* ck_objects::primary_init() {
 	
@@ -112,6 +122,7 @@ vscope* ck_objects::primary_init() {
 	scope->put(L"println", new NativeFunction(f_println));
 	// Execute native interpreter script command
 	scope->put(L"system",  new NativeFunction(f_system));
+	scope->put(L"exit",    new NativeFunction(f_exit));
 	
 	return scope;
 };
