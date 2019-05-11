@@ -91,8 +91,8 @@ void* ck_core::thread_spawn_wrapper(void* argv) {
 	GIL::thread_spawner_args* args = static_cast<GIL::thread_spawner_args*>(argv);
 	// Copy pointers to GIL values
 	GIL::gil_instance = args->gil;
-	GIL::executer     = new ck_core::ck_executer();
 	GIL::current_thread_ptr = args->thread;
+	GIL::executer     = new ck_core::ck_executer();
 	
 	// Wait for parent thread to finish initialization
 	GIL::instance()->lock();
