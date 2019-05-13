@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include <cstdint>
 #include <cstring>
+#include <iostream>
 
 namespace ck_pthread {
 	
@@ -49,6 +50,8 @@ namespace ck_pthread {
 	class mutex {
 		pthread_mutex_t _mtx;
 		
+		int count = 0;
+		
 	public:
 		
 		// Allows passing mutex attributes to this instance.
@@ -89,6 +92,8 @@ namespace ck_pthread {
 	// Class-wrapper for pthread_recursive_mutex
 	class recursive_mutex {
 		pthread_mutex_t _mtx;
+		
+		int count = 0;
 		
 	public:
 		

@@ -103,9 +103,7 @@ void GC::attach(gc_object *o) {
 		return;
 	
 	#ifndef CK_SINGLETHREAD
-		GIL::current_thread()->set_locked(1);
-		ck_pthread::mutex_lock lk(protect_lock);
-		GIL::current_thread()->set_locked(0);
+		GIL_lock lock;
 	#endif
 	if (o->gc_record)
 		return;
@@ -132,9 +130,7 @@ void GC::attach_root(gc_object *o) {
 		return;
 	
 	#ifndef CK_SINGLETHREAD
-		GIL::current_thread()->set_locked(1);
-		ck_pthread::mutex_lock lk(protect_lock);
-		GIL::current_thread()->set_locked(0);
+		GIL_lock lock;
 	#endif
 	if (o->gc_lock)
 		return;
@@ -159,9 +155,7 @@ void GC::deattach_root(gc_object *o) {
 		return;
 	
 	#ifndef CK_SINGLETHREAD
-		GIL::current_thread()->set_locked(1);
-		ck_pthread::mutex_lock lk(protect_lock);
-		GIL::current_thread()->set_locked(0);
+		GIL_lock lock;
 	#endif
 	if (!o->gc_root)
 		return;
@@ -176,9 +170,7 @@ void GC::lock(gc_object *o) {
 		return;
 	
 	#ifndef CK_SINGLETHREAD
-		GIL::current_thread()->set_locked(1);
-		ck_pthread::mutex_lock lk(protect_lock);
-		GIL::current_thread()->set_locked(0);
+		GIL_lock lock;
 	#endif
 	if (o->gc_lock)
 		return;
@@ -203,9 +195,7 @@ void GC::unlock(gc_object *o) {
 		return;
 	
 	#ifndef CK_SINGLETHREAD
-		GIL::current_thread()->set_locked(1);
-		ck_pthread::mutex_lock lk(protect_lock);
-		GIL::current_thread()->set_locked(0);
+		GIL_lock lock;
 	#endif
 	if (!o->gc_lock)
 		return;
@@ -230,11 +220,12 @@ void GC::collect(bool forced_collect) {
 		return;
 	
 	// Then try to lock the GC
-	#ifndef CK_SINGLETHREAD
-		GIL::current_thread()->set_locked(1);
-		ck_pthread::mutex_lock lk(protect_lock);
-		GIL::current_thread()->set_locked(0);
-	#endif
+	//#ifndef CK_SINGLETHREAD
+	//	GIL::current_thread()->set_locked(1);
+	//	GIL::instance()->notify();
+	//	ck_pthread::mutex_lock lk(protect_lock);
+	//	GIL::current_thread()->set_locked(0);
+	//#endif
 	if (collecting)
 		return;
 	
@@ -345,9 +336,7 @@ void GC::dispose() {
 	// Called on GIL dispose, so no GIL.lock needed.
 
 	#ifndef CK_SINGLETHREAD
-		GIL::current_thread()->set_locked(1);
-		ck_pthread::mutex_lock lk(protect_lock);
-		GIL::current_thread()->set_locked(0);
+		GIL_lock lock;
 	#endif
 	if (collecting)
 		return;

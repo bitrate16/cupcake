@@ -35,6 +35,7 @@ static vobject* call_handler(vscope* scope, const vector<vobject*>& args) {
 	Thread* t = new Thread(GIL::instance()->spawn_thread([scope, argv, backtrace]() -> void {
 		// Create new scope for this thread
 		vscope* nscope = new iscope(scope);
+		nscope->root();
 		
 		// Unlock when entered this function call to be sure there 
 		//  was no priority race and arguments and score are still relevant
@@ -121,6 +122,8 @@ static vobject* call_handler(vscope* scope, const vector<vobject*>& args) {
 				message = UnknownException();
 			}
 		}
+		
+		nscope->unroot();
 	}));
 	
 	t->Object::put(L"runnable", args[0]);

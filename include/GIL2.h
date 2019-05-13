@@ -437,6 +437,21 @@ namespace ck_core {
 		#endif
 		};
 	};
+
+	// Class used to produce GIL lock during function call
+	// GIL::lock() is called on creation,
+	// GIL::unlock() is called on destruction of object.
+	class GIL_lock {
+	public:
+		
+		GIL_lock() {
+			GIL::instance()->lock();
+		};
+		
+		~GIL_lock() {
+			GIL::instance()->unlock();
+		};
+	};
 }
 
 
