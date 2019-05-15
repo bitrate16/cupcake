@@ -50,7 +50,7 @@ namespace ck_pthread {
 	class mutex {
 		pthread_mutex_t _mtx;
 		
-		int count = 0;
+		int thread_cnt[128] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 		
 	public:
 		
@@ -76,24 +76,18 @@ namespace ck_pthread {
 			return _mtx;
 		};
 		
-		inline bool lock() {
-			return !pthread_mutex_lock(&_mtx);
-		};
+		 bool lock();
 		
-		inline bool unlock() {
-			return !pthread_mutex_unlock(&_mtx);
-		};
+		 bool unlock();
 		
-		inline bool try_lock() {
-			return !pthread_mutex_trylock(&_mtx);
-		};
+		 bool try_lock();
 	};
 	
 	// Class-wrapper for pthread_recursive_mutex
 	class recursive_mutex {
 		pthread_mutex_t _mtx;
 		
-		int count = 0;
+		int thread_cnt[128] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 		
 	public:
 		
@@ -113,17 +107,11 @@ namespace ck_pthread {
 			return _mtx;
 		};
 		
-		inline bool lock() {
-			return !pthread_mutex_lock(&_mtx);
-		};
+		 bool lock();
 		
-		inline bool unlock() {
-			return !pthread_mutex_unlock(&_mtx);
-		};
+		 bool unlock();
 		
-		inline bool try_lock() {
-			return !pthread_mutex_trylock(&_mtx);
-		};
+		 bool try_lock();
 	};
 	
 	// Equals to std::unique_lock but for pthread_mutex

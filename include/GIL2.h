@@ -137,7 +137,7 @@ namespace ck_core {
 		//   main goes into wait and receive the signals.
 		// III.
 		//  Locked on any conditions because the optimal way to sync is use single mutex.
-		ck_pthread::mutex sync_mutex;
+		ck_pthread::recursive_mutex sync_mutex;
 		
 	
 		// Set to 1 if lock is requested by someone
@@ -195,7 +195,7 @@ namespace ck_core {
 			return sync_condition;
 		};
 		
-		inline ck_pthread::mutex& sync_mtx() {
+		inline ck_pthread::recursive_mutex& sync_mtx() {
 			return sync_mutex;
 		};
 		
@@ -257,6 +257,7 @@ namespace ck_core {
 			// To avoid the situation when other threads waiting for some shit
 			//  on sync_condition, ping them all.
 			notify();
+			accept_lock();
 		#endif
 		};
 		
@@ -369,6 +370,8 @@ namespace ck_core {
 				// After that change the flag and go to wait
 				current_thread()->set_locked(1);
 				
+				notify();
+				
 				sync_condition.wait(sync_mutex, []() -> bool {
 					return !GIL::instance()->is_lock_requested();
 				});
@@ -386,6 +389,7 @@ namespace ck_core {
 		inline void io_block() {
 		#ifndef CK_SINGLETHREAD
 			current_thread()->set_blocked(1);
+			notify();
 		#endif
 		};
 		
