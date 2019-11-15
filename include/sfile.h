@@ -140,7 +140,6 @@ namespace ck_sfile {
 		};
 		
 		sfile& operator+=(const sfile& sub) {
-			
 			// Can not append absolute path
 			if (sub.absolute_path)
 				return *this;
@@ -152,14 +151,12 @@ namespace ck_sfile {
 		};
 		
 		sfile& operator+(const sfile& sub) {
-			sfile f = *this;
-			
 			// Can not append absolute path
 			if (sub.absolute_path)
-				return f;
+				return *this;
 			
-			f += sub;
-			return f;
+			*this += sub;
+			return *this;
 		};
 		
 		bool operator==(const sfile& o) {

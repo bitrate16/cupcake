@@ -260,9 +260,9 @@ void ck_executer::restore_frame(std::vector<stack_frame>& stack, int stack_id, i
 	wcout << "-------------> scopes       id expected " << scope_id << endl;
 #endif
 	
-	// Restore windows
+	// Restore window
 	for (int i = window_stack.size() - 1; i > window_id; --i) {
-		// Pop scopes that are used by windows
+		// Pop scopes that are used by window
 		if (window_stack.back().scope_id >= 0 && window_stack.back().scope_id < scopes.size()) 
 			if (scopes[window_stack.back().scope_id]) {
 				if (window_stack.back().own_scope)
@@ -485,6 +485,7 @@ vobject* ck_executer::exec_bytecode() {
 #ifdef DEBUG_OUTPUT
 				wcout << "> PUSH_CONST[int]: " << i << endl;
 #endif
+				
 				vpush(new Int(i));
 				break;
 			}
@@ -1388,8 +1389,9 @@ vobject* ck_executer::exec_bytecode() {
 		}
 		
 		// Respond to GIL requests
+
 		GIL::instance()->accept_lock();
-		
+
 		// Perform GC collection ?
 		GIL::gc_instance()->collect();
 	}
@@ -1481,7 +1483,7 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 		// Apply new scope
 		BytecodeFunction* f = (BytecodeFunction*) obj;
 		
-		// Overwrite binded __this reference
+		// Write binded __this reference if it doesnt exist
 		ref = f->get_bind() ? f->get_bind() : ref;
 		
 		// Apply this & args on scope
@@ -1489,9 +1491,6 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 		scope->root();
 		own_scope = 1;
 	} else {
-		//if (scope != nullptr) {
-		// XXX: Passing given scope with scope-wrapper.
-		
 		// Pass given scope as proxy to avoid overwritting of __this value.
 		if (scope)
 			scope = new xscope(scope);
@@ -1502,16 +1501,6 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 		
 		if (ref != nullptr)
 			scope->put(L"__this", ref);
-		
-			// own_scope = 0;
-		/* } /* else {
-			scope = new iscope(scopes.size() == 0 ? nullptr : scopes.back());
-			scope->root();
-			own_scope = 1;
-			
-			if (ref != nullptr)
-				scope->put(L"__this", ref);
-		} */
 	}
 	
 	// Push scope
@@ -1540,7 +1529,6 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 			try {
 				obj = exec_bytecode();
 				GIL::current_thread()->clear_blocks();
-				
 				break;
 				
 			} catch(const ck_exceptions::cake& msg) { 
@@ -1610,7 +1598,7 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 	scopes.pop_back();
 	
 #ifdef DEBUG_OUTPUT
-	if (obj)
+	if (obj) 
 		wcout << "RETURNED: " << obj->string_value() << endl;
 	else
 		wcout << "RETURNED: " << "NULL" << endl;
@@ -1643,12 +1631,6 @@ std::vector<ck_exceptions::BacktraceFrame> ck_executer::collect_backtrace() {
 	// Append appended frames
 	backtrace.insert(backtrace.end(), appended_backtrace.begin(), appended_backtrace.end());
 	
-	/*
-	for (int i = 0; i < call_stack.size(); ++i) {
-		wcout << i << ' ' << call_stack[i].name << ' ' << endl;
-	}
-	*/
-	
 	// Other frames
 	for (int i = 0; i < call_stack.size(); ++i) {		
 		int pointer = call_stack[i].pointer;
@@ -1677,19 +1659,7 @@ std::vector<ck_exceptions::BacktraceFrame> ck_executer::collect_backtrace() {
 		backtrace.back().lineno = lineno;
 		backtrace.back().filename = script->filename;
 		if (i > 0)
-			backtrace.back().function = call_stack[i - 1].name;
-		
-		/*
-		wcout << "--> " << i << ' ' << backtrace.back().function << ' ' << lineno << endl;
-		wcout << "Function Bytecode: " << endl;
-		ck_translator::print(script->bytecode.bytemap);
-		wcout << endl;
-		
-		wcout << "Function Lineno Table: " << endl;
-		ck_translator::print_lineno_table(script->bytecode.lineno_table);
-		wcout << endl;	
-		*/		
-		
+			backtrace.back().function = call_stack[i - 1].name;		
 	}
 	
 	// Last frame

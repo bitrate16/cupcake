@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "pthread_util.h"
+#include "ck_pthread.h"
 #include "GC.h"
 
 

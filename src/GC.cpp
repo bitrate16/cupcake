@@ -102,9 +102,11 @@ void GC::attach(gc_object *o) {
 	if (o == nullptr)
 		return;
 	
-	#ifndef CK_SINGLETHREAD
-		GIL_lock lock;
-	#endif
+#ifndef CK_SINGLETHREAD 
+	ck_pthread::mutex_lock lk(protect_lock);
+	// GIL_lock lock; // в этой херне жопа, гц блочится на сборку, эта хня блочит этот поток, объект удаляют ещё до инициализации
+#endif
+
 	if (o->gc_record)
 		return;
 	
@@ -129,9 +131,10 @@ void GC::attach_root(gc_object *o) {
 	if (o == nullptr)
 		return;
 	
-	#ifndef CK_SINGLETHREAD
-		GIL_lock lock;
-	#endif
+#ifndef CK_SINGLETHREAD
+	ck_pthread::mutex_lock lk(protect_lock);
+#endif
+
 	if (o->gc_lock)
 		return;
 	
@@ -154,9 +157,10 @@ void GC::deattach_root(gc_object *o) {
 	if (o == nullptr)
 		return;
 	
-	#ifndef CK_SINGLETHREAD
-		GIL_lock lock;
-	#endif
+#ifndef CK_SINGLETHREAD
+	ck_pthread::mutex_lock lk(protect_lock);
+#endif
+
 	if (!o->gc_root)
 		return;
 	
@@ -169,9 +173,10 @@ void GC::lock(gc_object *o) {
 	if (o == nullptr)
 		return;
 	
-	#ifndef CK_SINGLETHREAD
-		GIL_lock lock;
-	#endif
+#ifndef CK_SINGLETHREAD
+	ck_pthread::mutex_lock lk(protect_lock);
+#endif
+
 	if (o->gc_lock)
 		return;
 	
@@ -194,9 +199,10 @@ void GC::unlock(gc_object *o) {
 	if (o == nullptr)
 		return;
 	
-	#ifndef CK_SINGLETHREAD
-		GIL_lock lock;
-	#endif
+#ifndef CK_SINGLETHREAD
+	GIL_lock lock;
+#endif
+
 	if (!o->gc_lock)
 		return;
 	
@@ -214,6 +220,8 @@ int GC::roots_count() { return roots_size; };
 int GC::locks_count() { return locks_size; };
 
 void GC::collect(bool forced_collect) {
+	
+	// XXX: Sopport for GC.collect on very deep objects (aka list with very large size)
 	
 	// First check if collection can be performed
 	if (created_interval <= GC::MIN_CREATED_INTERVAL && !forced_collect)

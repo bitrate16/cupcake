@@ -1,12 +1,14 @@
 var lock = {}
 lock.cnt = 0;
 
-var f = function() while (1) print(Thread.currentThread().getId(), '\n');
+var f = function() while (1) print('ThreadId = ' + Thread.currentThread().getId(), '\n');
 
 Thread(f)
 Thread(f)
-
-
+Thread(f)
+//Thread(f)
+f()
+// f();
 
 /*var t = Thread(function(x) {
 	while (1)

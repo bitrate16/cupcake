@@ -55,7 +55,7 @@ namespace ck_exceptions {
 		// Copy of axception
 		std::exception exception;
 		
-		// pointer to thrown object
+		// Pointer to thrown object
 		ck_vobject::vobject* object;
 		
 		// Marks that instance of cake contains backtrace
@@ -150,10 +150,14 @@ namespace ck_exceptions {
 		return cake(L"", L"", CK_UNKNOWN_EXCEPTION);
 	};
 	
-	// Decorators for different string types
+	// Decorators for different exception types
 	
 	static inline cake RangeError(const std::wstring& message = L"") {
 		return cake(L"RangeError", message);
+	};
+	
+	static inline cake Error(const std::wstring& message = L"") {
+		return cake(L"Error", message);
 	};
 	
 	static inline cake TypeError(const std::wstring& message = L"") {

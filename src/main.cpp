@@ -102,18 +102,23 @@ static int signaled_number;
 // Signals setup for handling them during execution
 static void signal_handler(int sig) {
 	// Set up ignore signals during signal processing
-	signal(SIGINT,  signal_handler); // <-- user interrupt
-	signal(SIGUSR1, signal_handler);
-	signal(SIGUSR2, signal_handler);
+	for (int i = 0; i < 64; ++i)
+		signal(i,  signal_handler);
 	// signal(SIGKILL, signal_handler); // <-- kill signal
 	// signal(SIGTERM, signal_handler); // <-- Terminate request
 	// signal(SIGABRT, signal_handler); // <-- abortion is murder
 	
-	
+	std::wcout << "signal = " << sig << std::endl;
 	// Forcibly terminate the process
-	if (sig == SIGTERM) {
+	if (sig == SIGTERM || sig == SIGABRT || sig == SIGSTOP || sig == SIGKILL) {
 		GIL::instance()->stop();
 		return;
+	}
+	
+	// Segmentation fault on program
+	if (sig == SIGSEGV) {
+		std::wcerr << "Segmentation fault" << std::endl;
+		exit(1);
 	}
 	
 	// Warning: checking thread for alive state and then 
@@ -247,13 +252,11 @@ int main(int argc, const char** argv) {
 	root_scope->put(L"__args", __args);
 	
 	// Set up signals handling
-	signal(SIGINT,  signal_handler); // <-- user interrupt
-	signal(SIGKILL, signal_handler); // <-- kill signal
-	signal(SIGTERM, signal_handler); // <-- Terminate request
-	signal(SIGABRT, signal_handler); // <-- abortion is murder
+	for (int i = 0; i < 64; ++i)
+		signal(i, signal_handler); 
 	
 	// Indicates if main returned an exception
-	bool cake_started = 0;
+	bool exception_processing = 0;
 	// Instance of catched cake
 	cake message;
 	
@@ -261,7 +264,8 @@ int main(int argc, const char** argv) {
 	
 	while (1) {
 		try {
-			if (!cake_started) {
+			if (!exception_processing) {
+				// Normal execution, no exception processing
 				GIL::executer_instance()->execute(main_script, root_scope);
 				GIL::current_thread()->clear_blocks();
 			
@@ -269,8 +273,9 @@ int main(int argc, const char** argv) {
 				break;
 				
 			} else {
+				// Processing exception
 				GIL::executer_instance()->clear();
-				cake_started = 0;
+				exception_processing = 0;
 				
 				// On cake caught, call stack, windows stack and try stack are empty.
 				// Process cake by calling handler-function.
@@ -301,19 +306,22 @@ int main(int argc, const char** argv) {
 				break;
 			}
 		} catch (const cake& msg) {
+			// Catch ck message exception
 			GIL::current_thread()->clear_blocks();
 			
-			cake_started = 1;
+			exception_processing = 1;
 			message = msg;
 		} catch (const std::exception& msg) {
+			// Catch native message exception
 			GIL::current_thread()->clear_blocks();
 			
-			cake_started = 1;
+			exception_processing = 1;
 			message = msg;
 		} catch (...) {
+			// Catch something unresolved
 			GIL::current_thread()->clear_blocks();
 			
-			cake_started = 1;
+			exception_processing = 1;
 			message = UnknownException();
 		}
 	}
@@ -321,11 +329,11 @@ int main(int argc, const char** argv) {
 	// W A I T _ F O R _ T H R E A D S _ O R _ S I G N A L S
 	
 	while (1) {
-		// Mark main thread as stopped
-		GIL::current_thread()->set_running(0);
-	
 		// Main thread locks the GIL
 		GIL::instance()->lock();
+		
+		// Mark main thread as stopped
+		GIL::current_thread()->set_running(0);
 		
 		// Main thread starts waiting for other threads to die from he years
 		GIL::instance()->sync_var().wait(GIL::instance()->sync_mtx(), []() -> bool {
@@ -336,13 +344,13 @@ int main(int argc, const char** argv) {
 			//   2. shuts down, sets running flag to 0
 			//   3. sends signal
 			//   4. unlocks GIL::unlock()
-			//  Main Thread:
+			//  Main Thread: 
 			//   1. locks the GIL::lock()
 			//   2. checks all threads running state
 			//   3. joins GIL::sync_var.wait and unlocks the GIL::unlock().
 			
 			// Waiting for thermal death of the universe
-			
+				
 			bool universe_is_dead = 1;
 			for (int i = 1; i < GIL::instance()->get_threads().size() && universe_is_dead; ++i) // loop from 1 because main thread index is 0
 				if (GIL::instance()->get_threads()[i]->is_running()) {
@@ -371,18 +379,20 @@ int main(int argc, const char** argv) {
 		
 		vobject* __defsignalhandler = root_scope->get(L"__defsignalhandler");
 		if (__defsignalhandler == nullptr || __defsignalhandler->is_typeof<Undefined>() || __defsignalhandler->is_typeof<Null>()) {
+			// No default signal handler
 			GIL::instance()->stop();
 			break;
 		}
 		
-		cake_started = 0;
+		exception_processing = 0;
 		
 		// Reset blocks keys
 		GIL::current_thread()->set_running(1);
 		
 		while (1) {
 			try {
-				if (!cake_started) {
+				if (!exception_processing) {
+					// Run as regular function
 					GIL::executer_instance()->clear();
 					GIL::executer_instance()->call_object(__defsignalhandler, nullptr, { new Int(signaled_number) }, L"__defsignalhandler", root_scope);
 					GIL::current_thread()->clear_blocks();
@@ -391,8 +401,9 @@ int main(int argc, const char** argv) {
 					break;
 					
 				} else {
+					// Run exception processing
 					GIL::executer_instance()->clear();
-					cake_started = 0;
+					exception_processing = 0;
 					
 					// On cake caught, call stack, windows stack and try stack are empty.
 					// Process cake by calling handler-function.
@@ -420,19 +431,22 @@ int main(int argc, const char** argv) {
 					break;
 				}
 			} catch (const cake& msg) {
+				// Catch ck message exception
 				GIL::current_thread()->clear_blocks();
 				
-				cake_started = 1;
+				exception_processing = 1;
 				message = msg;
 			} catch (const std::exception& msg) {
+				// Catch native message exception
 				GIL::current_thread()->clear_blocks();
 				
-				cake_started = 1;
+				exception_processing = 1;
 				message = msg;
 			} catch (...) {
+				// Catch something unresolved
 				GIL::current_thread()->clear_blocks();
 				
-				cake_started = 1;
+				exception_processing = 1;
 				message = UnknownException();
 			}
 		}
@@ -440,11 +454,11 @@ int main(int argc, const char** argv) {
 	
 	// W A I T _ F O R _ T E R M I N A T E
 	
-	// Finally wait for all threads to finish if process was terminated via GIL::terminate()
-	GIL::current_thread()->set_running(0);
-	
 	// Main thread locks the GIL
 	GIL::instance()->lock();
+	
+	// Finally wait for all threads to finish if process was terminated via GIL::terminate()
+	GIL::current_thread()->set_running(0);
 	
 	// Main thread starts waiting for other threads to die from he years
 	GIL::instance()->sync_var().wait(GIL::instance()->sync_mtx(), []() -> bool {
@@ -453,7 +467,7 @@ int main(int argc, const char** argv) {
 		
 		bool universe_is_dead = 1;
 		for (int i = 1; i < GIL::instance()->get_threads().size() && universe_is_dead; ++i) // loop from 1 because main thread index is 0
-			if (GIL::instance()->get_threads()[i]->is_running()) {
+			if (!GIL::instance()->get_threads()[i]->is_running()) {
 				universe_is_dead = 0;
 				break;
 			}
@@ -469,7 +483,9 @@ int main(int argc, const char** argv) {
 	
 	delete codecvt;
 	
-	// wcout << "MAIN EXITED" << endl;
+	// To allow all detached threads to finish clearing
+	pthread_exit(0);
+	
 	return 0;
 };
 

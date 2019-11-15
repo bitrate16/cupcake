@@ -88,8 +88,10 @@ namespace ck_core {
 	class ck_script;
 	class ck_executer {
 		
+		// Allow exceptions collect backtrace
 		friend class ck_objects::Cake;
 		friend class ck_exceptions::cake;
+		// Allow gc object mark objects on stack
 		friend class ck_executer_gc_object;
 		
 		ck_executer_gc_object* gc_marker;
@@ -107,7 +109,7 @@ namespace ck_core {
 		
 		// Limit size of summary execution staks:
 		//  sizeof(call_stack) + sizeof(window_stack) < execution_stack_limit
-		int execution_stack_limit = ck_constants::ck_executer::def_execution_stack_limit;
+		int execution_stack_limit = ck_constants::ck_executer::def_execution_stack_limit; // XXX: Calculate dynamically, depending on stack size
 		int try_stack_limit       = ck_constants::ck_executer::def_try_stack_limit;
 		
 		// Id's of stacks		
@@ -122,7 +124,7 @@ namespace ck_core {
 		// New frame being inserted on execute()
 		std::vector<stack_frame> window_stack;
 		
-		// Appended backtrace
+		// Appended backtrace, used on threads hierarchy
 		std::vector<ck_exceptions::BacktraceFrame> appended_backtrace;
 		
 		// Points to the current command address.
@@ -164,13 +166,15 @@ namespace ck_core {
 		inline void validate_scope();
 		
 		// peek closest try_frame and follow it's catch block by jumping on it.
-		// If no frames left, rethrow message up.
+		// If no frames in current script left, rethrow message up.
 		inline void follow_exception(const ck_exceptions::cake& msg);
 		
 		// Store stack frame
 		void store_frame(std::vector<stack_frame>& stack, int stack_id, const std::wstring& name, bool own_scope);
 		
-		// Store stack frame
+		// Restore stack frame.
+		//  Restored_frame_id used to prevent frame stack corruption 
+		//   by multiple calls to restore same frame.
 		void restore_frame(std::vector<stack_frame>& stack, int stack_id, int restored_frame_id);
 		
 	public:

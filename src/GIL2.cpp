@@ -25,16 +25,24 @@ thread_local ck_executer*      GIL::executer           = nullptr;
 uint64_t                  ckthread::thread_counter     = 0;
 
 
+// GIL constructor is called on main() call.
+// Default constructor mapping current thread to 
+//  it's descriptor & saves into GIL::threads
+// Creates & attaches instance of exeuter for this thread.
+// Creates global instance of GC and attachs it to GIL.
+// Maps static access variable instance to itself.
 GIL::GIL() { // : sync_lock(sync_mutex, sync_condition) {
-	// Assign self instance
+	// Assign instance of GIL to be accessible 
+	//  from any point of program
 	GIL::gil_instance = this;
 	
-	// No lock needed. First start.
-	// Allocate pointer to the new ckthread
+	// Create descriptor for current thread & store it as Thread0
 	current_thread_ptr = new ckthread();
 	threads.push_back(current_thread_ptr);
 	
+	// Create GC instance before any object is created
 	GIL::gc = new GC();
+	// Create executer instance mapped to current Thread0
 	GIL::executer = new ck_executer();
 	
 	// Current (creator) thread is being tracked as primary thread.
@@ -47,6 +55,10 @@ GIL::GIL() { // : sync_lock(sync_mutex, sync_condition) {
 	// All this ^ actions is done from main().
 };
 
+// At first, blocks all system signals to give GC a 
+//  chance to collect all left objects.
+// Secondly, calls GC::dispose & deletes GC.
+// Finally unbinds current thread deskriptor from GIL & returns.
 GIL::~GIL() {
 	// Program termination.
 	// Waiting till everything is completely dead.
@@ -56,6 +68,8 @@ GIL::~GIL() {
 	// ck_pthread::mutex_lock lock(sync_lock);
 	
 	// At this moment ignoring all signals from OS.
+	
+	// Make program ignore all signals from OS.
 	sigset_t set;
 	sigfillset(&set);
 	pthread_sigmask(SIG_BLOCK, &set, NULL);
@@ -67,15 +81,32 @@ GIL::~GIL() {
 	//	delete threads[i];
 	// Delete thread0
 	
+	// Delete executer instance
 	delete executer; // should be disposed before gc because contains executer_stack_marker
 	// Call last garbage collection
+	// Dispose all objects on GC & delete GC
 	gc->dispose();
 	delete gc; // Press F to pay respects..
 	
 	// Delete instance of main thread
+	
+	// Delete descriptor of Main thread
 	delete threads[0];
 };
 
+// Dummy wrapper for newly created thread.
+// Set ups signal handlers for this thread so it will not react to any signal.
+//  Instead, signal should be redirected to Main thread.
+// GIL attaches self instance to current GIL::gil_instance.
+// GIL binds thread descriptor to current thread.
+// Creates new executer for current thread.
+// GIL Marks this thread as running
+// After GIL have to call passed function body 
+//  and handle all exceptions thrown by it.
+//  Called body unction has privilleged mode with 
+//   GIL global lock acquired.
+// Finally GIL have to lock again, mark thread as dead, 
+//  remove it from list of threads & delete.
 void* ck_core::thread_spawn_wrapper(void* argv) {
 	// argv points to GIL::thread_spawner_args
 	
@@ -90,40 +121,46 @@ void* ck_core::thread_spawn_wrapper(void* argv) {
 	
 	GIL::thread_spawner_args* args = static_cast<GIL::thread_spawner_args*>(argv);
 	// Copy pointers to GIL values
-	GIL::gil_instance = args->gil;
-	GIL::current_thread_ptr = args->thread;
-	GIL::executer     = new ck_core::ck_executer();
+	GIL::gil_instance = args->gil; // unused, static
+	GIL::current_thread_ptr = args->thread;	
 	
 	// Wait for parent thread to finish initialization
-	GIL::instance()->lock();
+	// GC can not be called because this thread is not marked locked.
+	// GIL::instance()->lock(); // unused because GC will not call
 	
-	// Keep lock acquired to allow body do some thread-unsafe oeprations within safe context.
-	// GIL::instance()->unlock();
+	GIL::executer     = new ck_core::ck_executer();
 	
-	// Copy id of thread
+	// Copy id of thread, requires thread-safe
 	uint64_t ctid = GIL::current_thread()->get_id();
 	
-	GIL::current_thread_ptr->set_running(1);
+	// Set state of this thread as running to indicate for executer that it can run now
+	// GIL::current_thread_ptr->set_running(1); // Unused, because set by default
+	
 	// Call passed lambda
-	args->body();
+	args->body(); // XXX: Try-catch, unhandled only
 	
 	// Dispose instance of thread if it still exist
 	GIL::instance()->lock();
 	
+	// Dispose used values
+	delete GIL::executer;
+	
+	// Mark thread as dead
 	GIL::current_thread_ptr->set_running(0);
+	
+	// Remove this thread from list of threads
 	auto& threads = GIL::instance()->threads;
 	for (int i = 0; i < threads.size(); ++i)
 		if (threads[i]->get_id() == ctid) {
 			threads.erase(threads.begin() + i);
 			break;
 		}
-	
-	GIL::instance()->unlock();
-	
-	// Dispose used values
-	delete GIL::executer;
+		
 	delete args->thread;
 	delete args;
+	
+	// Release GIL to breath free
+	GIL::instance()->unlock_no_accept();
 	
 	return 0;
 };

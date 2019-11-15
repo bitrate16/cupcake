@@ -55,6 +55,8 @@ namespace ck_objects {
 			return backtrace;
 		};
 		
+		// XXX: allow specify output stream
+		// Print backtrace to stderr
 		void print_backtrace();
 		
 		virtual long long int_value();

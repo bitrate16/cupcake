@@ -50,8 +50,6 @@ namespace ck_pthread {
 	class mutex {
 		pthread_mutex_t _mtx;
 		
-		int thread_cnt[128] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-		
 	public:
 		
 		// Allows passing mutex attributes to this instance.
@@ -75,19 +73,23 @@ namespace ck_pthread {
 		pthread_mutex_t& mtx() {
 			return _mtx;
 		};
-		
-		 bool lock();
-		
-		 bool unlock();
-		
-		 bool try_lock();
+				
+		inline bool lock() {
+			return !pthread_mutex_lock(&_mtx);
+		};
+
+		inline bool unlock() {
+			return !pthread_mutex_unlock(&_mtx);
+		};
+
+		inline bool try_lock() {
+			return !pthread_mutex_trylock(&_mtx);
+		};
 	};
 	
 	// Class-wrapper for pthread_recursive_mutex
 	class recursive_mutex {
 		pthread_mutex_t _mtx;
-		
-		int thread_cnt[128] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 		
 	public:
 		
@@ -106,12 +108,18 @@ namespace ck_pthread {
 		pthread_mutex_t& mtx() {
 			return _mtx;
 		};
-		
-		 bool lock();
-		
-		 bool unlock();
-		
-		 bool try_lock();
+			
+		inline bool lock() {
+			return !pthread_mutex_lock(&_mtx);
+		};
+
+		inline bool unlock() {
+			return !pthread_mutex_unlock(&_mtx);
+		};
+
+		inline bool try_lock() {
+			return !pthread_mutex_trylock(&_mtx);
+		};
 	};
 	
 	// Equals to std::unique_lock but for pthread_mutex
@@ -123,11 +131,37 @@ namespace ck_pthread {
 		
 	public:
 	
-		mutex_lock(ck_pthread::mutex& mt);
-	
-		mutex_lock(ck_pthread::recursive_mutex& mt);
-	
-		mutex_lock(pthread_mutex_t& mt);
+		mutex_lock(ck_pthread::mutex& mt) : _mtx(mt.mtx()) {
+			int res = pthread_mutex_lock(&_mtx);
+			
+			if (res == EBUSY || res == EAGAIN)
+				acquired = 0;
+			else
+				acquired = 1;
+		};
+
+		mutex_lock(ck_pthread::recursive_mutex& mt) : _mtx(mt.mtx()) {
+			int res = pthread_mutex_lock(&_mtx);
+
+			if (res == EBUSY || res == EAGAIN)
+				acquired = 0;
+			else
+				acquired = 1;
+		};
+
+		mutex_lock(pthread_mutex_t& mt) : _mtx(mt) {
+			int res = pthread_mutex_lock(&_mtx);
+		
+			if (res == EBUSY || res == EAGAIN)
+				acquired = 0;
+			else
+				acquired = 1;
+		};
+				
+		~mutex_lock() {
+			if (acquired)
+				pthread_mutex_unlock(&_mtx);
+		};
 		
 		inline pthread_mutex_t& mtx() {
 			return _mtx;
@@ -136,8 +170,6 @@ namespace ck_pthread {
 		inline bool is_acquired() {
 			return acquired;
 		};
-		
-		~mutex_lock();
 	};
 
 	// Wrapper equals to the std::conditional_variable.
@@ -203,40 +235,36 @@ namespace ck_pthread {
 	class thread {
 		// Handler for native thread
 		pthread_t _thread;
-		// Handler for thread id
-		pthread_attr_t _thread_attr;
 		
-		bool _dummy = 0;
-		bool _own_attr = 0;
-		
-		thread() { _dummy = 1; };
+		thread() {};
 		
 	public:
 		
 		// Starts new thread by executing passed function (fun)
 		//  and calling it with passes list of arguments
-		thread(void* (*fun) (void*), void* args) {
-			_own_attr = 1;
+		thread(void* (*fun) (void*), void* args, int* retnum = nullptr) {
+			pthread_attr_t _thread_attr;
 			pthread_attr_init(&_thread_attr);
-			pthread_create(&_thread, &_thread_attr, fun, args);
+			if (retnum)
+				*retnum = pthread_create(&_thread, &_thread_attr, fun, args);
+			else
+				pthread_create(&_thread, &_thread_attr, fun, args);
+			pthread_attr_destroy(&_thread_attr);
 		};
 		
 		// Starts new thread by executing passed function (fun)
 		//  and calling it with passes list of arguments
 		// Allows passing thread attributes to the thread.
-		thread(pthread_attr_t& thread_attr, void* (*fun) (void*), void* args) {
-			_thread_attr = thread_attr;
-			pthread_create(&_thread, &_thread_attr, fun, args);
+		thread(pthread_attr_t& thread_attr, void* (*fun) (void*), void* args, int* retnum = nullptr) {
+			if (retnum)
+				*retnum = pthread_create(&_thread, &thread_attr, fun, args);
+			else
+				pthread_create(&_thread, &thread_attr, fun, args);
 		};
 		
 		// Returns reference to the native thread
 		inline pthread_t& get_thread() {
 			return _thread;
-		};
-		
-		// Returns reference to the native attributes
-		inline pthread_attr_t& get_attr() {
-			return _thread_attr;
 		};
 		
 		// Returns reference to the native id
@@ -251,6 +279,10 @@ namespace ck_pthread {
 			return pthread_join(_thread, 0);
 		};
 		
+		inline int detach() {
+			return pthread_detach(_thread);
+		};
+		
 		// Returns instance of current calling thread
 		static inline thread this_thread() {
 			thread _this_thread;
@@ -260,10 +292,6 @@ namespace ck_pthread {
 		};
 		
 		// Destructor, lol
-		~thread() {
-			if (!_dummy) 
-				if (_own_attr)
-					pthread_attr_destroy(&_thread_attr);
-		};
+		~thread() {};
 	};
 };

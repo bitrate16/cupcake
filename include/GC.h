@@ -1,11 +1,6 @@
 #pragma once
 
-#include "pthread_util.h"
-
-#include <mutex>
-#include <condition_variable>
-#include <atomic>
-
+#include "ck_pthread.h"
 
 namespace ck_core {		
 	/*
@@ -83,8 +78,9 @@ namespace ck_core {
 	
 	private:
 	
-		// Protects object from multiple threads access.
+		// Protects object list from multiple threads access.
 		ck_pthread::recursive_mutex protect_lock;
+		
 		int collecting;
 		int size;
 		int roots_size;
