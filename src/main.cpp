@@ -108,7 +108,6 @@ static void signal_handler(int sig) {
 	// signal(SIGTERM, signal_handler); // <-- Terminate request
 	// signal(SIGABRT, signal_handler); // <-- abortion is murder
 	
-	std::wcout << "signal = " << sig << std::endl;
 	// Forcibly terminate the process
 	if (sig == SIGTERM || sig == SIGABRT || sig == SIGSTOP || sig == SIGKILL) {
 		GIL::instance()->stop();

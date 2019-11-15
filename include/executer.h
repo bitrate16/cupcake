@@ -109,8 +109,8 @@ namespace ck_core {
 		
 		// Limit size of summary execution staks:
 		//  sizeof(call_stack) + sizeof(window_stack) < execution_stack_limit
-		int execution_stack_limit = ck_constants::ck_executer::def_execution_stack_limit; // XXX: Calculate dynamically, depending on stack size
-		int try_stack_limit       = ck_constants::ck_executer::def_try_stack_limit;
+		int execution_stack_limit = 0; // XXX: Calculate dynamically, depending on stack size
+		// int try_stack_limit       = 0; // unused due no limits on exceptions
 		
 		// Id's of stacks		
 		const int call_stack_id    = 13;

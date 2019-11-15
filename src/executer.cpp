@@ -100,13 +100,15 @@ ck_executer::ck_executer() {
 	// Assuming that exec_bytecode, call_object and executer summary takes no more than 1024 bytes.
 	// ck_constants::ck_executer::def_stack_frame_size;
 	
-	int system_stack_size = ck_util::get_system_stack_size();
+	// XXX: Calculate dymanically depending on thread stack size with pthread_stack_size
+	// Calculate limit size of stack & try-catch
+	int system_stack_size  = ck_util::get_system_stack_size();
 	// Limiting stack by 2MB for user calls
-	int bounded_stack_size = system_stack_size - ck_constants::ck_executer::def_system_stack_offset;
-	// Resulting allowed size of stack
-	int result_stack_size = bounded_stack_size / ck_constants::ck_executer::def_stack_frame_size;
+	int limited_stack_size = system_stack_size - ck_constants::ck_executer::def_system_stack_offset;
+	// Assuming that frame size is $def_stack_frame_size and calculating maximal recursion levels
+	int result_stack_size  = limited_stack_size / ck_constants::ck_executer::def_stack_frame_size;
 	// Limit stack sizes
-	try_stack_limit = result_stack_size;
+	// Call stack & Window stack summary limited by result_stack_size
 	execution_stack_limit = result_stack_size;
 };
 
@@ -198,8 +200,8 @@ void ck_executer::store_frame(std::vector<stack_frame>& stack, int stack_id, con
 	
 	if ((stack_id == call_stack_id || stack_id == window_stack_id) && call_stack.size() + window_stack.size() == execution_stack_limit)
 		throw StackOverflow(L"stack overflow");
-	else if (stack_id == try_stack_id && stack.size() == try_stack_limit)
-		throw StackOverflow(L"try stack overflow");
+	// else if (stack_id == try_stack_id && stack.size() == try_stack_limit)
+	// 	throw StackOverflow(L"try stack overflow");
 		
 	// Create stack_window and save executer state
 	stack_frame frame;
@@ -1323,8 +1325,8 @@ vobject* ck_executer::exec_bytecode() {
 
 			case ck_bytecodes::VSTATE_PUSH_TRY: {	
 		
-				if (try_stack.size() == try_stack_limit)
-					throw StackOverflow(L"try stack overflow");
+				// if (try_stack.size() == try_stack_limit)
+				// 	throw StackOverflow(L"try stack overflow");
 				
 				int try_node = 0;
 				int catch_node = 0;

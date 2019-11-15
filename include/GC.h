@@ -12,6 +12,7 @@ namespace ck_core {
 	
 	public: // WARNING: put destructor and constructor in PUBLIC section
 		
+		// XXX: Cintrol memory usage to not overflow process limit, add total memory counter on GC
 		void* operator new(std::size_t count);
 		void* operator new[](std::size_t count);
 		
