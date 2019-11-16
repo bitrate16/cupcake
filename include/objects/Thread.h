@@ -17,9 +17,9 @@ namespace ck_objects {
 		
 	public:
 	
-		// Bind instance to this object
+		// Bind thread id instance to this object, no check
 		Thread(uint64_t tid);
-		// Get current_thread from GIL
+		// Get current_thread from GIL, save id only
 		Thread();
 		virtual ~Thread();
 		

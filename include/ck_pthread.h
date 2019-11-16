@@ -1,6 +1,6 @@
 #pragma once
 
-#include <pthread.h>
+#include <pthread.h>            
 #include <cstdint>
 #include <cstring>
 #include <iostream>
@@ -290,6 +290,46 @@ namespace ck_pthread {
 			
 			return _this_thread;
 		};
+		
+		// Retunrs stack size for this thread.
+		// Returns 0 if error ocurred.
+		size_t get_stack_size() {
+			size_t stacksize;
+			pthread_attr_t atr;
+			pthread_getattr_np(pthread_self(), &atr);
+			int code = pthread_attr_getstacksize(&atr, &stacksize);
+			
+			return code == 0 ? stacksize : 0;
+		};
+		
+		/*
+		// Sets new stack size for a thread.
+		int set_stack_size(size_t ssize) {		
+			size_t stacksize;
+			pthread_attr_t atr;
+			pthread_getattr_np(pthread_self(), &atr);
+			int code = pthread_attr_getstacksize(&atr, &stacksize);
+			
+			if (code)
+				return code;
+			
+			return pthread_attr_setstacksize(&atr, ssize); 
+		};
+		
+		// Sets new stack size for a thread.
+		// Size of new stack will be (get_stack_size  + ssize).
+		int add_stack_size(size_t ssize) {
+			size_t stacksize;
+			pthread_attr_t atr;
+			pthread_getattr_np(pthread_self(), &atr);
+			int code = pthread_attr_getstacksize(&atr, &stacksize);
+			
+			if (code)
+				return code;
+			
+			return pthread_attr_setstacksize(&atr, stacksize + ssize); 
+		};
+		*/
 		
 		// Destructor, lol
 		~thread() {};

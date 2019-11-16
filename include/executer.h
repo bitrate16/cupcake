@@ -5,7 +5,6 @@
 
 #include "GC.h"
 #include "exceptions.h"
-#include "constants.h"
 
 namespace ck_vobject {
 	class vobject;
@@ -87,6 +86,8 @@ namespace ck_core {
 	
 	class ck_script;
 	class ck_executer {
+		
+		// Pre-defined constants
 		
 		// Allow exceptions collect backtrace
 		friend class ck_objects::Cake;
@@ -182,8 +183,32 @@ namespace ck_core {
 		ck_executer();
 		~ck_executer();
 		
+		// Expected max stack size used for single recursion call
+		static const int def_stack_frame_size = 4096; // In real it is about 2048 bytes, but assuming that additional recursive functions require more than 2048 bytes
+		
+		// Forcibly recalculate stack limits.
+		// Can be used by external libraries to force this executer to 
+		//  recalculate thread stack limits after using set_stack_size.
+		void calculate_stack_limits();
+		
+		// Returns limit for current stack size
+		inline int get_stack_size_limit() { return execution_stack_limit; };
+		
+		// Returns currently used stack space
+		inline int get_stack_usage() { return call_stack.size() + window_stack.size(); };
+		
 		// Returns line number of pointer to command
 		int lineno();
+		
+		// Returns current script
+		inline ck_core::ck_script* get_script() {
+			return scripts.back();
+		};
+		
+		// Returns current scope
+		inline ck_vobject::vscope* get_scope() {
+			return scopes.back();
+		};
 		
 		// Returns amount of pending late_call functions
 		inline int late_call_size() { return late_call.size(); };

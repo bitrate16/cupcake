@@ -140,10 +140,54 @@ vobject* Thread::create_proto() {
 	
 	ThreadProto->Object::put(L"__typename", new String(L"Thread"));
 	ThreadProto->Object::put(L"__proto", ObjectProto);
+	
+	// Static
 	ThreadProto->Object::put(L"currentThread", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
 			return new Thread();
 		}));
+		
+	// Returns total stack size in frames
+	ThreadProto->Object::put(L"getStackSize", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			return new Int(GIL::executer_instance()->get_stack_size_limit());
+		}));
+	
+	// Returns used stack space in frames
+	ThreadProto->Object::put(L"getUsedStackSize", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			return new Int(GIL::executer_instance()->get_stack_size_limit());
+		}));
+	
+	/*
+	// Sets stack size in frames for executer
+	// Returns new stack size in frames
+	ThreadProto->Object::put(L"setStackSize", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 1 || args[0] == nullptr)
+				return Undefined::instance();
+			
+			int new_size_frames = args[0]->int_value();
+			
+			// Check for increase
+			if (new_size_frames < GIL::executer_instance()->get_stack_size_limit())
+				return new Int(GIL::executer_instance()->get_stack_size_limit());
+			
+			size_t new_size = new_size_frames * ck_core::ck_executer::def_stack_frame_size + 2 * 1024 * 1024;
+			
+			int new_size_ret = ck_pthread::thread::this_thread().set_stack_size(new_size);
+			
+			if (new_size_ret)
+				throw ck_exceptions::Error(L"Failed setting stack size");
+			
+			GIL::executer_instance()->calculate_stack_limits();
+			
+			return new Int(GIL::executer_instance()->get_stack_size_limit());
+		}));
+	*/
+	
+	// XXX: Thread blocking function
+	// Depends on object
 	ThreadProto->Object::put(L"isRunning", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
 			// Validate __this

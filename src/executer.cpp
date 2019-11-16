@@ -7,7 +7,6 @@
 #include "vobject.h"
 #include "script.h"
 #include "translator.h"
-#include "stack_utils.h"
 
 #include "vscope.h"
 #include "objects/Object.h"
@@ -100,22 +99,25 @@ ck_executer::ck_executer() {
 	// Assuming that exec_bytecode, call_object and executer summary takes no more than 1024 bytes.
 	// ck_constants::ck_executer::def_stack_frame_size;
 	
-	// XXX: Calculate dymanically depending on thread stack size with pthread_stack_size
-	// Calculate limit size of stack & try-catch
-	int system_stack_size  = ck_util::get_system_stack_size();
-	// Limiting stack by 2MB for user calls
-	int limited_stack_size = system_stack_size - ck_constants::ck_executer::def_system_stack_offset;
-	// Assuming that frame size is $def_stack_frame_size and calculating maximal recursion levels
-	int result_stack_size  = limited_stack_size / ck_constants::ck_executer::def_stack_frame_size;
-	// Limit stack sizes
-	// Call stack & Window stack summary limited by result_stack_size
-	execution_stack_limit = result_stack_size;
+	calculate_stack_limits();
 };
 
 ck_executer::~ck_executer() {
 	GIL::gc_instance()->deattach_root(gc_marker);
 };
 
+
+void ck_executer::calculate_stack_limits() {
+	// Calculate limit size of stack & try-catch
+	int system_stack_size  = ck_pthread::thread::this_thread().get_stack_size();
+	// Limiting stack by 2MB for user calls
+	int limited_stack_size = system_stack_size - 2 * 1024 * 1024;
+	// Assuming that frame size is $def_stack_frame_size and calculating maximal recursion levels
+	int result_stack_size  = limited_stack_size / def_stack_frame_size;
+	// Limit stack sizes
+	// Call stack & Window stack summary limited by result_stack_size
+	execution_stack_limit = result_stack_size;
+};
 
 bool ck_executer::read(int size, void* buf) {
 	if (!scripts.back())

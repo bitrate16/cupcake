@@ -1,4 +1,14 @@
-var lock = {}
+println('StackSize     = ', Thread.getStackSize());
+println('UsedStackSize = ', Thread.getUsedStackSize());
+// println('SetStackSize  = ', Thread.setStackSize(4000));
+// println('StackSize     = ', Thread.getStackSize());
+// println('UsedStackSize = ', Thread.getUsedStackSize());
+
+var recursion = function() { recursion(); };
+
+// recursion();
+
+/*var lock = {}
 lock.cnt = 0;
 
 var f = function() while (1) print('ThreadId = ' + Thread.currentThread().getId(), '\n');

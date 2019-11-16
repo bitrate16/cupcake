@@ -160,6 +160,10 @@ namespace ck_exceptions {
 		return cake(L"Error", message);
 	};
 	
+	static inline cake StateError(const std::wstring& message = L"") {
+		return cake(L"StateError", message);
+	};
+	
 	static inline cake TypeError(const std::wstring& message = L"") {
 		return cake(L"TypeError", message);
 	};

@@ -3,8 +3,6 @@
 #include <codecvt>
 #include <locale>
 
-#include "stack_utils.h"
-
 #include "parser.h"
 #include "executer.h"
 #include "exceptions.h"
@@ -150,9 +148,6 @@ static void signal_handler(int sig) {
 };
 
 int main(int argc, const char** argv) {
-	// Request maximal stack for this process.
-	ck_util::maximize_stack_size();
-
 	// Set up locales
 	setlocale(LC_ALL, "");
 	
