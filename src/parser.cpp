@@ -423,6 +423,89 @@ int tokenizer::next_token() {
 		return put(STRING);
 	}
 	
+	/* M U L T I L I N E _ S T R I N G S */ 
+	if (c == L'`') {
+		int quote = c;
+		std::wstring& svref = token->sv;
+
+		c = next();
+		while (c != TEOF) {
+			if (c == TEOF) { TOKENIZER_ERROR(L"string expected to be closed", lineno, charno); }
+			else if (c == TEOL)
+				svref += L'\n';
+			else if (c == quote)
+				break;
+			else if (c == L'\\') {
+				c1 = next();
+				if (c1 == L't')
+					svref += L'\t';
+				else if (c1 == L'b')
+					svref += L'\b';
+				else if (c1 == L'n')
+					svref += L'\n';
+				else if (c1 == L'r')
+					svref += L'\r';
+				else if (c1 == L'f')
+					svref += L'\f';
+				else if (c1 == L'\\')
+					svref += L'\\';
+				else if (c1 == L'\'')
+					svref += L'\'';
+				else if (c1 == L'\"')
+					svref += L'\"';
+				else if (c1 == L'0')
+					svref += L'\0';
+				else if (c1 == L'u') {
+					c1 = next();
+					// Expect 8-digit hex number
+					int chpoint = 0;
+					int point   = 0;
+					for (int i = 0; i < 8; i++) {
+						c1 = strtlc(c1);
+						int cp = -1;
+						if (c1 >= L'a' && c1 <= L'f')
+							cp = 10 + c1 - L'a';
+						if (c1 >= L'0' && c1 <= L'9')
+							cp = c1 - L'0';
+						if (cp == -1 && !point) 
+							TOKENIZER_ERROR(std::wstring(L"expected hexadecimal character code point ") + (wchar_t) cp + std::wstring(L" [") + (wchar_t) cp + std::wstring(L"]"), lineno, charno)
+						if (cp == -1)
+							break;
+						++point;
+						chpoint = chpoint * 16 + cp;
+						c1 = next();
+					}
+				} else if (c1 == L'x') {
+					c1 = next();
+					// Expect 4-digit hex number
+					int chpoint = 0;
+					int point   = 0;
+					for (int i = 0; i < 4; i++) {
+						c1 = strtlc(c1);
+						int cp = -1;
+						if (c1 >= L'a' && c1 <= L'f')
+							cp = 10 + c1 - L'a';
+						if (c1 >= L'0' && c1 <= L'9')
+							cp = c1 - L'0';
+						if (cp == -1 && !point) 
+							TOKENIZER_ERROR(std::wstring(L"expected hexadecimal character code point ") + (wchar_t) cp + std::wstring(L" [") + (wchar_t) cp + std::wstring(L"]"), lineno, charno)
+						if (cp == -1)
+							break;
+						++point;
+						chpoint = chpoint * 16 + cp;
+						c1 = next();
+					}
+				} else
+					TOKENIZER_ERROR(std::wstring(L"unexpected character after escape point ") + (wchar_t) c1 + std::wstring(L" [") + (wchar_t) c1 + std::wstring(L"]"), lineno, charno)
+			} else
+				svref += (wchar_t) c;
+			
+			c = next();
+		}
+		next();
+		return put(STRING);
+	}
+	
 	/* N U M B E R S */ 
 	if (digit(c) || (c == L'.' && digit(c1))) {
 		

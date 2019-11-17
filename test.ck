@@ -4,6 +4,16 @@ println('UsedStackSize = ', Thread.getUsedStackSize());
 // println('StackSize     = ', Thread.getStackSize());
 // println('UsedStackSize = ', Thread.getUsedStackSize());
 
+print(
+`
+This
+Is
+Multiline
+String
+
+`
+);
+
 var recursion = function() { recursion(); };
 
 // recursion();
