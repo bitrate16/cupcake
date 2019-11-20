@@ -771,7 +771,7 @@ vobject* ck_executer::exec_bytecode() {
 				for (int k = 0; k < argc; ++k)
 					args.push_back(objects.rbegin()[argc-k-1 + 1]);
 				
-				vobject* obj = call_object(objects.rbegin()[0], nullptr, args, cstr);
+				vobject* obj = call_object(objects.rbegin()[0], scopes.back(), args, cstr);
 				for (int k = 0; k < argc + 1; ++k)
 					objects.pop_back();
 				vpush(obj);

@@ -30,6 +30,8 @@ println( a as "Int")
 
 var recursion = function() { recursion(); };
 
+println(keys, keys())
+
 // recursion();
 
 /*var lock = {}

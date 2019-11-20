@@ -119,6 +119,7 @@ vobject* iscope::create_proto() {
 			if (!__this || !__this->as_type<iscope>())
 				return Undefined::instance();
 			
+			
 			std::vector<vobject*> keys;
 	
 			for (const auto& any : static_cast<iscope*>(__this)->objects) 
