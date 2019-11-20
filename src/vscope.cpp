@@ -136,6 +136,35 @@ vobject* iscope::create_proto() {
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
 			return Bool::instance(!args.size() || args[0] != args[1]);
 		}));
+	ScopeProto->put(L"__operator_typeof", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (!args.size() || !args[0])
+				return Undefined::instance();
+			
+			return args[0]->get(scope, L"__typename");
+		}));
+	ScopeProto->put(L"__operator_istypeof", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[0])
+				return Undefined::instance();
+			
+			vobject* __typename0 = args[0]->get(scope, L"__typename");
+			vobject* __typename1 = args[1];
+			
+			return Bool::instance(__typename0 == nullptr && __typename1 == nullptr || __typename0 != nullptr && __typename1 != nullptr && __typename0->string_value() == __typename1->string_value());
+		}));
+	ScopeProto->put(L"__operator_as", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			vobject* __typename0 = args[0]->get(scope, L"__typename");
+			vobject* __typename1 = args[1];
+			
+			if (__typename0 == nullptr && __typename1 == nullptr || __typename0 != nullptr && __typename1 != nullptr && __typename0->string_value() == __typename1->string_value()) {
+			return args[0];}
+			return Undefined::instance();
+		}));
 	
 	return ScopeProto;
 };
@@ -261,6 +290,35 @@ vobject* xscope::create_proto() {
 					return Bool::False();
 			
 			return Bool::True();
+		}));
+	ProxyScopeProto->put(L"__operator_typeof", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (!args.size() || !args[0])
+				return Undefined::instance();
+			
+			return args[0]->get(scope, L"__typename");
+		}));
+	ProxyScopeProto->put(L"__operator_istypeof", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[0])
+				return Undefined::instance();
+			
+			vobject* __typename0 = args[0]->get(scope, L"__typename");
+			vobject* __typename1 = args[1];
+			
+			return Bool::instance(__typename0 == nullptr && __typename1 == nullptr || __typename0 != nullptr && __typename1 != nullptr && __typename0->string_value() == __typename1->string_value());
+		}));
+	ProxyScopeProto->put(L"__operator_as", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			vobject* __typename0 = args[0]->get(scope, L"__typename");
+			vobject* __typename1 = args[1];
+			
+			if (__typename0 == nullptr && __typename1 == nullptr || __typename0 != nullptr && __typename1 != nullptr && __typename0->string_value() == __typename1->string_value()) {
+			return args[0];}
+			return Undefined::instance();
 		}));
 	
 	return ProxyScopeProto;
