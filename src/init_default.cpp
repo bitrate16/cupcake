@@ -98,22 +98,21 @@ vscope* ck_objects::init_default() {
 	
 	vscope* scope = new iscope();
 	
-	
 	// Define root prototypes in new root scope.
-	//  By default these values are not restroyed till interpreter finishes it's work.
+	//  By default these values are not destroyed till interpreter finishes it's work.
 	
 	scope->put(L"Object",           Object          ::create_proto());
 	scope->put(L"NativeFunction",   NativeFunction  ::create_proto());
-	scope->put(L"String",           String          ::create_proto());
+	scope->put(L"Function",         BytecodeFunction::create_proto());
 	scope->put(L"Scope",            iscope          ::create_proto());
 	scope->put(L"XScope",           xscope          ::create_proto());
-	scope->put(L"Array",            Array           ::create_proto());
-	scope->put(L"Int",              Int             ::create_proto());
-	scope->put(L"Double",           Double          ::create_proto());
-	scope->put(L"Bool",             Bool            ::create_proto());
-	scope->put(L"Null",             Null            ::create_proto());
 	scope->put(L"Undefined",        Undefined       ::create_proto());
-	scope->put(L"BytecodeFunction", BytecodeFunction::create_proto());
+	scope->put(L"Null",             Null            ::create_proto());
+	scope->put(L"Int",              Int             ::create_proto());
+	scope->put(L"Bool",             Bool            ::create_proto());
+	scope->put(L"Double",           Double          ::create_proto());
+	scope->put(L"String",           String          ::create_proto());
+	scope->put(L"Array",            Array           ::create_proto());
 	scope->put(L"Cake",             Cake            ::create_proto());
 	scope->put(L"Thread",           Thread          ::create_proto());
 	
