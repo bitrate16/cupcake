@@ -1700,7 +1700,8 @@ bool parser::checkNullExpression(ASTNode *exp) {
 	if (exp == NULL && !error_) {
 		PARSER_ERROR_RETURN(L"NULL-pointer expression", get(0)->lineno, get(0)->charno);
 		return 1;
-	}
+	} else if (exp == NULL) // silent
+		return 1;
 	return 0;
 };
 

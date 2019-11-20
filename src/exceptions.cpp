@@ -90,7 +90,7 @@ wostream& ck_exceptions::operator<<(wostream& os, const cake& m) {
 		}
 		
 		case cake_type::CK_NATIVE_EXCEPTION: {
-			os << "std::exception: " << m.exception.what() << endl;
+			os << m.exception.what() << endl;
 			break;
 		}
 		

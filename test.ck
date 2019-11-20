@@ -32,6 +32,14 @@ var recursion = function() { recursion(); };
 
 println(keys, keys())
 
+println(Array.keys())
+
+// Segmentation fault (fixed) -> var arr = ['sas', 'huyas], 12,1 21,2,1,2,4,2,4,2,4,3,4,65,7,5,3,23,234,54,423,532,5432,45234,3254]
+var arr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20] // <-- nulls at 9, 19?
+// var arr = ['sas', 'huyas', 12,1 21,2,1,2,4,2,4,2,4,3,4,65,7,5,3,23,234,54,423,532,5432,45234,3254]
+for (var i = 0; i < arr.size(); ++i)
+	println(i, arr[i], arr.size())
+
 // recursion();
 
 /*var lock = {}

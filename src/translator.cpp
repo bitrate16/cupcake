@@ -969,7 +969,7 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 				// val
 				
 				push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR);
-				if (n->type == POS_INC)
+				if (n->type == PRE_INC)
 					push_byte(bytemap, ck_bytecodes::OPT_INC);
 				else
 					push_byte(bytemap, ck_bytecodes::OPT_DEC);
@@ -1026,7 +1026,7 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 				// val
 				
 				push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR);
-				if (n->type == POS_INC)
+				if (n->type == PRE_INC)
 					push_byte(bytemap, ck_bytecodes::OPT_INC);
 				else
 					push_byte(bytemap, ck_bytecodes::OPT_DEC);
@@ -1083,7 +1083,7 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 				// val
 				
 				push_byte(bytemap, ck_bytecodes::UNARY_OPERATOR);
-				if (n->type == POS_INC)
+				if (n->type == PRE_INC)
 					push_byte(bytemap, ck_bytecodes::OPT_INC);
 				else
 					push_byte(bytemap, ck_bytecodes::OPT_DEC);

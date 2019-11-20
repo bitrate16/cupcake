@@ -583,8 +583,9 @@ vobject* ck_executer::exec_bytecode() {
 #endif
 				
 				vector<vobject*> array;
-				for (int i = 0; i < size; ++i)
+				for (int i = 0; i < size; ++i) 
 					array.push_back(vpop());
+				
 				vpush(new Array(array));
 				break;
 			}

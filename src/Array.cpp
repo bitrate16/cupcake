@@ -9,6 +9,7 @@
 #include "objects/Object.h"
 #include "objects/Array.h"
 #include "objects/Bool.h"
+#include "objects/Int.h"
 #include "objects/NativeFunction.h"
 #include "objects/Undefined.h"
 #include "objects/String.h"
@@ -49,6 +50,16 @@ vobject* Array::create_proto() {
 		}));
 	
 	ArrayProto->Object::put(L"size", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->as_type<Array>())
+				return Undefined::instance();
+			
+			return new Int(static_cast<Array*>(__this)->elements.size());
+		}));
+	ArrayProto->Object::put(L"contains", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
 			// Validate __this
 			if (!scope) return Undefined::instance();
@@ -223,29 +234,31 @@ vobject* Array::get(vscope* scope, const wstring& name) {
 	if (name == L"__proto")
 		return ArrayProto;
 	
+	// Integer indexing
 	{
 		#ifndef CK_SINGLETHREAD
 			ck_pthread::mutex_lock lck(mutex());
 		#endif
 		
 		// Check if string is valid number
-		bool is_int = 1;
+		bool is_int = name.size();
 		int chk_ind = 0;
 		if (name[chk_ind] == U'-' || name[chk_ind] == U'+')
 			++chk_ind;
 		for (; chk_ind < name.size(); ++chk_ind)
-			if (U'0' <= name[chk_ind] && U'9' <= name[chk_ind]) {
+			if (name[chk_ind] < U'0' || U'9' < name[chk_ind]) {
 				is_int = 0;
 				break;
 			}
-			
+		
 		if (is_int) {
 			int index = std::stoi(name);
 			if (index < 0)
 				index = ((index % elements.size()) + elements.size()) % elements.size();
 			
 			while (index >= elements.size())
-				elements.push_back(nullptr);
+				index = index % elements.size();
+				// throw ck_exceptions::RangeError(L"Array index out of range");
 			
 			return elements[index];
 		}
@@ -275,7 +288,7 @@ void Array::put(vscope* scope, const wstring& name, vobject* object) {
 		if (name[chk_ind] == U'-' || name[chk_ind] == U'+')
 			++chk_ind;
 		for (; chk_ind < name.size(); ++chk_ind)
-			if (U'0' <= name[chk_ind] && U'9' <= name[chk_ind]) {
+			if (name[chk_ind] < U'0' || U'9' < name[chk_ind]) {
 				is_int = 0;
 				break;
 			}
@@ -315,7 +328,7 @@ bool Array::contains(vscope* scope, const wstring& name) {
 		if (name[chk_ind] == U'-' || name[chk_ind] == U'+')
 			++chk_ind;
 		for (; chk_ind < name.size(); ++chk_ind)
-			if (U'0' <= name[chk_ind] && U'9' <= name[chk_ind]) {
+			if (name[chk_ind] < U'0' || U'9' < name[chk_ind]) {
 				is_int = 0;
 				break;
 			}
@@ -353,7 +366,7 @@ bool Array::remove(vscope* scope, const wstring& name) {
 		if (name[chk_ind] == U'-' || name[chk_ind] == U'+')
 			++chk_ind;
 		for (; chk_ind < name.size(); ++chk_ind)
-			if (U'0' <= name[chk_ind] && U'9' <= name[chk_ind]) {
+			if (name[chk_ind] < U'0' || U'9' < name[chk_ind]) {
 				is_int = 0;
 				break;
 			}
