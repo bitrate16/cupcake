@@ -6,128 +6,7 @@
 #include <cstdio>
 
 #include "ast.h"
-
-namespace ck_token {
-	// Pre-defined type codes
-	const int INTEGER	     = 12; // int
-	const int DOUBLE         = 13; // double
-	const int BOOLEAN        = 14; // bool
-	const int STRING         = 15; // string
-	const int NAME           = 16; // name/key
-	const int TNULL          = 17; // null
-	const int UNDEFINED      = 18; // undefined
-	const int ARRAY          = 19; // array
-	const int OBJECT         = 20; // object
-
-	// Cupcake keywords
-	const int IF             = 47;
-	const int ELSE           = 48;
-	const int SWITCH         = 49;
-	const int CASE           = 50;
-	const int DEFAULT        = 74;
-	const int BREAK          = 51;
-	const int CONTINUE       = 52;
-	const int RETURN         = 53;
-	const int WHILE          = 54;
-	const int DO             = 55;
-	const int FOR            = 56;
-	const int IN             = 57;
-	const int FUNCTION       = 58;
-	const int VAR            = 59;
-	const int TRY            = 60;
-	const int CATCH          = 61;
-	const int THROW          = 62;
-	const int CONST          = 64;
-	const int SAFE           = 65;
-	const int LOCAL          = 67;
-	const int TRUE           = 68;
-	const int FALSE          = 69;
-	const int SELF           = 72;
-	const int THIS           = 73;
-	const int WITH           = 75;
-	
-	// Cupcake operators
-	const int ASSIGN         =  80; // =
-	const int HOOK           =  81; // ?
-	const int COLON          =  82; // :
-	const int DOT            =  83; // .
-	const int COMMA          =  84; // ,
-	const int SEMICOLON      =  85; // ;
-	const int LP             =  86; // (
-	const int RP             =  87; // )
-	const int LB             =  88; // [
-	const int RB             =  89; // ]
-	const int LC             =  90; // {
-	const int RC             =  91; // }
-	const int EQ             =  92; // ==
-	const int NEQ            =  93; // !=
-	const int OR             =  94; // ||
-	const int AND            =  95; // &
-	const int BITOR          =  96; // |
-	const int BITAND         =  97; // &
-	const int BITXOR         =  98; // ^
-	const int GT             =  99; // >
-	const int GE             = 100; // >=
-	const int LT             = 101; // <
-	const int LE             = 102; // <=
-	const int BITRSH         = 103; // <<
-	const int BITLSH         = 104; // >>
-	const int BITURSH        = 105; // <<<
-	const int PLUS           = 106; // +
-	const int MINUS          = 107; // -
-	const int MUL            = 108; // *
-	const int DIV            = 109; // /
-	const int DIR            = 110; // \\ .
-	const int MOD            = 111; // %
-	const int HASH           = 112; // #
-	const int NOT            = 113; // !
-	const int BITNOT         = 114; // ~
-	const int INC            = 115; // ++
-	const int DEC            = 116; // --
-	const int ASSIGN_ADD     = 117; // +=
-	const int ASSIGN_SUB     = 118; // -=
-	const int ASSIGN_MUL     = 119; // *=
-	const int ASSIGN_DIV     = 120; // /=
-	const int ASSIGN_BITRSH  = 121; // >>=
-	const int ASSIGN_BITLSH  = 122; // <<=
-	const int ASSIGN_BITURSH = 123; // <<<=
-	const int ASSIGN_DIR     = 125; // \\=
-	const int ASSIGN_PATH    = 160; // \=
-	const int ASSIGN_MOD     = 126; // %=
-	const int ASSIGN_BITOR   = 127; // |=
-	const int ASSIGN_BITAND  = 128; // &=
-	const int ASSIGN_BITXOR  = 129; // ^=
-	const int PATH           = 130; // \ .
-	const int PUSH           = 131; // ->
-	const int ARROW          = 132; // =>
-	const int DOG            = 152; // @x
-	const int ASSIGN_HASH    = 159; // #=
-	                          
-	const int PRE_INC        = 153; // ++x
-	const int PRE_DEC        = 154; // --x
-	const int POS_INC        = 155; // x++
-	const int POS_DEC        = 156; // x--
-	const int POS            = 157; // +x
-	const int NEG            = 158; // -x
-
-	// Technical tokens
-	const int TEOF          = WEOF;
-	const int TEOL          = U'\n';
-	const int TERR          = 139;
-	const int NONE          = 140;
-
-	// Additional statements & expressions
-	const int FIELD           = 209; // a.field
-	const int MEMBER          = 208; // a[<expression>]
-	const int CALL            = 210; // func(...)
-	const int EMPTY           = 201; // ...
-	const int BLOCK           = 203; // { ... }
-	const int DEFINE          = 205; // var a = ...
-	
-	const int EXPRESSION      = 202;
-	const int ASTROOT         = 206;
-	const int CONDITION       = 207; // ?:
-};
+#include "token.h"
 
 namespace ck_parser {
 	std::wstring token_to_string(int token);
@@ -188,6 +67,9 @@ namespace ck_parser {
 				case ck_token::SELF : os << "self"; break;
 				case ck_token::THIS : os << "this"; break;
 				case ck_token::WITH : os << "with"; break;
+				case ck_token::TYPEOF : os << "typeof"; break;
+				case ck_token::AS : os << "as"; break;
+				case ck_token::ISTYPEOF : os << "istypeof"; break;
 				case ck_token::ASSIGN : os << "="; break;
 				case ck_token::HOOK : os << "?"; break;
 				case ck_token::COLON : os << ":"; break;

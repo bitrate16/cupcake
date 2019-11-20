@@ -16,7 +16,7 @@ using namespace ck_core;
 
 
 static vobject* call_handler(vscope* scope, const vector<vobject*>& args) {
-	throw UnsupportedOperation(L"BytecodeFunction construct uncomplete");
+	throw UnsupportedOperation(L"BytecodeFunction constructor uncomplete");
 };
 
 vobject* BytecodeFunction::create_proto() {

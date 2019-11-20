@@ -83,9 +83,9 @@ static vobject* call_handler(vscope* scope, const vector<vobject*>& args) {
 					// The default behaviour is calling thread cake handler and then finish thread work.
 					
 					vobject* __defcakehandler = root_scope->get(L"__defcakehandler");
-					if (__defcakehandler == nullptr || __defcakehandler->is_typeof<Undefined>() || __defcakehandler->is_typeof<Null>()) {
+					if (__defcakehandler == nullptr || __defcakehandler->as_type<Undefined>() || __defcakehandler->as_type<Null>()) {
 						if (message.get_type_id() == cake_type::CK_OBJECT && message.get_object() != nullptr)
-							if (message.get_object()->is_typeof<Cake>())
+							if (message.get_object()->as_type<Cake>())
 								((Cake*) message.get_object())->print_backtrace();
 							else
 								wcerr << "Unhandled cake: " << message << endl;
@@ -193,7 +193,7 @@ vobject* Thread::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Thread>())
+			if (!__this || !__this->as_type<Thread>())
 				return Undefined::instance();
 			
 			Thread* t = static_cast<Thread*>(__this);
@@ -219,7 +219,7 @@ vobject* Thread::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Thread>())
+			if (!__this || !__this->as_type<Thread>())
 				return Undefined::instance();
 			
 			Thread* t = static_cast<Thread*>(__this);
@@ -245,7 +245,7 @@ vobject* Thread::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Thread>())
+			if (!__this || !__this->as_type<Thread>())
 				return Undefined::instance();
 			
 			Thread* t = static_cast<Thread*>(__this);
@@ -271,7 +271,7 @@ vobject* Thread::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Thread>())
+			if (!__this || !__this->as_type<Thread>())
 				return Undefined::instance();
 			
 			Thread* t = static_cast<Thread*>(__this);
@@ -287,7 +287,7 @@ vobject* Thread::create_proto() {
 			if (!args[0] && !args[1])
 				return Bool::True();
 			
-			if (args[0] && args[1] && args[0]->is_typeof<Thread>() && args[1]->is_typeof<Thread>())
+			if (args[0] && args[1] && args[0]->as_type<Thread>() && args[1]->as_type<Thread>())
 				return Bool::instance(static_cast<Thread*>(args[0])->get_id() == static_cast<Thread*>(args[1])->get_id());
 			
 			return Bool::False();
@@ -300,7 +300,7 @@ vobject* Thread::create_proto() {
 			if (args[0] || args[1])
 				return Bool::True();
 			
-			if (args[0] && args[1] && args[0]->is_typeof<Thread>() && args[1]->is_typeof<Thread>())
+			if (args[0] && args[1] && args[0]->as_type<Thread>() && args[1]->as_type<Thread>())
 				return Bool::instance(static_cast<Thread*>(args[0])->get_id() != static_cast<Thread*>(args[1])->get_id());
 			
 			return Bool::True();

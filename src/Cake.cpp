@@ -56,7 +56,7 @@ vobject* Cake::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Cake>())
+			if (!__this || !__this->as_type<Cake>())
 				return Undefined::instance();
 			
 			static_cast<Cake*>(__this)->print_backtrace();
@@ -67,7 +67,7 @@ vobject* Cake::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Cake>())
+			if (!__this || !__this->as_type<Cake>())
 				return Undefined::instance();
 			
 			Cake* c = static_cast<Cake*>(__this);
@@ -88,7 +88,7 @@ vobject* Cake::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Cake>())
+			if (!__this || !__this->as_type<Cake>())
 				return Undefined::instance();
 			
 			Cake* c = static_cast<Cake*>(__this);
@@ -100,7 +100,7 @@ vobject* Cake::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Cake>())
+			if (!__this || !__this->as_type<Cake>())
 				return Undefined::instance();
 			
 			Cake* c = static_cast<Cake*>(__this);

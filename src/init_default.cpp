@@ -1,4 +1,4 @@
-#include "primary_init.h"
+#include "init_default.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -29,7 +29,7 @@ using namespace ck_vobject;
 static vobject* f_print(vscope* scope, const vector<vobject*>& args) {
 	for (int i = 0; i < args.size(); ++i)
 		if (args[i] != nullptr)
-			if (args[i]->is_typeof<Cake>())
+			if (args[i]->as_type<Cake>())
 				((Cake*) args[i])->print_backtrace();
 			else {
 				if (i == args.size() - 1)
@@ -51,7 +51,7 @@ static vobject* f_print(vscope* scope, const vector<vobject*>& args) {
 static vobject* f_println(vscope* scope, const vector<vobject*>& args) {
 	for (int i = 0; i < args.size(); ++i)
 		if (args[i] != nullptr)
-			if (args[i]->is_typeof<Cake>())
+			if (args[i]->as_type<Cake>())
 				((Cake*) args[i])->print_backtrace();
 			else {
 				if (i == args.size() - 1)
@@ -94,7 +94,7 @@ static vobject* f_gc_objects(vscope* scope, const vector<vobject*>& args) {
 };
 
 
-vscope* ck_objects::primary_init() {
+vscope* ck_objects::init_default() {
 	
 	vscope* scope = new iscope();
 	

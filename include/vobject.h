@@ -31,7 +31,7 @@ namespace ck_vobject {
 		
 		// Utility to convert between types and determine storage type.
 		// Returns pointer to desired type on success, nullptr else.
-		template<typename T, typename std::enable_if<std::is_base_of<vobject, T>::value>::type* = nullptr> T* is_typeof() {
+		template<typename T, typename std::enable_if<std::is_base_of<vobject, T>::value>::type* = nullptr> T* as_type() {
 			return dynamic_cast<T*>(this);
 		};
 		

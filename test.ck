@@ -14,6 +14,20 @@ String
 `
 );
 
+var a = 1;
+
+println(a.__proto.keys())
+println(typeof a)
+println( a istypeof "Int")
+println( a as "Int")
+
+a.__proto.__operator_as = function() {
+	print("hello", '\n')
+	return "Hue hehe"
+};
+
+println( a as "Int")
+
 var recursion = function() { recursion(); };
 
 // recursion();

@@ -26,17 +26,17 @@ static vobject* call_handler(vscope* scope, const vector<vobject*>& args) {
 	if (args.size() == 0)
 		return new Double(0);
 	
-	if (args[0]->is_typeof<String>())
+	if (args[0]->as_type<String>())
 		try {
 			return new Double(std::stod(((String*) args[0])->value()));
 		} catch (...) {
 			return new Double(0);
 		}
 	
-	if (args[0]->is_typeof<Double>())
+	if (args[0]->as_type<Double>())
 		return new Double(((Double*) args[0])->value());
 	
-	if (args[0]->is_typeof<Int>())
+	if (args[0]->as_type<Int>())
 		return new Double(((Int*) args[0])->value());
 		
 	return new Double(args[0]->int_value());

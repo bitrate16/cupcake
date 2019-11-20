@@ -42,7 +42,7 @@ vobject* Object::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Object>())
+			if (!__this || !__this->as_type<Object>())
 				return Undefined::instance();
 			
 			// Validate args
@@ -63,7 +63,7 @@ vobject* Object::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Object>())
+			if (!__this || !__this->as_type<Object>())
 				return Undefined::instance();
 			
 			// Validate args
@@ -81,7 +81,7 @@ vobject* Object::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Object>())
+			if (!__this || !__this->as_type<Object>())
 				return Undefined::instance();
 			
 			std::vector<vobject*> keys;
@@ -120,6 +120,43 @@ vobject* Object::create_proto() {
 	ObjectProto->put(L"__operator!=", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
 			return Bool::instance(!args.size() < 2 || args[0] != args[1]);
+		}));
+	ObjectProto->put(L"__roperator==", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			return Bool::instance(args.size() >= 2 && args[0] == args[1]);
+		}));
+	ObjectProto->put(L"__roperator!=", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			return Bool::instance(!args.size() < 2 || args[0] != args[1]);
+		}));
+	ObjectProto->put(L"__operator_typeof", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (!args.size() || !args[0])
+				return Undefined::instance();
+			
+			return args[0]->get(scope, L"__typename");
+		}));
+	ObjectProto->put(L"__operator_istypeof", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[0])
+				return Undefined::instance();
+			
+			vobject* __typename0 = args[0]->get(scope, L"__typename");
+			vobject* __typename1 = args[1];
+			
+			return Bool::instance(__typename0 == nullptr && __typename1 == nullptr || __typename0 != nullptr && __typename1 != nullptr && __typename0->string_value() == __typename1->string_value());
+		}));
+	ObjectProto->put(L"__operator_as", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			vobject* __typename0 = args[0]->get(scope, L"__typename");
+			vobject* __typename1 = args[1];
+			
+			if (__typename0 == nullptr && __typename1 == nullptr || __typename0 != nullptr && __typename1 != nullptr && __typename0->string_value() == __typename1->string_value()) {
+			return args[0];}
+			return Undefined::instance();
 		}));
 	
 	return ObjectProto;

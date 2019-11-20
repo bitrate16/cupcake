@@ -25,7 +25,7 @@ static vobject* call_handler(vscope* scope, const vector<vobject*>& args) {
 	if (args.size() == 0)
 		return new Bool(0);
 	
-	if (args[0]->is_typeof<String>())
+	if (args[0]->as_type<String>())
 		if (((String*) args[0])->value() == L"false")
 			return new Bool(0);
 		else

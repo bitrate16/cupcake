@@ -53,7 +53,7 @@ vobject* Array::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Array>())
+			if (!__this || !__this->as_type<Array>())
 				return Undefined::instance();
 			
 			// Validate args
@@ -74,7 +74,7 @@ vobject* Array::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Array>())
+			if (!__this || !__this->as_type<Array>())
 				return Undefined::instance();
 			
 			if (static_cast<Array*>(__this)->elements.size()) {
@@ -88,7 +88,7 @@ vobject* Array::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Array>())
+			if (!__this || !__this->as_type<Array>())
 				return Undefined::instance();
 			
 			return Bool::instance(static_cast<Array*>(__this)->elements.size());
@@ -98,7 +98,7 @@ vobject* Array::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Array>())
+			if (!__this || !__this->as_type<Array>())
 				return Undefined::instance();
 			
 			for (int i = 0; i < args.size(); ++i)
@@ -111,7 +111,7 @@ vobject* Array::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Array>())
+			if (!__this || !__this->as_type<Array>())
 				return Undefined::instance();
 			
 			Array* a = static_cast<Array*>(__this);
@@ -126,7 +126,7 @@ vobject* Array::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Array>())
+			if (!__this || !__this->as_type<Array>())
 				return Undefined::instance();
 			
 			Array *a = static_cast<Array*>(__this);
@@ -155,7 +155,7 @@ vobject* Array::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Array>())
+			if (!__this || !__this->as_type<Array>())
 				return Undefined::instance();
 			
 			Array *a = static_cast<Array*>(__this);
@@ -185,13 +185,13 @@ vobject* Array::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<Array>())
+			if (!__this || !__this->as_type<Array>())
 				return Undefined::instance();
 			
 			Array *a = static_cast<Array*>(__this);
 			
 			for (int i = 0; i < args.size(); ++i)
-				if (!args[i] || !args[i]->is_typeof<Array>())
+				if (!args[i] || !args[i]->as_type<Array>())
 					return Undefined::instance();
 				else {
 					Array* b = static_cast<Array*>(args[i]);

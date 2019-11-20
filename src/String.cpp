@@ -25,7 +25,7 @@ static vobject* call_handler(vscope* scope, const vector<vobject*>& args) {
 	if (args.size() == 0)
 		return new String();
 	
-	if (args[0]->is_typeof<String>())
+	if (args[0]->as_type<String>())
 		return new String(((String*) args[0])->value());
 		
 	return new String(args[0]->string_value());
@@ -44,7 +44,7 @@ vobject* String::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<String>())
+			if (!__this || !__this->as_type<String>())
 				return Undefined::instance();
 			
 			String* s = static_cast<String*>(__this);
@@ -56,7 +56,7 @@ vobject* String::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<String>())
+			if (!__this || !__this->as_type<String>())
 				return Undefined::instance();
 			
 			String* s = static_cast<String*>(__this);
@@ -86,7 +86,7 @@ vobject* String::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<String>())
+			if (!__this || !__this->as_type<String>())
 				return Undefined::instance();
 			
 			String* s = static_cast<String*>(__this);
@@ -98,7 +98,7 @@ vobject* String::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<String>())
+			if (!__this || !__this->as_type<String>())
 				return Undefined::instance();
 			
 			String* s = static_cast<String*>(__this);
@@ -110,7 +110,7 @@ vobject* String::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<String>())
+			if (!__this || !__this->as_type<String>())
 				return Undefined::instance();
 			
 			String* s = static_cast<String*>(__this);
@@ -122,7 +122,7 @@ vobject* String::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<String>())
+			if (!__this || !__this->as_type<String>())
 				return Undefined::instance();
 			
 			String* s = static_cast<String*>(__this);
@@ -134,7 +134,7 @@ vobject* String::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<String>())
+			if (!__this || !__this->as_type<String>())
 				return Undefined::instance();
 			
 			String* s = static_cast<String*>(__this);
@@ -146,7 +146,7 @@ vobject* String::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<String>())
+			if (!__this || !__this->as_type<String>())
 				return Undefined::instance();
 			
 			String* s = static_cast<String*>(__this);
@@ -161,7 +161,7 @@ vobject* String::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<String>())
+			if (!__this || !__this->as_type<String>())
 				return Undefined::instance();
 			
 			String* s = static_cast<String*>(__this);
@@ -176,7 +176,7 @@ vobject* String::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<String>())
+			if (!__this || !__this->as_type<String>())
 				return Undefined::instance();
 			
 			String* s = static_cast<String*>(__this);
@@ -191,7 +191,7 @@ vobject* String::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<String>())
+			if (!__this || !__this->as_type<String>())
 				return Undefined::instance();
 			
 			String* s = static_cast<String*>(__this);
@@ -206,7 +206,7 @@ vobject* String::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<String>())
+			if (!__this || !__this->as_type<String>())
 				return Undefined::instance();
 			
 			String* s = static_cast<String*>(__this);
@@ -221,7 +221,7 @@ vobject* String::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<String>())
+			if (!__this || !__this->as_type<String>())
 				return Undefined::instance();
 			
 			String* s = static_cast<String*>(__this);
@@ -236,7 +236,7 @@ vobject* String::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<String>())
+			if (!__this || !__this->as_type<String>())
 				return Undefined::instance();
 			
 			String* s = static_cast<String*>(__this);

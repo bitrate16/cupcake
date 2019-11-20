@@ -55,7 +55,7 @@ vobject* iscope::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<iscope>())
+			if (!__this || !__this->as_type<iscope>())
 				return Undefined::instance();
 			
 			vobject* parent = static_cast<iscope*>(__this)->parent;
@@ -66,7 +66,7 @@ vobject* iscope::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<iscope>())
+			if (!__this || !__this->as_type<iscope>())
 				return Undefined::instance();
 			
 			vobject* root = static_cast<iscope*>(__this)->get_root();
@@ -77,7 +77,7 @@ vobject* iscope::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<iscope>())
+			if (!__this || !__this->as_type<iscope>())
 				return Undefined::instance();
 			
 			// Validate args
@@ -98,7 +98,7 @@ vobject* iscope::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<iscope>())
+			if (!__this || !__this->as_type<iscope>())
 				return Undefined::instance();
 			
 			// Validate args
@@ -116,7 +116,7 @@ vobject* iscope::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<iscope>())
+			if (!__this || !__this->as_type<iscope>())
 				return Undefined::instance();
 			
 			std::vector<vobject*> keys;
@@ -152,12 +152,13 @@ vobject* xscope::create_proto() {
 	//  So it can not be inserted to scope instance and has to be accessed 
 	//   over constant check.
 	ProxyScopeProto->put(L"__typename", new String(L"Scope"));
+	ProxyScopeProto->put(L"__proxy",        Bool::True());
 	ProxyScopeProto->put(L"parent", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<xscope>())
+			if (!__this || !__this->as_type<xscope>())
 				return Undefined::instance();
 			
 			vobject* parent = static_cast<xscope*>(__this)->parent;
@@ -168,7 +169,7 @@ vobject* xscope::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<xscope>())
+			if (!__this || !__this->as_type<xscope>())
 				return Undefined::instance();
 			
 			vobject* root = static_cast<xscope*>(__this)->get_root();
@@ -179,7 +180,7 @@ vobject* xscope::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<xscope>())
+			if (!__this || !__this->as_type<xscope>())
 				return Undefined::instance();
 			
 			// Validate args
@@ -200,7 +201,7 @@ vobject* xscope::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<xscope>())
+			if (!__this || !__this->as_type<xscope>())
 				return Undefined::instance();
 			
 			// Validate args
@@ -219,7 +220,7 @@ vobject* xscope::create_proto() {
 			// Validate __this
 			if (!scope) return Undefined::instance();
 			vobject* __this = scope->get(L"__this", 1);
-			if (!__this || !__this->is_typeof<xscope>())
+			if (!__this || !__this->as_type<xscope>())
 				return Undefined::instance();
 			
 			std::vector<vobject*> keys;

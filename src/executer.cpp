@@ -844,30 +844,35 @@ vobject* ck_executer::exec_bytecode() {
 				
 				// lvalue operator
 				switch (i) {
-					case ck_bytecodes::OPT_ADD    : fun_name = (L"+"); break;
-					case ck_bytecodes::OPT_SUB    : fun_name = (L"-"); break;
-					case ck_bytecodes::OPT_MUL    : fun_name = (L"*"); break;
-					case ck_bytecodes::OPT_DIV    : fun_name = (L"/"); break;
-					case ck_bytecodes::OPT_BITRSH : fun_name = (L">>"); break;
-					case ck_bytecodes::OPT_BITLSH : fun_name = (L"<<"); break;
-					case ck_bytecodes::OPT_BITURSH: fun_name = (L">>>"); break;
-					case ck_bytecodes::OPT_DIR    : fun_name = (L"\\"); break;
-					case ck_bytecodes::OPT_PATH   : fun_name = (L"\\\\"); break;
-					case ck_bytecodes::OPT_MOD    : fun_name = (L"%"); break;
-					case ck_bytecodes::OPT_BITOR  : fun_name = (L"|"); break;
-					case ck_bytecodes::OPT_BITAND : fun_name = (L"&"); break;
-					case ck_bytecodes::OPT_HASH   : fun_name = (L"#"); break;
-					case ck_bytecodes::OPT_EQ     : fun_name = (L"=="); break;
-					case ck_bytecodes::OPT_NEQ    : fun_name = (L"!="); break;
-					case ck_bytecodes::OPT_OR     : fun_name = (L"||"); break;
-					case ck_bytecodes::OPT_AND    : fun_name = (L"&&"); break;
-					case ck_bytecodes::OPT_GT     : fun_name = (L">"); break;
-					case ck_bytecodes::OPT_GE     : fun_name = (L">="); break;
-					case ck_bytecodes::OPT_LT     : fun_name = (L"<"); break;
-					case ck_bytecodes::OPT_LE     : fun_name = (L"<="); break;
-					case ck_bytecodes::OPT_PUSH   : fun_name = (L"=>"); break;
-					case ck_bytecodes::OPT_ARROW  : fun_name = (L"->"); break;
-					case ck_bytecodes::OPT_BITXOR : fun_name = (L"^"); break;
+					case ck_bytecodes::OPT_ADD      : fun_name = (L"+"); break;
+					case ck_bytecodes::OPT_SUB      : fun_name = (L"-"); break;
+					case ck_bytecodes::OPT_MUL      : fun_name = (L"*"); break;
+					case ck_bytecodes::OPT_DIV      : fun_name = (L"/"); break;
+					case ck_bytecodes::OPT_BITRSH   : fun_name = (L">>"); break;
+					case ck_bytecodes::OPT_BITLSH   : fun_name = (L"<<"); break;
+					case ck_bytecodes::OPT_BITURSH  : fun_name = (L">>>"); break;
+					case ck_bytecodes::OPT_BITULSH  : fun_name = (L"<<<"); break;
+					case ck_bytecodes::OPT_DIR      : fun_name = (L"\\\\"); break;
+					case ck_bytecodes::OPT_PATH     : fun_name = (L"\\"); break;
+					case ck_bytecodes::OPT_MOD      : fun_name = (L"%"); break;
+					case ck_bytecodes::OPT_BITOR    : fun_name = (L"|"); break;
+					case ck_bytecodes::OPT_BITAND   : fun_name = (L"&"); break;
+					case ck_bytecodes::OPT_HASH     : fun_name = (L"#"); break;
+					case ck_bytecodes::OPT_EQ       : fun_name = (L"=="); break;
+					case ck_bytecodes::OPT_NEQ      : fun_name = (L"!="); break;
+					case ck_bytecodes::OPT_LEQ      : fun_name = (L"==="); break;
+					case ck_bytecodes::OPT_NLEQ     : fun_name = (L"!=="); break;
+					case ck_bytecodes::OPT_OR       : fun_name = (L"||"); break;
+					case ck_bytecodes::OPT_AND      : fun_name = (L"&&"); break;
+					case ck_bytecodes::OPT_GT       : fun_name = (L">"); break;
+					case ck_bytecodes::OPT_GE       : fun_name = (L">="); break;
+					case ck_bytecodes::OPT_LT       : fun_name = (L"<"); break;
+					case ck_bytecodes::OPT_LE       : fun_name = (L"<="); break;
+					case ck_bytecodes::OPT_PUSH     : fun_name = (L"=>"); break;
+					case ck_bytecodes::OPT_ARROW    : fun_name = (L"->"); break;
+					case ck_bytecodes::OPT_BITXOR   : fun_name = (L"^"); break;
+					case ck_bytecodes::OPT_ISTYPEOF : fun_name = (L"_istypeof"); break;
+					case ck_bytecodes::OPT_AS       : fun_name = (L"_as"); break;
 				}
 				
 				if (ref == nullptr)
@@ -884,11 +889,11 @@ vobject* ck_executer::exec_bytecode() {
 				fun = ref->get(scopes.back(), L"__operator" + fun_name);
 				
 				// Check if it exists
-				if (fun == nullptr || fun->is_typeof<Undefined>() || fun->is_typeof<Null>()) {
+				if (fun == nullptr || fun->as_type<Undefined>() || fun->as_type<Null>()) {
 					// Try to call r-value operator
 					fun = rref->get(scopes.back(), L"__roperator" + fun_name);
 					
-					if (fun == nullptr || fun->is_typeof<Undefined>() || fun->is_typeof<Null>()) 
+					if (fun == nullptr || fun->as_type<Undefined>() || fun->as_type<Null>()) 
 						throw TypeError(L"undefined reference to operator " + fun_name);
 					
 					// Right-side operator has swapped arguments
@@ -1035,13 +1040,14 @@ vobject* ck_executer::exec_bytecode() {
 				
 				// lvalue operator
 				switch (i) {
-					case ck_bytecodes::OPT_DOG   : fun_name = (L"@x"); break;
-					case ck_bytecodes::OPT_NOT   : fun_name = (L"!x"); break;
-					case ck_bytecodes::OPT_BITNOT: fun_name = (L"~x"); break;
-					case ck_bytecodes::OPT_POS   : fun_name = (L"+x"); break;
-					case ck_bytecodes::OPT_NEG   : fun_name = (L"-x"); break;
-					case ck_bytecodes::OPT_INC   : fun_name = (L"++"); break;
-					case ck_bytecodes::OPT_DEC   : fun_name = (L"--"); break;
+					case ck_bytecodes::OPT_DOG   : fun_name = (L"@x");      break;
+					case ck_bytecodes::OPT_NOT   : fun_name = (L"!x");      break;
+					case ck_bytecodes::OPT_BITNOT: fun_name = (L"~x");      break;
+					case ck_bytecodes::OPT_POS   : fun_name = (L"+x");      break;
+					case ck_bytecodes::OPT_NEG   : fun_name = (L"-x");      break;
+					case ck_bytecodes::OPT_INC   : fun_name = (L"++");      break;
+					case ck_bytecodes::OPT_DEC   : fun_name = (L"--");      break;
+					case ck_bytecodes::OPT_TYPEOF: fun_name = (L"_typeof"); break;
 				}
 				
 				if (ref == nullptr)
@@ -1054,7 +1060,7 @@ vobject* ck_executer::exec_bytecode() {
 				fun = ref->get(scopes.back(), L"__operator" + fun_name);
 				
 				// no operator
-				if (fun == nullptr || fun->is_typeof<Undefined>() || fun->is_typeof<Null>()) 
+				if (fun == nullptr || fun->as_type<Undefined>() || fun->as_type<Null>()) 
 					throw TypeError(L"undefined reference to operator " + fun_name);
 				
 				vobject* res = call_object(fun, ref, { ref }, fun_name);
@@ -1483,7 +1489,7 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 	// vscope* scope = nullptr;
 	bool own_scope = 0;
 	
-	if (obj->is_typeof<BytecodeFunction>()) {
+	if (obj->as_type<BytecodeFunction>()) {
 		// Apply new scope
 		BytecodeFunction* f = (BytecodeFunction*) obj;
 		
@@ -1514,7 +1520,7 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 	store_frame(call_stack, call_stack_id, name, own_scope);
 	
 	// Apply script
-	if (obj->is_typeof<BytecodeFunction>())
+	if (obj->as_type<BytecodeFunction>())
 		scripts.push_back(((BytecodeFunction*) obj)->get_script());
 	
 	// Save expected call id
@@ -1522,7 +1528,7 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 	
 	// Do some useless shit
 	
-	if (obj->is_typeof<BytecodeFunction>()) {
+	if (obj->as_type<BytecodeFunction>()) {
 		// Reset pointer to 0 and start
 		pointer = 0;
 		
@@ -1552,7 +1558,7 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 				follow_exception(UnknownException());
 			} 
 		}
-	} else if (obj->is_typeof<NativeFunction>()) {
+	} else if (obj->as_type<NativeFunction>()) {
 		try {
 			obj = ((NativeFunction*) obj)->get_call_wrapper()(scope, args);
 			GIL::current_thread()->clear_blocks();

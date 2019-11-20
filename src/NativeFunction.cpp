@@ -4,6 +4,7 @@
 #include "GIL2.h"
 
 #include "objects/String.h"
+#include "objects/Bool.h"
 
 using namespace std;
 using namespace ck_vobject;
@@ -19,6 +20,7 @@ vobject* NativeFunction::create_proto() {
 	GIL::gc_instance()->attach_root(NativeFunctionProto);
 	
 	NativeFunctionProto->Object::put(L"__typename", new String(L"Function"));	
+	NativeFunctionProto->Object::put(L"__native",       Bool::True());	
 	
 	return NativeFunctionProto;
 };

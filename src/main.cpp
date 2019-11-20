@@ -10,7 +10,7 @@
 #include "script.h"
 #include "sfile.h"
 #include "GIL2.h"
-#include "primary_init.h"
+#include "init_default.h"
 #include "vscope.h"
 #include "ASTPrinter.h"
 
@@ -130,7 +130,7 @@ static void signal_handler(int sig) {
 		//  signal is ignored.
 		
 		vobject* __defsignalhandler = root_scope->get(L"__defsignalhandler");
-		if (__defsignalhandler == nullptr || __defsignalhandler->is_typeof<Undefined>() || __defsignalhandler->is_typeof<Null>()) {
+		if (__defsignalhandler == nullptr || __defsignalhandler->as_type<Undefined>() || __defsignalhandler->as_type<Null>()) {
 			// No handler is found. Default action is terminate.
 			GIL::instance()->stop();
 		} else if (GIL::executer_instance()->late_call_size() == 0)
@@ -235,7 +235,7 @@ int main(int argc, const char** argv) {
 	// Initialize GIL, GC and other root components
 	gil_instance = new GIL(); // <-- all is done inside
 	
-	root_scope = ck_objects::primary_init(); // ?? XXX: Use prototype object for all classes
+	root_scope = ck_objects::init_default(); // ?? XXX: Use prototype object for all classes
 	root_scope->root();
 	
 	Array* __args = new Array();
@@ -277,9 +277,9 @@ int main(int argc, const char** argv) {
 				// The default behaviour is calling thread cake handler and then finish thread work.
 				
 				vobject* __defcakehandler = root_scope->get(L"__defcakehandler");
-				if (__defcakehandler == nullptr || __defcakehandler->is_typeof<Undefined>() || __defcakehandler->is_typeof<Null>()) {
+				if (__defcakehandler == nullptr || __defcakehandler->as_type<Undefined>() || __defcakehandler->as_type<Null>()) {
 					if (message.get_type_id() == cake_type::CK_OBJECT && message.get_object() != nullptr)
-						if (message.get_object()->is_typeof<Cake>())
+						if (message.get_object()->as_type<Cake>())
 							((Cake*) message.get_object())->print_backtrace();
 						else
 							wcerr << "Unhandled cake: " << message << endl;
@@ -372,7 +372,7 @@ int main(int argc, const char** argv) {
 			break;
 		
 		vobject* __defsignalhandler = root_scope->get(L"__defsignalhandler");
-		if (__defsignalhandler == nullptr || __defsignalhandler->is_typeof<Undefined>() || __defsignalhandler->is_typeof<Null>()) {
+		if (__defsignalhandler == nullptr || __defsignalhandler->as_type<Undefined>() || __defsignalhandler->as_type<Null>()) {
 			// No default signal handler
 			GIL::instance()->stop();
 			break;
@@ -405,9 +405,9 @@ int main(int argc, const char** argv) {
 					// The default behaviour is calling thread cake handler and then finish thread work.
 					
 					vobject* __defcakehandler = root_scope->get(L"__defcakehandler");
-					if (__defcakehandler == nullptr || __defcakehandler->is_typeof<Undefined>() || __defcakehandler->is_typeof<Null>())
+					if (__defcakehandler == nullptr || __defcakehandler->as_type<Undefined>() || __defcakehandler->as_type<Null>())
 						if (message.get_type_id() == cake_type::CK_OBJECT && message.get_object() != nullptr)
-							if (message.get_object()->is_typeof<Cake>())
+							if (message.get_object()->as_type<Cake>())
 								((Cake*) message.get_object())->print_backtrace();
 							else
 								wcerr << "Unhandled cake: 	" << message << endl;

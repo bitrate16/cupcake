@@ -44,7 +44,10 @@ std::wstring ck_parser::token_to_string(int token) {
 		 case SELF          : return L"sefl";
 		 case THIS          : return L"this";
 		 case WITH          : return L"with";
-		 case ASSIGN        : return L"assign";
+		 case TYPEOF        : return L"typeof";
+		 case ISTYPEOF      : return L"istypeof";
+		 case AS            : return L"as";
+		 case ASSIGN        : return L"=";
 		 case HOOK          : return L"?";
 		 case COLON         : return L":";
 		 case DOT           : return L".";
@@ -58,6 +61,8 @@ std::wstring ck_parser::token_to_string(int token) {
 		 case RC            : return L"}";
 		 case EQ            : return L"==";
 		 case NEQ           : return L"!=";
+		 case LEQ           : return L"==";
+		 case NLEQ          : return L"!=";
 		 case OR            : return L"||";
 		 case AND           : return L"&&";
 		 case BITOR         : return L"|";
@@ -70,11 +75,13 @@ std::wstring ck_parser::token_to_string(int token) {
 		 case BITRSH        : return L">>";
 		 case BITLSH        : return L"<<";
 		 case BITURSH       : return L">>>";
+		 case BITULSH       : return L"<<<";
 		 case PLUS          : return L"+";
 		 case MINUS         : return L"-";
 		 case MUL           : return L"*";
 		 case DIV           : return L"/";
-		 case DIR           : return L"\\";
+		 case PATH          : return L"\\";
+		 case DIR           : return L"\\\\";
 		 case MOD           : return L"%";
 		 case HASH          : return L"#";
 		 case NOT           : return L"!";
@@ -88,13 +95,13 @@ std::wstring ck_parser::token_to_string(int token) {
 		 case ASSIGN_BITRSH : return L">>=";
 		 case ASSIGN_BITLSH : return L"<<=";
 		 case ASSIGN_BITURSH: return L">>>=";
-		 case ASSIGN_DIR    : return L"\\=";
-		 case ASSIGN_PATH   : return L"\\\\=";
+		 case ASSIGN_BITULSH: return L"<<<=";
+		 case ASSIGN_DIR    : return L"\\\\=";
+		 case ASSIGN_PATH   : return L"\\=";
 		 case ASSIGN_MOD    : return L"%=";
 		 case ASSIGN_BITOR  : return L"|=";
 		 case ASSIGN_BITAND : return L"&=";
 		 case ASSIGN_BITXOR : return L"^=";
-		 case PATH          : return L"\\\\";
 		 case PUSH          : return L"=>";
 		 case ARROW         : return L"->";
 		 case DOG           : return L"@";
@@ -339,6 +346,12 @@ int tokenizer::next_token() {
 			return put(LOCAL);
 		if (svref == L"with")
 			return put(WITH);
+		if (svref == L"as")
+			return put(AS);
+		if (svref == L"typeof")
+			return put(TYPEOF);
+		if (svref == L"istypeof")
+			return put(ISTYPEOF);
 
 		return put(NAME);
 	}
@@ -636,12 +649,20 @@ int tokenizer::next_token() {
 	/* D E L I M I T E R S */ 
 	if (match('>', L'>', L'>', L'='))
 		return put(ASSIGN_BITURSH);
+	if (match('<', L'<', L'<', L'='))
+		return put(ASSIGN_BITULSH);
 	if (match('>', L'>', L'>'))
 		return put(BITURSH);
+	if (match('<', L'<', L'<'))
+		return put(BITULSH);
 	if (match('>', L'>', L'='))
 		return put(ASSIGN_BITRSH);
 	if (match('<', L'<', L'='))
 		return put(ASSIGN_BITLSH);
+	if (match('\\', '\\', L'='))
+		return put(ASSIGN_DIR);
+	if (match('\\', L'='))
+		return put(ASSIGN_PATH);
 	if (match('>', L'>'))
 		return put(BITRSH);
 	if (match('<', L'<'))
@@ -654,6 +675,10 @@ int tokenizer::next_token() {
 		return put(AND);
 	if (match('|', L'|'))
 		return put(OR);
+	if (match('=', L'=', L'='))
+		return put(LEQ);
+	if (match('!', L'=', L'='))
+		return put(NLEQ);
 	if (match('=', L'='))
 		return put(EQ);
 	if (match('!', L'='))
@@ -662,8 +687,8 @@ int tokenizer::next_token() {
 		return put(PUSH);
 	if (match('=', L'>'))
 		return put(ARROW);
-	if (match('/', L'/'))
-		return put(PATH);
+	if (match('\\', L'\\'))
+		return put(DIR);
 	if (match('+', L'+'))
 		return put(INC);
 	if (match('-', L'-'))
@@ -1167,7 +1192,7 @@ ASTNode *parser::unary_expression() {
 	// FRAME:
 	// exp
 	
-	if (match(NOT) || match(BITNOT) || match(PLUS) || match(MINUS) || match(DOG)) {
+	if (match(NOT) || match(BITNOT) || match(PLUS) || match(MINUS) || match(DOG) || match(TYPEOF)) {
 		// ! EXP | ~EXP | -EXP | +EXP | @EXP
 		
 		int token = get(-1)->token;
@@ -1243,7 +1268,7 @@ ASTNode *parser::multiplication_expression() {
 		return NULL;
 	
 	while (1) {
-		if (match(MUL) || match(DIV) || match(HASH) || match(DIR) || match(PATH) || match(MOD) || match(HASH) || match(PUSH)) {
+		if (match(MUL) || match(DIV) || match(HASH) || match(DIR) || match(MOD) || match(HASH) || match(PUSH) || match(AS) || match(ISTYPEOF)) {
 			ASTNode *exp   = new ASTNode(get(-1)->lineno, get(-1)->token);
 			exp->addChild(left);
 			ASTNode *right = unary_expression();
@@ -1305,7 +1330,7 @@ ASTNode *parser::bitwise_shift_expression() {
 		return NULL;
 	
 	while (1) {
-		if (match(BITRSH) || match(BITLSH) || match(BITURSH)) {
+		if (match(BITRSH) || match(BITLSH) || match(BITURSH) || match(BITULSH)) {
 			ASTNode *exp   = new ASTNode(get(-1)->lineno, get(-1)->token);
 			exp->addChild(left);
 			ASTNode *right = addiction_expression();
@@ -1367,7 +1392,7 @@ ASTNode *parser::equality_expression() {
 		return NULL;
 	
 	while (1) {
-		if (match(EQ) || match(NEQ)) {
+		if (match(EQ) || match(NEQ) || match(LEQ) || match(NLEQ)) {
 			ASTNode *exp   = new ASTNode(get(-1)->lineno, get(-1)->token);
 			exp->addChild(left);
 			ASTNode *right = comparison_expression();
@@ -1617,6 +1642,8 @@ ASTNode *parser::assign_expression() {
 		match(ASSIGN_BITLSH)
 		||
 		match(ASSIGN_BITURSH)
+		||
+		match(ASSIGN_BITULSH)
 		||
 		match(ASSIGN_HASH)
 		||
