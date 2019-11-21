@@ -1134,6 +1134,20 @@ vobject* ck_executer::exec_bytecode() {
 				break;
 			}
 			
+			case ck_bytecodes::JMP_IF_NOT_ZERO: {
+				int i; 
+				read(sizeof(int), &i);
+				
+#ifdef DEBUG_OUTPUT
+				wcout << "> JMP_IF_NOT_ZERO [" << i << ']' << endl;
+#endif
+				
+				vobject* o = vpop();
+				if (o != nullptr && o->int_value() != 0)
+					goto_address(i);
+				break;
+			}
+			
 			case ck_bytecodes::JMP: {
 				int i; 
 				read(sizeof(int), &i);

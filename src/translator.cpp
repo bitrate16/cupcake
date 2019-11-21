@@ -1324,7 +1324,7 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 			
 			break;
 		}
-		
+				
 		case CONTINUE: {
 			// jmp_1 --> start
 			// jmp_2 --> end
@@ -1394,6 +1394,49 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 			}
 			
 			break;
+		}
+		
+		case SWITCH: {
+			// PUSH condition
+			// ...
+			
+			// | For each case type
+			// v
+			
+			//  VSTACK_DUP <-- duplicate condition for check
+			//  PUSH case i expression
+			//  OPERATOR [==]
+			//  JMP_IF_ZERO .case_i+1_test <-- matched condition, clear stack
+			//  VSTACK_POP
+			//  JMP .case_i
+			// .case_i+1_test:
+			
+			// | If default exist, inserted after check
+			// v
+			
+			// VSTACK_POP
+			// JMP .default
+			
+			// | If default doesn't exist, inserted after check
+			// v
+			
+			// VSTACK_POP
+			// JMP .sw_end
+			
+			// .case_i:
+			//  ~ BREAK .sw_end
+			
+			// ^
+			// | Sequently, no jump out, in ast seqence
+			// v
+			
+			// .default
+			//  ~ BREAK .sw_end
+			
+			// | Inserted into end
+			// v
+			
+			// .sw_end:
 		}
 		
 		case FUNCTION: {
@@ -2258,6 +2301,13 @@ void ck_translator::print(vector<unsigned char>& bytemap, int off, int offset, i
 				int i; 
 				read(bytemap, k, sizeof(int), &i);
 				wcout << "> JMP_IF_ZERO [" << i << ']' << endl;
+				break;
+			}
+			
+			case ck_bytecodes::JMP_IF_NOT_ZERO: {
+				int i; 
+				read(bytemap, k, sizeof(int), &i);
+				wcout << "> JMP_IF_NOT_ZERO [" << i << ']' << endl;
 				break;
 			}
 			

@@ -31,7 +31,7 @@ namespace ck_bytecodes {
 	const int VSTACK_SWAP2         = 32; // swap stack [top-2] and [top-3]
 	const int VSTATE_PUSH_SCOPE    = 33; // Push scope to scope list
 	const int VSTATE_POP_SCOPE     = 34; // Pop scope from scope list
-	const int JMP_IF_ZERO          = 35; // Jump to [int] address if top of the stack is not zero. stack.pop()
+	const int JMP_IF_ZERO          = 35; // Jump to [int] address if top of the stack is zero. stack.pop()
 	const int JMP                  = 36; // Jump to [int] address.
 	const int BCEND                = 37; // Halts the program
 	const int THROW_NOARG          = 38; // raise;
@@ -43,6 +43,7 @@ namespace ck_bytecodes {
 	const int VSTATE_PUSH_TRY      = 44; // Push try frame
 	const int VSTATE_POP_TRY       = 45; // Pop try frame
 	const int PUSH_THIS            = 46; // Push this scope to stack
+	const int JMP_IF_NOT_ZERO      = 47; // Jump to [int] address if top of the stack is not zero. stack.pop()
 	
 	const int CALL                 = 61; // (<expression>)()  top:[fun, args]
 	const int CALL_NAME            = 62; // var_name()        top:[args]
