@@ -5,50 +5,52 @@
 #include "ast.h"
 
 namespace ck_bytecodes {
-	const int LINENO               = 9; // Marks the lineno change
-	const int NOP                  = 10; // Does nothing.
-	const int PUSH_CONST_INT       = 11; // Push Int
-	const int PUSH_CONST_DOUBLE    = 12; // Push Double
-	const int PUSH_CONST_BOOLEAN   = 13; // Push Bool
-	const int PUSH_CONST_NULL      = 14; // Push Null
-	const int PUSH_CONST_UNDEFINED = 15; // Push Undefined
-	const int PUSH_CONST_STRING    = 16; // Push String
-	const int LOAD_VAR             = 17; // scope.get_var(name)
-	const int VSTACK_POP           = 18; // Pop the value from stack and do nothing with it
-	const int PUSH_CONST_ARRAY     = 19; // Push Array
-	const int PUSH_CONST_OBJECT    = 20; // Push Object
-	const int DEFINE_VAR           = 21; // Define variable vith [top] value in current scope
-	const int VSTACK_DUP           = 22; // Duplicate top of the stack
-	const int LOAD_MEMBER          = 23; // top:[key, ref]
-	const int LOAD_FIELD           = 24; // top:[ref]
-	const int OPERATOR             = 25; // operate with b = stack.top and a = stack.next_to_top as a <opt> b
-	const int STORE_VAR            = 26; // scope.store(name)
-	const int STORE_FIELD          = 27; // top:[value, ref]
-	const int STORE_MEMBER         = 28; // top:[value, key, ref]
-	const int UNARY_OPERATOR       = 29; // Call of unary operator for [top]
-	const int VSTACK_SWAP          = 30; // swap stack [top] and [top-1]
-	const int VSTACK_SWAP1         = 31; // swap stack [top-1] and [top-2]
-	const int VSTACK_SWAP2         = 32; // swap stack [top-2] and [top-3]
-	const int VSTATE_PUSH_SCOPE    = 33; // Push scope to scope list
-	const int VSTATE_POP_SCOPE     = 34; // Pop scope from scope list
-	const int JMP_IF_ZERO          = 35; // Jump to [int] address if top of the stack is zero. stack.pop()
-	const int JMP                  = 36; // Jump to [int] address.
-	const int BCEND                = 37; // Halts the program
-	const int THROW_NOARG          = 38; // raise;
-	const int THROW                = 39; // raise <expression>;
-	const int THROW_STRING         = 40; // raise from translator. ~Eof
-	const int VSTATE_POP_SCOPES    = 41; // Pop N scopes from scope list
-	const int RETURN_VALUE         = 42; // Return value
-	const int PUSH_CONST_FUNCTION  = 43; // Push BytecodeFunction
-	const int VSTATE_PUSH_TRY      = 44; // Push try frame
-	const int VSTATE_POP_TRY       = 45; // Pop try frame
-	const int PUSH_THIS            = 46; // Push this scope to stack
-	const int JMP_IF_NOT_ZERO      = 47; // Jump to [int] address if top of the stack is not zero. stack.pop()
+	const int LINENO               = 12; // Marks the lineno change
+	const int NOP                  = 13; // Does nothing.
+	const int PUSH_CONST_INT       = 14; // Push Int
+	const int PUSH_CONST_DOUBLE    = 15; // Push Double
+	const int PUSH_CONST_BOOLEAN   = 16; // Push Bool
+	const int PUSH_CONST_NULL      = 17; // Push Null
+	const int PUSH_CONST_UNDEFINED = 18; // Push Undefined
+	const int PUSH_CONST_STRING    = 19; // Push String
+	const int LOAD_VAR             = 20; // scope.get_var(name)
+	const int VSTACK_POP           = 21; // Pop the value from stack and do nothing with it
+	const int PUSH_CONST_ARRAY     = 22; // Push Array
+	const int PUSH_CONST_OBJECT    = 23; // Push Object
+	const int DEFINE_VAR           = 24; // Define variable vith [top] value in current scope
+	const int VSTACK_DUP           = 25; // Duplicate top of the stack
+	const int LOAD_MEMBER          = 26; // top:[key, ref]
+	const int LOAD_FIELD           = 27; // top:[ref]
+	const int OPERATOR             = 28; // operate with b = stack.top and a = stack.next_to_top as a <opt> b
+	const int STORE_VAR            = 29; // scope.store(name)
+	const int STORE_FIELD          = 30; // top:[value, ref]
+	const int STORE_MEMBER         = 31; // top:[value, key, ref]
+	const int UNARY_OPERATOR       = 32; // Call of unary operator for [top]
+	const int VSTACK_SWAP          = 33; // swap stack [top] and [top-1]
+	const int VSTACK_SWAP1         = 34; // swap stack [top-1] and [top-2]
+	const int VSTACK_SWAP2         = 35; // swap stack [top-2] and [top-3]
+	const int VSTATE_PUSH_SCOPE    = 36; // Push scope to scope list
+	const int VSTATE_POP_SCOPE     = 37; // Pop scope from scope list
+	const int JMP_IF_ZERO          = 38; // Jump to [int] address if top of the stack is zero. stack.pop()
+	const int JMP_IF_NOT_ZERO      = 39; // Jump to [int] address if top of the stack is not zero. stack.pop()
+	const int JMP                  = 40; // Jump to [int] address.
+	const int BCEND                = 41; // Halts the program
+	const int THROW_NOARG          = 42; // raise;
+	const int THROW                = 43; // raise <expression>;
+	const int THROW_STRING         = 44; // raise from translator. ~Eof
+	const int VSTATE_POP_SCOPES    = 45; // Pop N scopes from scope list
+	const int RETURN_VALUE         = 46; // Return value
+	const int PUSH_CONST_FUNCTION  = 47; // Push BytecodeFunction
+	const int VSTATE_PUSH_TRY      = 48; // Push try frame
+	const int VSTATE_POP_TRY       = 49; // Pop try frame
+	const int PUSH_THIS            = 50; // Push this scope to stack
 	
-	const int CALL                 = 61; // (<expression>)()  top:[fun, args]
-	const int CALL_NAME            = 62; // var_name()        top:[args]
-	const int CALL_FIELD           = 63; // foo.var_name()    top:[ref, args]
-	const int CALL_MEMBER          = 64; // foo["member"]()   top:[key, ref, args]
+	const int CALL                 = 51; // (<expression>)()  top:[fun, args]
+	const int CALL_NAME            = 52; // var_name()        top:[args]
+	const int CALL_FIELD           = 53; // foo.var_name()    top:[ref, args]
+	const int CALL_MEMBER          = 54; // foo["member"]()   top:[key, ref, args]
+	
+	const int CONTAINS_KEY         = 55; // stack.top->contains(key)
 	
 	const int OPT_ADD      = 1;
 	const int OPT_SUB      = 2;

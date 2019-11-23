@@ -1990,6 +1990,24 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 			push_byte(bytemap, ck_bytecodes::PUSH_THIS);
 			break;
 		}
+	
+		case IN: {
+			// CONTAINS_KEY [name]
+			
+			VISIT(n->left);
+			
+			push_byte(bytemap, ck_bytecodes::CONTAINS_KEY);
+			
+			wstring& s = *(wstring*) n->objectlist->object;
+			int size = s.size();
+			
+			push(bytemap, sizeof(int), &size);
+			
+			for (int i = 0; i < size; ++i) {
+				wchar_t c = s[i];
+				push(bytemap, sizeof(wchar_t), &c);
+			}
+		}
 	}
 };
 
@@ -2212,6 +2230,17 @@ void ck_translator::print(vector<unsigned char>& bytemap, int off, int offset, i
 				cstr[size] = 0;
 				
 				wcout << "> CALL_FIELD [" << i << "] [" << cstr << "]" << endl;
+				break;
+			}
+			
+			case ck_bytecodes::CONTAINS_KEY: {
+				int size;
+				read(bytemap, k, sizeof(int), &size);
+				wchar_t cstr[size+1];
+				read(bytemap, k, sizeof(wchar_t) * size, cstr);
+				cstr[size] = 0;
+				
+				wcout << "> CONTAINS_KEY [" << cstr << "]" << endl;
 				break;
 			}
 			

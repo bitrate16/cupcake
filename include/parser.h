@@ -424,6 +424,8 @@ namespace ck_parser {
 		
 		bool match(int token);
 		
+		bool match(int token0, int token1);
+		
 		ck_ast::ASTNode *primaryexp();
 		
 		ck_ast::ASTNode *member_expression();

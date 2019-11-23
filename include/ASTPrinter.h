@@ -564,6 +564,11 @@ void printAST(ck_ast::ASTNode *localroot) { // XXX: how to save line numbers?
 				printAST(localroot->left->next);
 			}
 			break;
+			
+		case ck_token::IN:
+			std::wcout << *(std::wstring*) localroot->objectlist->object << " in ";
+			printAST(localroot->left);
+			break;
 	};
 	
 	putwchar(32);

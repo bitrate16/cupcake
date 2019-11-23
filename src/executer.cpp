@@ -1410,6 +1410,33 @@ vobject* ck_executer::exec_bytecode() {
 				break;
 			}
 			
+			case ck_bytecodes::CONTAINS_KEY: {
+				
+				// .contains() must not lock the gil, or it will fall into object GC corruption.
+				
+				int size;
+				read(sizeof(int), &size);
+				wchar_t cstr[size+1];
+				read(sizeof(wchar_t) * size, cstr);
+				cstr[size] = 0;
+				
+#ifdef DEBUG_OUTPUT
+				wcout << "> CONTAINS_KEY [" << cstr << "]" << endl;
+#endif			
+
+				// Check for valid scope
+				validate_scope();
+				
+				vobject* o = vpop();
+				
+				if (!o) 
+					vpush(Undefined::instance());
+				else
+					vpush(Bool::instance(o->contains(scopes.back(), cstr)));
+				
+				break;
+			}
+			
 			default: throw InvalidState(L"invalid bytecode [" + to_wstring(scripts.back()->bytecode.bytemap[pointer-1]) + L"]");
 		}
 		

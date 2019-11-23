@@ -352,6 +352,8 @@ int tokenizer::next_token() {
 			return put(TYPEOF);
 		if (svref == L"istypeof")
 			return put(ISTYPEOF);
+		if (svref == L"in")
+			return put(IN);
 
 		return put(NAME);
 	}
@@ -814,6 +816,18 @@ bool parser::match(int token) {
 	return 1;	
 };
 
+bool parser::match(int token0, int token1) {
+	if (error_)
+		return 0;
+	
+	if (get(0)->token != token0 || get(1)->token != token1)
+		return 0;
+	
+	next();
+	next();
+	return 1;	
+};
+
 ASTNode *parser::primaryexp() {
 	if (match(TEOF)) 
 		PARSER_ERROR_RETURN(L"EOF Expression", get(0)->lineno, get(0)->charno);
@@ -1263,6 +1277,24 @@ ASTNode *parser::multiplication_expression() {
 	// exp1
 	// exp2
 	
+	// key in a
+	if (match(STRING, IN) || match(NAME, IN)) {
+		// objects: key
+		// nodes: expr
+		std::wstring str = get(-2)->sv;
+		
+		ASTNode *left = expression();
+		if (checkNullExpression(left)) 
+			return NULL;
+		
+		ASTNode *inexpr = new ASTNode(get(-1)->lineno, IN);
+		inexpr->addLastObject(new std::wstring(str));
+		inexpr->addChild(left);
+		
+		return inexpr;
+	}
+	
+	// expr <op> expr
 	ASTNode *left = unary_expression();
 	if (checkNullExpression(left)) 
 		return NULL;
