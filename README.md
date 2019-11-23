@@ -4,11 +4,11 @@ STOP READING ME
 
 TODO:
 -----
-* Thread spawher + signals
 * synchronizwed statement
-* istypeof expression
 * call with object aka: f('foo', 12) { bar: 12, 'baz' : foo }
 * File type
 * Streams
 * GC functions
 * Sytsme functions
+
+![](https://github.com/bitrate16/cupcake/blob/master/пргвоние.jpg)
