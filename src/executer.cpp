@@ -1423,7 +1423,7 @@ vobject* ck_executer::exec_bytecode() {
 				// Check for valid scope
 				validate_scope();
 				
-				vobject* o = vpop();
+				vobject* o = vpop(); // here
 				
 				if (!o) 
 					vpush(Undefined::instance());
