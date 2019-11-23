@@ -38,7 +38,7 @@ GIL::GIL() { // : sync_lock(sync_mutex, sync_condition) {
 	
 	// Create descriptor for current thread & store it as Thread0
 	current_thread_ptr = new ckthread();
-	threads.push_back(current_thread_ptr);
+	threads.push_back(current_thread_ptr); // no lock needed
 	
 	// Create GC instance before any object is created
 	GIL::gc = new GC();
@@ -147,6 +147,9 @@ void* ck_core::thread_spawn_wrapper(void* argv) {
 	
 	// Mark thread as dead
 	GIL::current_thread_ptr->set_running(0);
+	
+	// Lock to delete	
+	ck_pthread::mutex_lock lk(GIL::instance()->threads_mtx());
 	
 	// Remove this thread from list of threads
 	auto& threads = GIL::instance()->threads;

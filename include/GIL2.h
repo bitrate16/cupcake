@@ -148,6 +148,8 @@ namespace ck_core {
 		//  Locked on any conditions because the optimal way to sync is use single mutex.
 		ck_pthread::recursive_mutex sync_mutex;
 		
+		// Mutex used for thread vector synchromized access
+		ck_pthread::recursive_mutex threads_mutex;
 	
 		// Set to 1 if lock is requested by someone
 		bool lock_requested = 0;
@@ -209,6 +211,11 @@ namespace ck_core {
 			return sync_mutex;
 		};
 		
+		// Returns threads_mutex. It has to be locked for safe threads list access
+		inline ck_pthread::recursive_mutex& threads_mtx() {
+			return threads_mutex;
+		};
+		
 		inline bool is_lock_requested() {
 			return lock_requested;
 		};
@@ -218,6 +225,8 @@ namespace ck_core {
 		//  should request GIL lock before call this function.
 		inline static ckthread* thread_by_id(int thread_id) {
 			GIL* gil = GIL::instance();
+			
+			ck_pthread::mutex_lock lk(GIL::instance()->threads_mutex);
 			
 			for (int i = 0; i < gil->threads.size(); ++i)
 				if (gil->threads[i]->get_id() == thread_id)
@@ -315,6 +324,8 @@ namespace ck_core {
 			// Wait for other threads to pause by indicating lock_requested
 			sync_condition.wait(sync_mutex, []() -> bool {
 				// Mutex is locked here, so no threads can dispose or create before it is released.
+			
+				ck_pthread::mutex_lock lk(GIL::instance()->threads_mutex);
 				
 				bool all_locked = 1;
 				if (GIL::instance()->get_threads().size() > 1) {
@@ -358,6 +369,8 @@ namespace ck_core {
 			// Wait for other threads to pause by indicating lock_requested
 			sync_condition.wait(sync_mutex, []() -> bool {
 				// Mutex is locked here, so no threads can dispose or create befure it is released.
+			
+				ck_pthread::mutex_lock lk(GIL::instance()->threads_mutex);
 				
 				bool all_locked = 1;
 				if (GIL::instance()->get_threads().size() > 1) {
@@ -401,6 +414,12 @@ namespace ck_core {
 		// Stops all threads
 		inline void stop() {
 		#ifndef CK_SINGLETHREAD
+			
+			// Unsafe ares that can be called from sgnal processor 
+			//  or any other part that does allow gil lock
+			
+			ck_pthread::mutex_lock lk(threads_mutex);
+			
 			for (int i = 0; i < threads.size(); ++i)
 				threads[i]->set_running(0);
 		#endif
@@ -467,6 +486,9 @@ namespace ck_core {
 			// Lock in here to prevent uninitialized value acccess if thread finishes 
 			//  before it was attached and delached from GIL threads array
 			GIL::instance()->lock();
+			
+			// For thread creation
+			ck_pthread::mutex_lock lk(threads_mutex);
 			
 			thread_spawner_args* args = new thread_spawner_args;
 			args->gil    = this;

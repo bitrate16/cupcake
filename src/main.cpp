@@ -344,7 +344,9 @@ int main(int argc, const char** argv) {
 			//   3. joins GIL::sync_var.wait and unlocks the GIL::unlock().
 			
 			// Waiting for thermal death of the universe
-				
+		
+			ck_pthread::mutex_lock lk(GIL::instance()->threads_mtx());
+			
 			bool universe_is_dead = 1;
 			for (int i = 1; i < GIL::instance()->get_threads().size() && universe_is_dead; ++i) // loop from 1 because main thread index is 0
 				if (GIL::instance()->get_threads()[i]->is_running()) {
@@ -458,6 +460,8 @@ int main(int argc, const char** argv) {
 	GIL::instance()->sync_var().wait(GIL::instance()->sync_mtx(), []() -> bool {
 		
 		// Waiting for thermal death of the universe
+		
+		ck_pthread::mutex_lock lk(GIL::instance()->threads_mtx());
 		
 		bool universe_is_dead = 1;
 		for (int i = 1; i < GIL::instance()->get_threads().size() && universe_is_dead; ++i) // loop from 1 because main thread index is 0
