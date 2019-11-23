@@ -132,6 +132,36 @@ bool ck_executer::read(int size, void* buf) {
 	return 1;
 };
 
+bool ck_executer::read(int size, std::wstring& str) {
+	if (!scripts.back())
+		return 0;
+	
+	if (pointer + size * sizeof(wchar_t) > scripts.back()->bytecode.bytemap.size())
+		return 0;
+	
+	str.assign(reinterpret_cast<wstring::const_pointer>(&scripts.back()->bytecode.bytemap[pointer]), size);
+	pointer += size * sizeof(wchar_t);
+	
+	return 1;
+};
+
+bool ck_executer::read(std::wstring& str) {
+	if (!scripts.back())
+		return 0;
+	
+	int size;
+	if (!read(sizeof(int), &size))
+		return 0;
+	
+	if (pointer + size * sizeof(wchar_t) > scripts.back()->bytecode.bytemap.size())
+		return 0;
+	
+	str.assign(reinterpret_cast<wstring::const_pointer>(&scripts.back()->bytecode.bytemap[pointer]), size);
+	pointer += size * sizeof(wchar_t);
+	
+	return 1;
+};
+
 inline bool ck_executer::is_eof() {
 	return !scripts.back() || pointer >= scripts.back()->bytecode.bytemap.size() || scripts.back()->bytecode.bytemap[pointer] == ck_bytecodes::BCEND || pointer == -1;
 };
@@ -531,36 +561,32 @@ vobject* ck_executer::exec_bytecode() {
 			}
 			
 			case ck_bytecodes::PUSH_CONST_STRING: {
-				int size;
-				read(sizeof(int), &size);
-				wchar_t cstr[size+1];
-				read(sizeof(wchar_t) * size, cstr);
-				cstr[size] = 0;
+				std::wstring str;
+				read(str);
+				
 #ifdef DEBUG_OUTPUT
-				wcout << "> PUSH_CONST[string]: \"" << cstr << '"' << endl;
+				wcout << "> PUSH_CONST[string]: \"" << str << '"' << endl;
 #endif
 				
-				vpush(new String(cstr));
+				vpush(new String(str));
 				break;
 			}
 			
 			case ck_bytecodes::LOAD_VAR: {
-				int size;
-				read(sizeof(int), &size);
-				wchar_t cstr[size+1];
-				read(sizeof(wchar_t) * size, cstr);
-				cstr[size] = 0;
+				std::wstring str;
+				read(str);
+				
 #ifdef DEBUG_OUTPUT
-				wcout << "> LOAD_VAR: " << cstr << endl;
+				wcout << "> LOAD_VAR: " << str << endl;
 #endif
 				
 				// Check for valid scope
 				validate_scope();
 				
 				// Scope should return nullptr if value does not exist.
-				vobject* o = scopes.back()->get(cstr, 1, 1);
+				vobject* o = scopes.back()->get(str, 1, 1);
 				if (o == nullptr)
-					throw TypeError(wstring(L"undefined reference to ") + cstr);
+					throw TypeError(wstring(L"undefined reference to ") + str);
 				
 				vpush(o);
 				break;
@@ -600,23 +626,20 @@ vobject* ck_executer::exec_bytecode() {
 				map<wstring, vobject*> objects;
 				
 				for (int i = 0; i < size; ++i) {
-					int ssize;
-					read(sizeof(int), &ssize);
-					wchar_t cstr[ssize+1];
-					read(sizeof(wchar_t) * ssize, cstr);
-					cstr[ssize] = 0;
+					std::wstring str;
+					read(str);
 					
-					objects[cstr] = vpop();
+					objects[str] = vpop();
 					
 #ifdef DEBUG_OUTPUT
-					wcout << cstr;
+					wcout << str;
 					if (i != size-1)
-						wcout << ", ";
+						str << ", ";
 #endif
 				}
 				
 #ifdef DEBUG_OUTPUT
-				wcout << '}' << endl;
+				str << '}' << endl;
 #endif
 				
 				vpush(new Object(objects));
@@ -631,14 +654,11 @@ vobject* ck_executer::exec_bytecode() {
 #endif
 				
 				for (int i = 0; i < amount; ++i) {
-					int ssize = 0;
-					read(sizeof(int), &ssize);
+					std::wstring str;
+					read(str);
 					
-					wchar_t cstr[ssize+1];
-					read(sizeof(wchar_t) * ssize, cstr);
-					cstr[ssize] = 0;
 #ifdef DEBUG_OUTPUT
-					wcout << cstr;
+					wcout << str;
 #endif
 					
 					unsigned char ops = 0;
@@ -648,12 +668,12 @@ vobject* ck_executer::exec_bytecode() {
 					validate_scope();			
 					
 					if ((ops & 0b1000) == 0) {
-						scopes.back()->put(cstr, Undefined::instance(), 0, 1);
+						scopes.back()->put(str, Undefined::instance(), 0, 1);
 #ifdef DEBUG_OUTPUT
 						wcout << " = [undefined]";
 #endif
 					} else
-						scopes.back()->put(cstr, vpop(), 0, 1);
+						scopes.back()->put(str, vpop(), 0, 1);
 					
 #ifdef DEBUG_OUTPUT
 					if (i != amount-1)
@@ -709,24 +729,22 @@ vobject* ck_executer::exec_bytecode() {
 				int argc; 
 				read(sizeof(int), &argc);
 				
-				int size;
-				read(sizeof(int), &size);
-				wchar_t cstr[size+1];
-				read(sizeof(wchar_t) * size, cstr);
-				cstr[size] = 0;
+				std::wstring str;
+				read(str);
+				
 				
 #ifdef DEBUG_OUTPUT
-				wcout << "> CALL_FIELD [" << argc << "] [" << cstr << ']' << endl;
+				wcout << "> CALL_FIELD [" << argc << "] [" << str << ']' << endl;
 #endif
 				if (objects.size() < argc + 1)
 					throw StackCorruption(L"objects stack corrupted"); 
 				
 				if (objects.back() == nullptr)
-					throw TypeError(wstring(L"undefined reference to ") + cstr);
+					throw TypeError(wstring(L"undefined reference to ") + str);
 					
 				validate_scope();
 					
-				vpush(objects.back()->get(scopes.back(), cstr));
+				vpush(objects.back()->get(scopes.back(), str));
 				// stack: argN..arg0 ref fun
 				
 				// Copy args
@@ -734,7 +752,7 @@ vobject* ck_executer::exec_bytecode() {
 				for (int k = 0; k < argc; ++k)
 					args.push_back(objects.rbegin()[argc-k-1 + 2]);
 				
-				vobject* obj = call_object(objects.back(), objects.rbegin()[1], args, cstr);
+				vobject* obj = call_object(objects.back(), objects.rbegin()[1], args, str);
 				for (int k = 0; k < argc + 2; ++k)
 					objects.pop_back();
 				vpush(obj);
@@ -749,14 +767,12 @@ vobject* ck_executer::exec_bytecode() {
 				int argc; 
 				read(sizeof(int), &argc);
 				
-				int size;
-				read(sizeof(int), &size);
-				wchar_t cstr[size+1];
-				read(sizeof(wchar_t) * size, cstr);
-				cstr[size] = 0;
+				std::wstring str;
+				read(str);
+				
 				
 #ifdef DEBUG_OUTPUT
-				wcout << "> CALL_NAME [" << argc << "] [" << cstr << ']' << endl;
+				wcout << "> CALL_NAME [" << argc << "] [" << str << ']' << endl;
 #endif
 				
 				if (objects.size() < argc)
@@ -764,7 +780,7 @@ vobject* ck_executer::exec_bytecode() {
 					
 				validate_scope();
 					
-				vpush(scopes.back()->get(scopes.back(), cstr));
+				vpush(scopes.back()->get(scopes.back(), str));
 				// stack: argN..arg0 fun
 				
 				// Copy args
@@ -772,7 +788,7 @@ vobject* ck_executer::exec_bytecode() {
 				for (int k = 0; k < argc; ++k)
 					args.push_back(objects.rbegin()[argc-k-1 + 1]);
 				
-				vobject* obj = call_object(objects.rbegin()[0], scopes.back(), args, cstr);
+				vobject* obj = call_object(objects.rbegin()[0], scopes.back(), args, str);
 				for (int k = 0; k < argc + 1; ++k)
 					objects.pop_back();
 				vpush(obj);
@@ -918,43 +934,37 @@ vobject* ck_executer::exec_bytecode() {
 			}
 			
 			case ck_bytecodes::STORE_VAR: {
-				int size;
-				read(sizeof(int), &size);
-				wchar_t cstr[size+1];
-				read(sizeof(wchar_t) * size, cstr);
-				cstr[size] = 0;
+				std::wstring str;
+				read(str);
 				
 				// Check for scope
 				validate_scope();		
 				
-				scopes.back()->put(cstr, vpop(), 1, 1);
+				scopes.back()->put(str, vpop(), 1, 1);
 				
 #ifdef DEBUG_OUTPUT
-				wcout << "> STORE_VAR: " << cstr << endl;
+				wcout << "> STORE_VAR: " << str << endl;
 #endif
 				break;
 			}
 			
 			case ck_bytecodes::STORE_FIELD: {
-				int size;
-				read(sizeof(int), &size);
-				wchar_t cstr[size+1];
-				read(sizeof(wchar_t) * size, cstr);
-				cstr[size] = 0;
+				std::wstring str;
+				read(str);
 				
 				vobject* val = vpop();
 				vobject* ref = vpop();
 				
 				if (ref == nullptr)
-					throw TypeError(L"undefined reference to " + wstring(cstr));
+					throw TypeError(L"undefined reference to " + wstring(str));
 				
 				// Check for scope
 				validate_scope();		
 				
-				ref->put(scopes.back(), cstr, val);
+				ref->put(scopes.back(), str, val);
 				
 #ifdef DEBUG_OUTPUT
-				wcout << "> STORE_FIELD: " << cstr << endl;
+				wcout << "> STORE_FIELD: " << str << endl;
 #endif
 				break;
 			}
@@ -982,24 +992,21 @@ vobject* ck_executer::exec_bytecode() {
 			}
 			
 			case ck_bytecodes::LOAD_FIELD: {
-				int size;
-				read(sizeof(int), &size);
-				wchar_t cstr[size+1];
-				read(sizeof(wchar_t) * size, cstr);
-				cstr[size] = 0;
+				std::wstring str;
+				read(str);
 				
 				vobject* ref = vpop();
 				
 				if (ref == nullptr)
-					throw TypeError(L"undefined reference to " + wstring(cstr));
+					throw TypeError(L"undefined reference to " + wstring(str));
 				
 				// Check for scope
 				validate_scope();		
 				
-				vpush(ref->get(scopes.back(), cstr));
+				vpush(ref->get(scopes.back(), str));
 				
 #ifdef DEBUG_OUTPUT
-				wcout << "> LOAD_FIELD: " << cstr << endl;
+				wcout << "> LOAD_FIELD: " << str << endl;
 #endif
 				break;
 			}
@@ -1193,17 +1200,14 @@ vobject* ck_executer::exec_bytecode() {
 			}
 			
 			case ck_bytecodes::THROW_STRING: {
-				int size;
-				read(sizeof(int), &size);
-				wchar_t cstr[size+1];
-				read(sizeof(wchar_t) * size, cstr);
-				cstr[size] = 0;
+				std::wstring str;
+				read(str);
 				
 #ifdef DEBUG_OUTPUT
-				wcout << "> THROW_STRING: \"" << cstr << '"' << endl;
+				wcout << "> THROW_STRING: \"" << str << '"' << endl;
 #endif
 				
-				throw ObjectCake(new String(cstr));
+				throw ObjectCake(new String(str));
 				
 				break;
 			}
@@ -1250,17 +1254,13 @@ vobject* ck_executer::exec_bytecode() {
 				vector<wstring> argn;
 				
 				for (int i = 0; i < argc; ++i) {
-					int ssize = 0;
-					read(sizeof(int), &ssize);
+					std::wstring str;
+					read(str);
 					
-					wchar_t cstr[ssize+1];
-					read(sizeof(wchar_t) * ssize, cstr);
-					cstr[ssize] = 0;
-					
-					argn.push_back(cstr);
+					argn.push_back(str);
 					
 #ifdef DEBUG_OUTPUT
-					wcout << cstr;
+					wcout << str;
 					
 					if (i != argc-1)
 						wcout << ", ";
@@ -1377,15 +1377,14 @@ vobject* ck_executer::exec_bytecode() {
 					read(sizeof(int), &try_node);
 					read(sizeof(int), &catch_node);
 					read(sizeof(int), &name_size);
-										
-					wchar_t cstr[name_size+1];
-					read(sizeof(wchar_t) * name_size, cstr);
-					cstr[name_size] = 0;
 					
-					handler_name = cstr;
+					std::wstring str;
+					read(str);
+					
+					handler_name = str;
 					
 #ifdef DEBUG_OUTPUT
-					wcout << "> VSTATE_PUSH_TRY [TRY_WITH_ARG] (" << cstr << ") [" << try_node << "] [" << catch_node << ']' << endl;
+					wcout << "> VSTATE_PUSH_TRY [TRY_WITH_ARG] (" << str << ") [" << try_node << "] [" << catch_node << ']' << endl;
 #endif
 				}
 				
@@ -1414,14 +1413,11 @@ vobject* ck_executer::exec_bytecode() {
 				
 				// .contains() must not lock the gil, or it will fall into object GC corruption.
 				
-				int size;
-				read(sizeof(int), &size);
-				wchar_t cstr[size+1];
-				read(sizeof(wchar_t) * size, cstr);
-				cstr[size] = 0;
+				std::wstring str;
+				read(str);
 				
 #ifdef DEBUG_OUTPUT
-				wcout << "> CONTAINS_KEY [" << cstr << "]" << endl;
+				wcout << "> CONTAINS_KEY [" << str << "]" << endl;
 #endif			
 
 				// Check for valid scope
@@ -1432,7 +1428,7 @@ vobject* ck_executer::exec_bytecode() {
 				if (!o) 
 					vpush(Undefined::instance());
 				else
-					vpush(Bool::instance(o->contains(scopes.back(), cstr)));
+					vpush(Bool::instance(o->contains(scopes.back(), str)));
 				
 				break;
 			}

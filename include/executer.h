@@ -131,8 +131,17 @@ namespace ck_core {
 		// Points to the current command address.
 		int pointer = 0;
 		
-		// Reads object from bytemap.
+		// Reads byte block from bytemap.
 		bool read(int size, void* ptr);
+		
+		// Reads string of given size from bytecode.
+		bool read(int size, std::wstring& str);
+		
+		// Reads string from bytecode. 
+		// Must presenve size ang string contents.
+		// [size : int]
+		// [string : bytearray]
+		bool read(std::wstring& str);
 		
 		// Performs bytecode execution in a loop.
 		// Returns value of RETURN bytecode
