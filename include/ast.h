@@ -2,6 +2,9 @@
 
 #include <string>
 
+// Represents single AST tree node entity.
+// Produced with parser class during parsing process.
+
 namespace ck_ast {
 	class ASTObjectList {
 		public:
@@ -83,7 +86,7 @@ namespace ck_ast {
 		
 		~ASTNode();
 		
-		ASTNode *addChild(ASTNode *child) {
+		inline ASTNode *addChild(ASTNode *child) {
 			if (right == NULL)
 				left = right = child;
 			else {
@@ -93,7 +96,7 @@ namespace ck_ast {
 			return this;
 		};
 		
-		ASTNode *addLastChild(ASTNode *child) {
+		inline ASTNode *addLastChild(ASTNode *child) {
 			if (left == NULL)
 				left = right = child;
 			else {
@@ -103,7 +106,7 @@ namespace ck_ast {
 			return this;
 		};
 		
-		ASTNode *addLastObject(void *object) {
+		inline ASTNode *addLastObject(void *object) {
 			if (object != NULL) {
 				ASTObjectList *tmp = objectlist;
 			
@@ -122,7 +125,7 @@ namespace ck_ast {
 			return this;
 		};
 		
-		ASTNode *addFirstObject(void *object) {
+		inline ASTNode *addFirstObject(void *object) {
 			if (object != NULL) {
 				ASTObjectList *tmp = new ASTObjectList(object);
 				tmp->next  = objectlist;
@@ -131,16 +134,16 @@ namespace ck_ast {
 			return this;
 		};
 		
-		ASTNode *setType(int type) {
+		inline ASTNode *setType(int type) {
 			this->type = type;
 			return this;
 		};
 		
-		int getType() {
+		inline int getType() {
 			return this->type;
 		};
 		
-		void dispose() {
+		inline void dispose() {
 			delete this;
 		};
 	};

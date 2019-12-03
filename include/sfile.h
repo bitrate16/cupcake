@@ -107,7 +107,7 @@ namespace ck_sfile {
 			return !absolute_path || path.size() != 0;
 		};
 		
-		sfile get_parent(const sfile& parent_path) const {
+		inline sfile get_parent(const sfile& parent_path) const {
 			if (!has_parent())
 				return sfile();
 			
@@ -181,7 +181,7 @@ namespace ck_sfile {
 		};
 		
 		// Converts given object to string representing file path
-		std::wstring to_string() const {
+		inline std::wstring to_string() const {
 			std::wstring string_path;
 			
 			if (absolute_path) {
@@ -301,7 +301,7 @@ namespace ck_sfile {
 		};
 		
 		
-		static sfile current_directory() {
+		static inline sfile current_directory() {
 			return get_current_working_dir();
 		};
 	};

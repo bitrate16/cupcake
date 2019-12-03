@@ -245,6 +245,12 @@ void printAST(ck_ast::ASTNode *localroot) { // XXX: how to save line numbers?
 			printAST(localroot->right);
 			break;
 			
+		case ck_token::BITULSH:
+			printAST(localroot->left);
+			wprintf(L"<<< ");
+			printAST(localroot->right);
+			break;
+			
 		case ck_token::GT:
 			printAST(localroot->left);
 			wprintf(L"> ");
@@ -278,6 +284,18 @@ void printAST(ck_ast::ASTNode *localroot) { // XXX: how to save line numbers?
 		case ck_token::NEQ:
 			printAST(localroot->left);
 			wprintf(L"!= ");
+			printAST(localroot->right);
+			break;
+			
+		case ck_token::LEQ:
+			printAST(localroot->left);
+			wprintf(L"=== ");
+			printAST(localroot->right);
+			break;
+			
+		case ck_token::NLEQ:
+			printAST(localroot->left);
+			wprintf(L"!== ");
 			printAST(localroot->right);
 			break;
 			
@@ -356,6 +374,12 @@ void printAST(ck_ast::ASTNode *localroot) { // XXX: how to save line numbers?
 		case ck_token::ASSIGN_BITURSH:
 			printAST(localroot->left);
 			wprintf(L">>>= ");
+			printAST(localroot->right);
+			break;
+			
+		case ck_token::ASSIGN_BITULSH:
+			printAST(localroot->left);
+			wprintf(L"<<<= ");
 			printAST(localroot->right);
 			break;
 			

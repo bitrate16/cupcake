@@ -273,23 +273,23 @@ namespace ck_parser {
 		
 		~tokenizer() { delete token; };
 		
-		int white(int c) {
+		inline int white(int c) {
 			return c == ck_token::TEOL || c == U'\n' || c == U'\r' || c == U'\t' || c == U' ' || c == 0x0A || c == 0x0D;
 		};
 
-		int alpha(int c) {
+		inline int alpha(int c) {
 			return (c >= U'a' && c <= U'z') || (c >= U'A' && c <= U'Z') || (c >= U'а' && c <= U'я') || (c >= U'А' && c <= U'Я') || c == '_';
 		};
 
-		int digit(int c) {
+		inline int digit(int c) {
 			return c >= '0' && c <= '9';
 		};
 
-		char strtlc(char c) {
+		inline char strtlc(char c) {
 			return (c >= U'a' && c <= U'z') ? c + U'A' - U'a' : c;
 		};
 
-		int get(int off) {
+		inline int get(int off) {
 			if (off > 4 || off < -4) {
 				printf("PAJOJDA OTDEBAJJE MENYA\n");
 				return -1;
@@ -297,7 +297,7 @@ namespace ck_parser {
 			return buffer[4 + off];
 		};
 
-		int next() {	
+		inline int next() {	
 			if (buffer[4] != ck_token::TEOF)
 				++charno;
 			
@@ -327,7 +327,7 @@ namespace ck_parser {
 			return buffer[4];
 		};
 
-		int put(int token) {
+		inline int put(int token) {
 			this->token->token = token;
 			
 			if (token == ck_token::TRUE || token == ck_token::FALSE) {
@@ -341,35 +341,35 @@ namespace ck_parser {
 			return 1;
 		};
 
-		int match(int charcode0) {
+		inline int match(int charcode0) {
 			if (get(0) != charcode0)
 				return false;
 			next();
 			return true;
 		};
 
-		int match(int charcode0, int charcode1) {
+		inline int match(int charcode0, int charcode1) {
 			if (get(0) != charcode0 || get(1) != charcode1)
 				return false;
 			next(); next();
 			return true;
 		};
 
-		int match(int charcode0, int charcode1, int charcode2) {
+		inline int match(int charcode0, int charcode1, int charcode2) {
 			if (get(0) != charcode0 || get(1) != charcode1 || get(2) != charcode2)
 				return false;
 			next(); next(); next();
 			return true;
 		};
 
-		int match(int charcode0, int charcode1, int charcode2, int charcode3) {
+		inline int match(int charcode0, int charcode1, int charcode2, int charcode3) {
 			if (get(0) != charcode0 || get(1) != charcode1 || get(2) != charcode2 || get(3) != charcode3)
 				return false;
 			next(); next(); next(); next();
 			return true;
 		};
 
-		void clear() {
+		inline void clear() {
 			token->token = ck_token::NONE;
 			token->iv = 0;
 			token->dv = 0.0;
@@ -377,13 +377,13 @@ namespace ck_parser {
 			token->sv = L"";
 		};
 
-		int eof() { 
+		inline int eof() { 
 			return has_eof && sw.eof(); 
 		};
 		
 		int next_token();
 		
-		void set_repl(bool _repl) { 
+		inline void set_repl(bool _repl) { 
 			repl = _repl; 
 		};
 	};

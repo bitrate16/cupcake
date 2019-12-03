@@ -63,14 +63,24 @@ namespace ck_core {
 	
 	// Item representing information about late_call_object
 	struct late_call_instance {
+		// Object to be called
 		ck_vobject::vobject* obj;
+		
+		// Referencing object
 		ck_vobject::vobject* ref;
+		
+		// Calling scope
 		ck_vobject::vscope* scope;
+		
+		// Funciton name
 		std::wstring name;
+		
+		// Arguments list
 		std::vector<ck_vobject::vobject*> args;
 	};
 	
-	// Performs marking all ck_executer objects in current thread onn each GC step.
+	// Performs marking all ck_executer objects in current thread on each GC step.
+	// Used to prevent objects deletion.
 	class ck_executer;
 	class ck_executer_gc_object : public gc_object {
 		ck_executer* exec_instance;
@@ -108,6 +118,7 @@ namespace ck_core {
 		std::vector<ck_vobject::vscope*>  scopes;
 		std::vector<ck_vobject::vobject*> objects;
 		
+		// XXX: Deprecate, move program on new execution stack.
 		// Limit size of summary execution staks:
 		//  sizeof(call_stack) + sizeof(window_stack) < execution_stack_limit
 		int execution_stack_limit = 0; // XXX: Calculate dynamically, depending on stack size
@@ -128,7 +139,7 @@ namespace ck_core {
 		// Appended backtrace, used on threads hierarchy
 		std::vector<ck_exceptions::BacktraceFrame> appended_backtrace;
 		
-		// Points to the current command address.
+		// Points to the current command address in bytemap.
 		int pointer = 0;
 		
 		// Reads byte block from bytemap.
@@ -146,7 +157,7 @@ namespace ck_core {
 		// Performs bytecode execution in a loop.
 		// Returns value of RETURN bytecode
 		//  or nullptr if nothing returned or nothing should be returned.
-		inline ck_vobject::vobject* exec_bytecode();
+		ck_vobject::vobject* exec_bytecode();
 		
 		// Checks if execution reached end or BCEND.
 		bool is_eof();
@@ -154,30 +165,30 @@ namespace ck_core {
 		// Objects stack manipulation
 		
 		// Pop stack [top] or throw stack_corruption
-		inline ck_vobject::vobject* vpop();
+		ck_vobject::vobject* vpop();
 		
 		// Returns [top] witout pop
-		inline ck_vobject::vobject* vpeek();
+		ck_vobject::vobject* vpeek();
 		
 		// Push stack [top]
-		inline void vpush(ck_vobject::vobject*);
+		void vpush(ck_vobject::vobject*);
 		
 		// Swap [top] and [top-1] or throw stack_corruption
-		inline void vswap();
+		void vswap();
 		
 		// Swap [top-1] and [top-2] or throw stack_corruption
-		inline void vswap1();
+		void vswap1();
 		
 		// Swap [top-2] and [top-3] or throw stack_corruption
-		inline void vswap2();
+		void vswap2();
 		
 		// if (scopes.size() == 0 || scopes.back() == nullptr)
 		//	throw StackCorrupted();		
-		inline void validate_scope();
+		void validate_scope();
 		
 		// peek closest try_frame and follow it's catch block by jumping on it.
 		// If no frames in current script left, rethrow message up.
-		inline void follow_exception(const ck_exceptions::cake& msg);
+		void follow_exception(const ck_exceptions::cake& msg);
 		
 		// Store stack frame
 		void store_frame(std::vector<stack_frame>& stack, int stack_id, const std::wstring& name, bool own_scope);
@@ -192,9 +203,11 @@ namespace ck_core {
 		ck_executer();
 		~ck_executer();
 		
+		// XXX: Deprecate
 		// Expected max stack size used for single recursion call
 		static const int def_stack_frame_size = 4096; // In real it is about 2048 bytes, but assuming that additional recursive functions require more than 2048 bytes
 		
+		// XXX: Depracate
 		// Forcibly recalculate stack limits.
 		// Can be used by external libraries to force this executer to 
 		//  recalculate thread stack limits after using set_stack_size.
@@ -220,7 +233,9 @@ namespace ck_core {
 		};
 		
 		// Returns amount of pending late_call functions
-		inline int late_call_size() { return late_call.size(); };
+		inline int late_call_size() { 
+			return late_call.size(); 
+		};
 		
 		// Executes passed script by allocating new stack frame.
 		void execute(ck_core::ck_script* scr);

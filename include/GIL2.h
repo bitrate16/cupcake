@@ -4,10 +4,10 @@
 #include <vector>
 #include <condition_variable>
 #include <atomic>
+#include <functional>
 
 #include "exceptions.h"
 #include "ck_pthread.h"
-#include "lock_queue.h"
 
 
 namespace ck_core {

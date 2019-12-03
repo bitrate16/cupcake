@@ -14,6 +14,7 @@
 // will be safety processed by cupcake try/catch statements.
 // yes, you can throw a cake.
 namespace ck_exceptions {		
+	// Defines type of cake than could be thrown.
 	enum cake_type {
 		// Just an empty message for temporary storing messages ¯\_(ツ)_/¯
 		CK_EMPTY,
@@ -31,7 +32,8 @@ namespace ck_exceptions {
 		// catch(...)
 		CK_UNKNOWN_EXCEPTION
 	};
-		
+	
+	// Represents instance of single backtrace witdow.
 	struct BacktraceFrame {
 		
 		BacktraceFrame() {};
@@ -41,6 +43,10 @@ namespace ck_exceptions {
 		std::wstring function;
 	};
 	
+	// Represents instance of cake in native than can be thrown.
+	// Can wrap instance of ck_objects::Cake.
+	// Can unsafe wrap instance of std::exception.
+	// Can wrap string message and type for error.
 	class cake {
 		
 		// Integer type of a message

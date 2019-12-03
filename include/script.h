@@ -13,7 +13,7 @@ namespace ck_core {
 		
 		ck_script() {};
 		
-		// XXX: Use single durectory path for file and all functions that was created inside it.
+		// XXX: Use single directory path for file and all functions that was created inside it.
 		//       For example, can use clever pointer for reference counting & creating only one 
 		//        copy of path between multiple functions from one file.
 		// Store information about execution directory (absolute path)

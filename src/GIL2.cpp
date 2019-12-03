@@ -10,7 +10,6 @@
 #include "exceptions.h"
 #include "vobject.h"
 #include "GC.h"
-#include "lock_queue.h"
 #include "exceptions.h"
 
 using namespace std;

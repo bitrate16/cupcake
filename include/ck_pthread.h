@@ -5,10 +5,13 @@
 #include <cstring>
 #include <iostream>
 
+// Utility used to work threads in linux / other platforms.
+// On linux uses pthread library, on other platforms nothing.
+
 namespace ck_pthread {
 	
 	// Creates recursive mutex instance and returns a copy.
-	static pthread_mutex_t create_recursive_mutex() {
+	inline static pthread_mutex_t create_recursive_mutex() {
 		pthread_mutex_t mtx;
 		pthread_mutexattr_t mtx_attr;
 
@@ -20,7 +23,7 @@ namespace ck_pthread {
 	};
 	
 	// Creates simple mutex instance and returns a copy.
-	static pthread_mutex_t create_mutex() {
+	inline static pthread_mutex_t create_mutex() {
 		pthread_mutex_t mtx;
 		pthread_mutexattr_t mtx_attr;
 
@@ -32,17 +35,17 @@ namespace ck_pthread {
 	};
 	
 	// Performs mutex lock
-	static inline bool lock(pthread_mutex_t& mtx) {
+	inline static bool lock(pthread_mutex_t& mtx) {
 		return !pthread_mutex_lock(&mtx);
 	};
 	
 	// Performs mutex unlock
-	static inline bool unlock(pthread_mutex_t& mtx) {
+	inline static bool unlock(pthread_mutex_t& mtx) {
 		return !pthread_mutex_unlock(&mtx);
 	};
 	
 	// Performs mutex unlock
-	static inline bool trylock(pthread_mutex_t& mtx) {
+	inline static bool trylock(pthread_mutex_t& mtx) {
 		return !pthread_mutex_trylock(&mtx);
 	};
 	
@@ -70,7 +73,7 @@ namespace ck_pthread {
 			pthread_mutex_destroy(&_mtx);
 		};
 		
-		pthread_mutex_t& mtx() {
+		inline pthread_mutex_t& mtx() {
 			return _mtx;
 		};
 				
@@ -105,7 +108,7 @@ namespace ck_pthread {
 			pthread_mutex_destroy(&_mtx);
 		};
 		
-		pthread_mutex_t& mtx() {
+		inline pthread_mutex_t& mtx() {
 			return _mtx;
 		};
 			
@@ -198,18 +201,18 @@ namespace ck_pthread {
 		
 		// Waiting on the variable.
 		// On cond_var.notify() cond_fun is being executed to check wake conditions.
-		void wait(ck_pthread::mutex& mtx, bool (*cond_fun) ()) {
+		inline void wait(ck_pthread::mutex& mtx, bool (*cond_fun) ()) {
 			while (!cond_fun())
 				pthread_cond_wait(&cv, &mtx.mtx());
 		};
 		
-		void wait(ck_pthread::recursive_mutex& mtx, bool (*cond_fun) ()) {
+		inline void wait(ck_pthread::recursive_mutex& mtx, bool (*cond_fun) ()) {
 			while (!cond_fun())
 				pthread_cond_wait(&cv, &mtx.mtx());
 		};
 		
 		// If passed mutex_lock was not qcquired condition variable will never wait
-		bool wait(ck_pthread::mutex_lock& lk, bool (*cond_fun) ()) {
+		inline bool wait(ck_pthread::mutex_lock& lk, bool (*cond_fun) ()) {
 			if (!lk.is_acquired())
 				return 0;
 			
@@ -220,12 +223,12 @@ namespace ck_pthread {
 		};
 		
 		// Sends signal to current cond_var to wake up atleast one thread and check their conditions.
-		void notify() {
+		inline void notify() {
 			pthread_cond_signal(&cv);
 		};
 		
 		// Sends signal to current cond_var to wake up all threads and check their conditions.
-		void notify_all() {
+		inline void notify_all() {
 			pthread_cond_broadcast(&cv);
 		};
 	};
@@ -262,7 +265,7 @@ namespace ck_pthread {
 				pthread_create(&_thread, &thread_attr, fun, args);
 		};
 		
-		// Returns reference to the native thread
+		// Returns reference to the native pthread_t
 		inline pthread_t& get_thread() {
 			return _thread;
 		};
@@ -284,7 +287,7 @@ namespace ck_pthread {
 		};
 		
 		// Returns instance of current calling thread
-		static inline thread this_thread() {
+		inline static thread this_thread() {
 			thread _this_thread;
 			_this_thread._thread = pthread_self();
 			
@@ -293,7 +296,7 @@ namespace ck_pthread {
 		
 		// Retunrs stack size for this thread.
 		// Returns 0 if error ocurred.
-		size_t get_stack_size() {
+		inline size_t get_stack_size() {
 			size_t stacksize;
 			pthread_attr_t atr;
 			pthread_getattr_np(pthread_self(), &atr);
