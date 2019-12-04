@@ -238,6 +238,7 @@ int main(int argc, const char** argv) {
 	root_scope = ck_objects::init_default(); // ?? XXX: Use prototype object for all classes
 	root_scope->root();
 	
+	// Collect arguments of the program & pass them as __args
 	Array* __args = new Array();
 	for (int i = 2; i < argc; ++i) {
 		std::string tmp(argv[i]);
@@ -456,7 +457,7 @@ int main(int argc, const char** argv) {
 	// Finally wait for all threads to finish if process was terminated via GIL::terminate()
 	GIL::current_thread()->set_running(0);
 	
-	// Main thread starts waiting for other threads to die from he years
+	// Main thread starts waiting for other threads to die from the years
 	GIL::instance()->sync_var().wait(GIL::instance()->sync_mtx(), []() -> bool {
 		
 		// Waiting for thermal death of the universe
@@ -479,11 +480,13 @@ int main(int argc, const char** argv) {
 	delete gil_instance;
 	delete main_script;
 	
+	// Dispose locale
 	delete codecvt;
 	
 	// To allow all detached threads to finish clearing
 	pthread_exit(0);
 	
+	// std::return_0;
 	return 0;
 };
 
