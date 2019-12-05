@@ -20,6 +20,7 @@
 #include "objects/Cake.h"
 #include "objects/NativeFunction.h"
 #include "objects/Thread.h"
+#include "objects/Native.h"
 
 using namespace std;
 using namespace ck_core;
@@ -115,6 +116,7 @@ vscope* ck_objects::init_default() {
 	scope->put(L"Array",            Array           ::create_proto());
 	scope->put(L"Cake",             Cake            ::create_proto());
 	scope->put(L"Thread",           Thread          ::create_proto());
+	scope->put(L"Native",           Native          ::create_proto());
 	
 	// Define other objects and fields
 	scope->put(L"print",   new NativeFunction(f_print));

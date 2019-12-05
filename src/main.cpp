@@ -4,15 +4,18 @@
 #include <locale>
 
 #include "parser.h"
+#include "translator.h"
+#include "sfile.h"
+#include "script.h"
 #include "executer.h"
 #include "exceptions.h"
-#include "translator.h"
-#include "script.h"
-#include "sfile.h"
 #include "GIL2.h"
-#include "init_default.h"
-#include "vscope.h"
+#include "exit_listener.h"
+
 #include "ASTPrinter.h"
+
+#include "vscope.h"
+#include "init_default.h"
 
 #include "objects/Cake.h"
 #include "objects/Int.h"
@@ -20,6 +23,7 @@
 #include "objects/Null.h"
 #include "objects/Array.h"
 #include "objects/String.h"
+
 
 // #define DEBUG_OUTPUT
 
@@ -42,13 +46,13 @@ using namespace ck_objects;
 // About passing vector without reference: https://stackoverflow.com/questions/15120264/when-is-a-vector-copied-when-is-a-reference-passed
 
 // Main-local fields
-static vscope* root_scope;
-static ck_script* main_script;
-static GIL* gil_instance;
+static vscope*      root_scope;
+static ck_script*  main_script;
+static GIL*       gil_instance;
 
 // Signal handling for main thread
-static bool has_signaled;
-static int signaled_number;
+static bool    has_signaled;
+static int  signaled_number;
 
 // https://devarea.com/linux-handling-signals-in-a-multithreaded-application/#.XLsn95gzbIU
 // 
@@ -485,6 +489,11 @@ int main(int argc, const char** argv) {
 	
 	// To allow all detached threads to finish clearing
 	pthread_exit(0);
+	
+	// Fire all exit handlers.
+	// For example, exit handler is used in native loader to unload 
+	//  natives after program disposal.
+	ck_core::ck_exit_listener::strike();
 	
 	// std::return_0;
 	return 0;

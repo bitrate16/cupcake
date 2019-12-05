@@ -6,15 +6,16 @@ SRC_DIR := src
 OBJ_DIR := obj
 SRC_FILES := $(wildcard $(SRC_DIR)/*.cpp)
 OBJ_FILES := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRC_FILES))
-LDFLAGS  := -rdynamic -O3 -std=c++17 -pthread -ldl
-CPPFLAGS := -rdynamic -O3 -std=c++17 -pthread
+LDFLAGS  := -rdynamic -O3 -std=c++17 -pthread -fpermissive
+CPPFLAGS := -rdynamic -O3 -std=c++17 -pthread -fpermissive
 CXXFLAGS := 
+CAAFLAGS := -ldl
 
 ck: $(OBJ_FILES)
-	g++ $(LDFLAGS) -o $@ $^
+	g++ $(LDFLAGS) -o $@ $^ $(CAAFLAGS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
-	g++ $(CPPFLAGS) $(CXXFLAGS) -Iinclude -c -o $@ $<
+	g++ $(CPPFLAGS) $(CXXFLAGS) -Iinclude -c -o $@ $< $(CAAFLAGS)
 	
 clear:
 	rm -rf obj/*

@@ -184,16 +184,19 @@ namespace ck_sfile {
 		inline std::wstring to_string() const {
 			std::wstring string_path;
 			
+			int i = 0;
+			
 			if (absolute_path) {
 #ifdef _WIN32
 				string_path += get_current_working_dir()[0]; // <-- Gets the current drive letter
 				string_path += U':';
+				i = 1;
 #else
 				string_path += U'/';
 #endif
 			}
 
-			for (int i = 0; i < path.size(); ++i) {
+			for (; i < path.size(); ++i) {
 				string_path += path[i]; // <-- Gets the current drive letter
 #ifdef _WIN32
 				string_path += U'\\';
