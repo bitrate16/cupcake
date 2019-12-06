@@ -27,6 +27,7 @@ using namespace ck_core;
 using namespace ck_objects;
 using namespace ck_vobject;
 
+// Print without newline
 static vobject* f_print(vscope* scope, const vector<vobject*>& args) {
 	for (int i = 0; i < args.size(); ++i)
 		if (args[i] != nullptr)
@@ -49,6 +50,7 @@ static vobject* f_print(vscope* scope, const vector<vobject*>& args) {
 	return Undefined::instance();
 };
 
+// Print with newline
 static vobject* f_println(vscope* scope, const vector<vobject*>& args) {
 	for (int i = 0; i < args.size(); ++i)
 		if (args[i] != nullptr)
@@ -73,6 +75,25 @@ static vobject* f_println(vscope* scope, const vector<vobject*>& args) {
 	return Undefined::instance();
 };
 
+// Read single line
+static vobject* f_readln(vscope* scope, const vector<vobject*>& args) {
+	// Read input string
+	std::wstring input;
+	wcin >> input;
+	
+	return new String(input);
+};
+
+// read single character
+static vobject* f_read(vscope* scope, const vector<vobject*>& args) {
+	// Read single character
+	std::wstring s = L" ";
+	wcin >> s[0];
+	
+	return new String(s);
+};
+
+// Do c++ system(cmd);
 static vobject* f_system(vscope* scope, const vector<vobject*>& args) {
 	if (args.size() == 0)
 		return Undefined::instance();
@@ -85,16 +106,18 @@ static vobject* f_system(vscope* scope, const vector<vobject*>& args) {
 	return new Int(status);
 };
 
+// Do stop of the interpreter
 static vobject* f_exit(vscope* scope, const vector<vobject*>& args) {
 	GIL::instance()->stop();
 	return Undefined::instance();
 };
 
+// Get amount of gc objects
 static vobject* f_gc_objects(vscope* scope, const vector<vobject*>& args) {
 	return new Int(GIL::gc_instance()->count());
 };
 
-
+// Initialize default types and functions in root scope
 vscope* ck_objects::init_default() {
 	
 	vscope* scope = new iscope();
@@ -103,9 +126,9 @@ vscope* ck_objects::init_default() {
 	//  By default these values are not destroyed till interpreter finishes it's work.
 	
 	scope->put(L"Object",           Object          ::create_proto());
-	scope->put(L"NativeFunction",   NativeFunction  ::create_proto());
+	scope->put(L"NativeFunction",   NativeFunction  ::create_proto()); // XXX: Merge prototype with Function
 	scope->put(L"Function",         BytecodeFunction::create_proto());
-	scope->put(L"Scope",            iscope          ::create_proto());
+	scope->put(L"Scope",            iscope          ::create_proto()); // XXX: Merge prototype with Scope
 	scope->put(L"XScope",           xscope          ::create_proto());
 	scope->put(L"Undefined",        Undefined       ::create_proto());
 	scope->put(L"Null",             Null            ::create_proto());
@@ -121,7 +144,8 @@ vscope* ck_objects::init_default() {
 	// Define other objects and fields
 	scope->put(L"print",   new NativeFunction(f_print));
 	scope->put(L"println", new NativeFunction(f_println));
-	// Execute native interpreter script command
+	scope->put(L"readln",  new NativeFunction(f_readln));
+	scope->put(L"read",    new NativeFunction(f_read));
 	scope->put(L"system",  new NativeFunction(f_system));
 	scope->put(L"exit",    new NativeFunction(f_exit));
 	

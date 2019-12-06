@@ -46,6 +46,12 @@ for (var i = 0; i < arr.size(); ++i)
 
 print(Native.load('module.so'))
 
+// println(readln())
+// println(read())
+
+println(String.keys())
+println(Array.keys())
+
 /*
 var i = 0
 while(1) {

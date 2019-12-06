@@ -48,9 +48,6 @@ namespace ck_objects {
 			return str;
 		};
 		
-		// Returns length of the string
-		int length();
-		
 		// Returns reference to an index of string
 		wchar_t& operator[](int index);
 		
@@ -63,6 +60,9 @@ namespace ck_objects {
 		// Uncompare two strings
 		bool operator!=(const String&);
 		
+		
+		// Returns length of the string
+		int length();
 		
 		// String operations
 		wchar_t charAt(int index);

@@ -260,6 +260,18 @@ vobject* String::create_proto() {
 			} else
 				return Undefined::instance();
 		}));
+	StringProto->Object::put(L"length", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->as_type<String>())
+				return Undefined::instance();
+			
+			String* s = static_cast<String*>(__this);
+			
+			return new Int(s->length());
+		}));
 	
 	// Operators
 	StringProto->Object::put(L"__operator==", new NativeFunction(
@@ -516,11 +528,6 @@ wstring String::string_value() {
 	return str;
 };
 
-// Returns length of the string
-int String::length() {
-	return str.size();
-};
-
 // Returns reference to an index of string
 wchar_t String::operator[](int index) const {
 	return str[index];
@@ -543,6 +550,11 @@ bool String::operator!=(const String& s) {
 
 
 // String operations
+
+// Returns length of the string
+int String::length() {
+	return str.size();
+};
 
 // Returns char at position.
 //  Returns -1 if out of bounds.
