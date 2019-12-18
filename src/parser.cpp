@@ -1206,7 +1206,7 @@ ASTNode *parser::unary_expression() {
 	// FRAME:
 	// exp
 	
-	if (match(NOT) || match(BITNOT) || match(PLUS) || match(MINUS) || match(DOG) || match(TYPEOF)) {
+	if (match(NOT) || match(BITNOT) || match(PLUS) || match(MINUS) || match(DOG)) {
 		// ! EXP | ~EXP | -EXP | +EXP | @EXP
 		
 		int token = get(-1)->token;
@@ -1217,6 +1217,20 @@ ASTNode *parser::unary_expression() {
 			return NULL;
 		
 		ASTNode *expr = new ASTNode(lineno, token == PLUS ? POS : token == MINUS ? NEG : token);
+		expr->addChild(exp);
+		
+		return expr;						
+	} else if (match(TYPEOF)) { 
+		// typeof EXP
+		
+		int token = get(-1)->token;
+		int lineno = get(-1)->lineno;
+		
+		ASTNode *exp = expression();
+		if (checkNullExpression(exp)) 
+			return NULL;
+		
+		ASTNode *expr = new ASTNode(lineno, token);
 		expr->addChild(exp);
 		
 		return expr;						

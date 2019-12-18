@@ -151,7 +151,7 @@ static void signal_handler(int sig) {
 	// GIL::instance()->notify();
 };
 
-int main(int argc, const char** argv) {
+int main(int argc, const char** argv, char** envp) {
 	// Set up locales
 	setlocale(LC_ALL, "");
 	
@@ -160,11 +160,17 @@ int main(int argc, const char** argv) {
 	auto codecvt = new std::codecvt_utf8<wchar_t>();
 	std::locale utf8_locale(empty_locale, codecvt); 
 	
+	// std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+	// std::string narrow = converter.to_bytes(wide_utf16_source_string);
+	// std::wstring wide = converter.from_bytes(narrow_utf8_source_string);
+	
 	// Apply locale on stdin
 	wcin.imbue(utf8_locale);
 	
 	// Apply locale on stdout
 	wcout.imbue(utf8_locale);
+	
+	// Apply locale on stderr
 	wcerr.imbue(utf8_locale);
 	
 	// Preserve file name
@@ -242,13 +248,22 @@ int main(int argc, const char** argv) {
 	root_scope = ck_objects::init_default(); // ?? XXX: Use prototype object for all classes
 	root_scope->root();
 	
+	// Create converter between UTF8 and UTF16 characters.
+	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+	
 	// Collect arguments of the program & pass them as __args
 	Array* __args = new Array();
-	for (int i = 2; i < argc; ++i) {
-		std::string tmp(argv[i]);
-		__args->items().push_back(new String(std::wstring(tmp.begin(), tmp.end())));
-	}
+	for (int i = 0; i < argc; ++i)
+		__args->items().push_back(new String(converter.from_bytes(argv[i])));
+	
 	root_scope->put(L"__args", __args);
+	
+	// Collect environment values & pass them as __env
+	Array* __env = new Array();
+	for (int i = 0; envp[i]; ++i) 
+		__env->items().push_back(new String(converter.from_bytes(envp[i])));
+	
+	root_scope->put(L"__env", __env);
 	
 	// Set up signals handling
 	for (int i = 0; i < 64; ++i)

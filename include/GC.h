@@ -18,8 +18,8 @@ namespace ck_core {
 		
 		// Let's look like it is private
 		//  Else that's not my problem if you delete it from somewhere.
-		void operator delete  (void* ptr);
-		void operator delete[](void* ptr);
+		// void operator delete  (void* ptr);
+		// void operator delete[](void* ptr);
 		
 		gc_object();
 		

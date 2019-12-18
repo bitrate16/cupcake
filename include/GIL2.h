@@ -70,17 +70,17 @@ namespace ck_core {
 		};
 		
 		// Set running state
-		inline bool set_running(bool is_running) {
+		inline void set_running(bool is_running) {
 			running = is_running;
 		};
 		
 		// Set blocked by i/o 
-		inline bool set_blocked(bool is_blocked) {
+		inline void set_blocked(bool is_blocked) {
 			blocked = is_blocked;
 		};
 		
 		// Set locked by other threads 
-		inline bool set_locked(bool is_locked) {
+		inline void set_locked(bool is_locked) {
 			locked = is_locked;
 		};
 		

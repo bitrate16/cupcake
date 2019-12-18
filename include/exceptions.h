@@ -148,9 +148,9 @@ namespace ck_exceptions {
 		return cake(o);
 	};
 	
-	static inline cake NativeException(const std::exception& ex) {
-		return cake(ex);
-	};
+	// static inline cake NativeException(const std::exception& ex) {
+	// 	return cake(ex);
+	// };
 	
 	static inline cake UnknownException() {
 		return cake(L"", L"", CK_UNKNOWN_EXCEPTION);
@@ -188,6 +188,13 @@ namespace ck_exceptions {
 	
 	static inline cake UnsupportedOperation(const std::wstring& message = L"") {
 		return cake(L"UnsupportedOperation", message);
+	};
+	
+	// Rethrow native exception
+	static inline cake NativeException(const std::exception& rethrow_exception) {
+		std::string message_string(rethrow_exception.what());
+		std::wstring message_wstring(message_string.begin(), message_string.end());
+		return cake(L"NativeException", message_wstring);
 	};
 	
 	// i.e. Bad_Alloc

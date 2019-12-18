@@ -47,15 +47,15 @@ void* gc_object::operator new[](std::size_t count) {
 	}
 };
 
-void gc_object::operator delete  (void* ptr) {
-	// Assuming that operator delete is not accessible
-	::delete(ptr);
-};
-
-void gc_object::operator delete[](void* ptr) {
-	// Assuming that operator delete is not accessible
-	::delete[](ptr);
-};
+// void gc_object::operator delete  (void* ptr) {
+// 	// Assuming that operator delete is not accessible
+// 	::delete(ptr);
+// };
+// 
+// void gc_object::operator delete[](void* ptr) {
+// 	// Assuming that operator delete is not accessible
+// 	::delete[](ptr);
+// };
 
 
 // gc_list

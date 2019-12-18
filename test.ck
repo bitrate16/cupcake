@@ -4,6 +4,11 @@ println('UsedStackSize = ', Thread.getUsedStackSize());
 // println('StackSize     = ', Thread.getStackSize());
 // println('UsedStackSize = ', Thread.getUsedStackSize());
 
+println('__args = ' + __args)
+println('__args[0] ', __args[0])
+
+println('__env = ' + __env)
+
 var obj = { foo: 'bar' }
 
 println('foo in obj =', foo in obj, obj.keys())

@@ -252,13 +252,16 @@ vobject* Array::get(vscope* scope, const wstring& name) {
 			}
 		
 		if (is_int) {
+			
+			if (!elements.size())
+				throw ck_exceptions::RangeError(L"Array index out of range");
+			
 			int index = std::stoi(name);
 			if (index < 0)
 				index = ((index % elements.size()) + elements.size()) % elements.size();
 			
 			while (index >= elements.size())
 				index = index % elements.size();
-				// throw ck_exceptions::RangeError(L"Array index out of range");
 			
 			return elements[index];
 		}
@@ -295,12 +298,16 @@ void Array::put(vscope* scope, const wstring& name, vobject* object) {
 		
 		// If valid integer
 		if (is_int) {
+			
+			if (!elements.size())
+				throw ck_exceptions::RangeError(L"Array index out of range");
+			
 			int index = std::stoi(name);
 			if (index < 0)
 				index = ((index % elements.size()) + elements.size()) % elements.size();
 			
-			while (index >= elements.size())
-				elements.push_back(nullptr);
+			// while (index >= elements.size())
+			// 	elements.push_back(nullptr);
 			
 			elements[index] = object;
 			return;
@@ -336,6 +343,7 @@ bool Array::contains(vscope* scope, const wstring& name) {
 		// If valid integer
 		if (is_int) {
 			int index = std::stoi(name);
+			
 			if (index < 0)
 				return 0;
 			
@@ -377,8 +385,11 @@ bool Array::remove(vscope* scope, const wstring& name) {
 			if (index < 0)
 				index = ((index % elements.size()) + elements.size()) % elements.size();
 			
-			while (index >= elements.size())
-				return 0;
+			if (index == elements.size())
+				throw ck_exceptions::RangeError(L"Array index out of range");
+			
+			// while (index >= elements.size())
+			// 	return 0;
 			
 			elements.erase(elements.begin() + index);
 			return 1;
