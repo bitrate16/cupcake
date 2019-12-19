@@ -173,6 +173,9 @@ int main(int argc, const char** argv, char** envp) {
 	// Apply locale on stderr
 	wcerr.imbue(utf8_locale);
 	
+	// Create converter between UTF8 and UTF16 characters.
+	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+	
 	// Preserve file name
 	wstring wfilename;
 	std::wifstream file;
@@ -184,8 +187,7 @@ int main(int argc, const char** argv, char** envp) {
 		wfilename = L"cake.ck";
 	} else {
 		file = std::wifstream(argv[1]);
-		std::string tmp(argv[1]);
-		wfilename = std::wstring(tmp.begin(), tmp.end());
+		wfilename = converter.from_bytes(argv[1]);
 	}
 	
 	// Preserve whitespaces for parser
@@ -247,9 +249,6 @@ int main(int argc, const char** argv, char** envp) {
 	
 	root_scope = ck_objects::init_default(); // ?? XXX: Use prototype object for all classes
 	root_scope->root();
-	
-	// Create converter between UTF8 and UTF16 characters.
-	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
 	
 	// Collect arguments of the program & pass them as __args
 	Array* __args = new Array();
