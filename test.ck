@@ -1,5 +1,18 @@
+
+
 println('StackSize     = ', Thread.getStackSize());
 println('UsedStackSize = ', Thread.getUsedStackSize());
+
+/*var counter = 0;
+var r = function() {
+	if (counter > 20000)
+		println(counter);
+	++counter;
+	r() 
+}
+r()
+*/
+
 // println('SetStackSize  = ', Thread.setStackSize(4000));
 // println('StackSize     = ', Thread.getStackSize());
 // println('UsedStackSize = ', Thread.getUsedStackSize());
@@ -8,6 +21,12 @@ println('__args = ' + __args)
 println('__args[0] ', __args[0])
 
 println('__env = ' + __env)
+
+var __env_split = [];
+for (var i = 0; i < __env.size(); ++i)
+	__env_split.append(__env[i].split('='))
+println('__env_split = ' + __env_split)
+
 
 var obj = { foo: 'bar' }
 

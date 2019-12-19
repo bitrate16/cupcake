@@ -102,7 +102,8 @@ namespace ck_core {
 		// Allow exceptions collect backtrace
 		friend class ck_objects::Cake;
 		friend class ck_exceptions::cake;
-		// Allow gc object mark objects on stack
+		
+		// Allow GC object mark objects on stack
 		friend class ck_executer_gc_object;
 		
 		ck_executer_gc_object* gc_marker;
@@ -117,12 +118,6 @@ namespace ck_core {
 		std::vector<ck_core::ck_script*>  scripts;
 		std::vector<ck_vobject::vscope*>  scopes;
 		std::vector<ck_vobject::vobject*> objects;
-		
-		// XXX: Deprecate, move program on new execution stack.
-		// Limit size of summary execution staks:
-		//  sizeof(call_stack) + sizeof(window_stack) < execution_stack_limit
-		int execution_stack_limit = 0; // XXX: Calculate dynamically, depending on stack size
-		// int try_stack_limit       = 0; // unused due no limits on exceptions
 		
 		// Id's of stacks		
 		const int call_stack_id    = 13;
@@ -201,23 +196,8 @@ namespace ck_core {
 	public:
 		
 		ck_executer();
+		
 		~ck_executer();
-		
-		// XXX: Deprecate
-		// Expected max stack size used for single recursion call
-		static const int def_stack_frame_size = 4096; // In real it is about 2048 bytes, but assuming that additional recursive functions require more than 2048 bytes
-		
-		// XXX: Depracate
-		// Forcibly recalculate stack limits.
-		// Can be used by external libraries to force this executer to 
-		//  recalculate thread stack limits after using set_stack_size.
-		void calculate_stack_limits();
-		
-		// Returns limit for current stack size
-		inline int get_stack_size_limit() { return execution_stack_limit; };
-		
-		// Returns currently used stack space
-		inline int get_stack_usage() { return call_stack.size() + window_stack.size(); };
 		
 		// Returns line number of pointer to command
 		int lineno();

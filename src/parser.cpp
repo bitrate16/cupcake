@@ -250,20 +250,12 @@ int tokenizer::next_token() {
 			}
 		} else if (c == L'/' && c1 == L'*') {
 			// Skip all code till L'*' L'/' sequence
-			// Warning: L'*/' may be hidden in string. That must be ignored
-			int q0 = false; // L' - quote
-			int q1 = false; // " - quote
 			int closed = false;
-			// \/--- !(c == L'*' && c1 == L'/' && !q0 && !q1) &&
 			while (c != TEOF) {
 				c = next();
 				c1 = get(1);
-				if (c1 == L'\'' && !q1)
-					q0 = !q0;
-				if (c1 == L'\"' && !q0)
-					q1 = !q1;
 
-				if (c == L'*' && c1 == L'/' && !q0 && !q1) {
+				if (c == L'*' && c1 == L'/') {
 					closed = true;
 					c = next();
 					c = next();
@@ -271,6 +263,30 @@ int tokenizer::next_token() {
 					break;
 				}
 			}
+			
+			
+			// Skip all code till L'*' L'/' sequence
+			// Warning: L'*/' may be hidden in string. That must be ignored
+			// int q0 = false; // L' - quote
+			// int q1 = false; // " - quote
+			// int closed = false;
+			// // \/--- !(c == L'*' && c1 == L'/' && !q0 && !q1) &&
+			// while (c != TEOF) {
+			// 	c = next();
+			// 	c1 = get(1);
+			// 	if (c1 == L'\'' && !q1)
+			// 		q0 = !q0;
+			// 	if (c1 == L'\"' && !q0)
+			// 		q1 = !q1;
+			// 
+			// 	if (c == L'*' && c1 == L'/' && !q0 && !q1) {
+			// 		closed = true;
+			// 		c = next();
+			// 		c = next();
+			// 		c1 = get(1);
+			// 		break;
+			// 	}
+			// }
 
 			if (!closed) TOKENIZER_ERROR(L"block comment expected to be closed", lineno, charno)
 		}

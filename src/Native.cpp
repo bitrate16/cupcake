@@ -131,10 +131,11 @@ bool Native::load(const std::wstring& filename, ck_vobject::vscope* scope, const
 		
 		if (!onload_f) {
 			dlclose(module);
-		NativeProto->unlock();
+			NativeProto->unlock();
 			return 0;
 		}
 		
+		// Try to perform load
 		onload_f(scope, args);
 		
 		Module nmodule;

@@ -142,12 +142,16 @@ vscope* ck_objects::init_default() {
 	scope->put(L"Native",           Native          ::create_proto());
 	
 	// Define other objects and fields
+	// I O
 	scope->put(L"print",   new NativeFunction(f_print));
 	scope->put(L"println", new NativeFunction(f_println));
 	scope->put(L"readln",  new NativeFunction(f_readln));
 	scope->put(L"read",    new NativeFunction(f_read));
-	scope->put(L"system",  new NativeFunction(f_system));
+	
+	// P R O C E S S
 	scope->put(L"exit",    new NativeFunction(f_exit));
+	
+	scope->put(L"system",  new NativeFunction(f_system));
 	
 	return scope;
 };

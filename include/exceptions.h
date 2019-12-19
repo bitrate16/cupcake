@@ -4,6 +4,8 @@
 #include <iostream>
 #include <string>
 #include <cwchar>
+#include <codecvt>
+#include <locale>
 
 #include <vobject.h>
 
@@ -21,13 +23,11 @@ namespace ck_exceptions {
 		
 		// Any kind of thrown cakes.
 		// It might be runtime error, invalid state, e.t.c.
+		// Contains .what() for std::exception
 		CK_CAKE, // + type + string
 		
 		// Thrown by sctipt raise statement or any king of rethrowing vobject*
 		CK_OBJECT, // + vobject
-		
-		// Message is a copy of std::exception
-		CK_NATIVE_EXCEPTION,
 		
 		// catch(...)
 		CK_UNKNOWN_EXCEPTION
@@ -58,10 +58,8 @@ namespace ck_exceptions {
 		// String message telling something about the error
 		std::wstring message;
 		
-		// Copy of axception
-		std::exception exception;
-		
-		// Pointer to thrown object
+		// Pointer to thrown object.
+		// Must be rethrown only in save non-locked cuntext to avoid deletion by GC.
 		ck_vobject::vobject* object;
 		
 		// Marks that instance of cake contains backtrace
@@ -72,32 +70,37 @@ namespace ck_exceptions {
 	public:		
 	
 		// Empty initializer
-		cake() throw() : type_id(CK_EMPTY) {};
+		cake() : type_id(CK_EMPTY) {};
 		
 		// Rehandling std::exception (unsafe) or catch(...)
-		cake(const std::exception& ex) throw() : 
-											exception(ex), 
-											type_id(CK_NATIVE_EXCEPTION) {};
+		cake(const std::exception& ex) : 
+										type(L"NativeException"), 
+										type_id(CK_CAKE) {
+			
+			// Convert to wstring
+			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+			message = converter.from_bytes(ex.what());
+		};
 		
 		// Used by RuntimeCake(type, message, type_id)
-		cake(const std::wstring& _type, const std::wstring& _message = L"", cake_type _type_id = CK_CAKE) throw() : 
-																												type(_type), 
-																												message(_message), 
-																												type_id(_type_id) {};
+		cake(const std::wstring& _type, const std::wstring& _message = L"", cake_type _type_id = CK_CAKE) : 
+																										type(_type), 
+																										message(_message), 
+																										type_id(_type_id) {};
 		
 		// Typed message with object
-		cake(ck_vobject::vobject* object) throw() : 
-												object(object), 
-												type_id(CK_OBJECT) {};
+		cake(ck_vobject::vobject* object) : 
+										object(object), 
+										type_id(CK_OBJECT) {};
 												
 		cake(const cake& c) {
 			type_id = c.type_id;
-			type = c.type;
+			type    = c.type;
 			message = c.message;
-			exception = c.exception;
-			object = c.object;
+			object  = c.object;
+			
 			contains_backtrace = c.contains_backtrace;
-			backtrace = c.backtrace;
+			backtrace          = c.backtrace;
 		};
 		
 		// Perform collection of backtrace for current executer instance.
@@ -128,10 +131,6 @@ namespace ck_exceptions {
 			return message;
 		};
 		
-		inline const std::exception& get_exception() const {
-			return exception;
-		};
-		
 		inline ck_vobject::vobject* get_object() const {
 			return object;
 		};
@@ -147,10 +146,6 @@ namespace ck_exceptions {
 	static inline cake ObjectCake(ck_vobject::vobject* o) {
 		return cake(o);
 	};
-	
-	// static inline cake NativeException(const std::exception& ex) {
-	// 	return cake(ex);
-	// };
 	
 	static inline cake UnknownException() {
 		return cake(L"", L"", CK_UNKNOWN_EXCEPTION);

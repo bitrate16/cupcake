@@ -229,13 +229,6 @@ Cake::Cake(const cake& c) {
 			break;
 		}
 		
-		case cake_type::CK_NATIVE_EXCEPTION: {
-			type = L"NativeException";
-			string what = c.get_exception().what();
-			message = wstring(what.begin(), what.end());
-			break;
-		}
-		
 		case cake_type::CK_UNKNOWN_EXCEPTION: {
 			type = L"UnknownException";
 			break;

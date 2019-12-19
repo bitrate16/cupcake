@@ -5,6 +5,7 @@
 #include "exceptions.h"
 #include "GIL2.h"
 #include "executer.h"
+#include "stack_locator.h"
 
 #include "objects/Object.h"
 #include "objects/Int.h"
@@ -147,16 +148,22 @@ vobject* Thread::create_proto() {
 			return new Thread();
 		}));
 		
-	// Returns total stack size in frames
+	// Returns total stack size in bytes
 	ThreadProto->Object::put(L"getStackSize", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
-			return new Int(GIL::executer_instance()->get_stack_size_limit());
+			return new Int(ck_core::stack_locator::get_stack_size());
 		}));
 	
-	// Returns used stack space in frames
+	// Returns used stack space in bytes
 	ThreadProto->Object::put(L"getUsedStackSize", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
-			return new Int(GIL::executer_instance()->get_stack_size_limit());
+			return new Int(ck_core::stack_locator::get_stack_position());
+		}));
+	
+	// Returns used stack space in bytes
+	ThreadProto->Object::put(L"getRemainingStackSize", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			return new Int(ck_core::stack_locator::get_stack_remaining());
 		}));
 	
 	/*

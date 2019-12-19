@@ -7,6 +7,7 @@
 #include "vobject.h"
 #include "script.h"
 #include "translator.h"
+#include "stack_locator.h"
 
 #include "vscope.h"
 #include "objects/Object.h"
@@ -91,33 +92,12 @@ ck_executer::ck_executer() {
 	// Will be disposed by GC.
 	gc_marker = new ck_executer_gc_object(this);
 	GIL::gc_instance()->attach_root(gc_marker);
-		
-	// Limit size of total stack usage when calculating
-	//  call, try and windows stacks sizes in constructor.
-	// ck_constants::ck_executer::def_system_stack_offset
-	
-	// Assuming that exec_bytecode, call_object and executer summary takes no more than 1024 bytes.
-	// ck_constants::ck_executer::def_stack_frame_size;
-	
-	calculate_stack_limits();
 };
 
 ck_executer::~ck_executer() {
 	GIL::gc_instance()->deattach_root(gc_marker);
 };
 
-
-void ck_executer::calculate_stack_limits() {
-	// Calculate limit size of stack & try-catch
-	int system_stack_size  = ck_pthread::thread::this_thread().get_stack_size();
-	// Limiting stack by 2MB for user calls
-	int limited_stack_size = system_stack_size - 2 * 1024 * 1024;
-	// Assuming that frame size is $def_stack_frame_size and calculating maximal recursion levels
-	int result_stack_size  = limited_stack_size / def_stack_frame_size;
-	// Limit stack sizes
-	// Call stack & Window stack summary limited by result_stack_size
-	execution_stack_limit = result_stack_size;
-};
 
 bool ck_executer::read(int size, void* buf) {
 	if (!scripts.back())
@@ -230,10 +210,9 @@ int ck_executer::lineno() {
 		
 void ck_executer::store_frame(std::vector<stack_frame>& stack, int stack_id, const std::wstring& name, bool own_scope) {
 	
-	if ((stack_id == call_stack_id || stack_id == window_stack_id) && call_stack.size() + window_stack.size() == execution_stack_limit)
+	// Limit rest of stack by 4 Mb
+	if (ck_core::stack_locator::get_stack_remaining() < 4 * 1024 * 1024)
 		throw StackOverflow(L"stack overflow");
-	// else if (stack_id == try_stack_id && stack.size() == try_stack_limit)
-	// 	throw StackOverflow(L"try stack overflow");
 		
 	// Create stack_window and save executer state
 	stack_frame frame;
@@ -246,13 +225,6 @@ void ck_executer::store_frame(std::vector<stack_frame>& stack, int stack_id, con
 	frame.own_scope = own_scope;
 	frame.name      = name;
 	frame.pointer   = pointer;
-	
-	/*if (stack_id == call_stack_id)
-		++frame.call_id;
-	else if (stack_id == try_stack_id)
-		++frame.try_id;
-	else if (stack_id == window_stack_id)
-		++frame.window_id;*/
 	
 	stack.push_back(frame);
 };
@@ -1450,7 +1422,8 @@ vobject* ck_executer::exec_bytecode() {
 
 void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, std::vector<std::wstring>* argn, std::vector<ck_vobject::vobject*>* argv) {
 	
-	if (call_stack.size() + window_stack.size() == execution_stack_limit)
+	// Limit rest of stack by 4 Mb
+	if (ck_core::stack_locator::get_stack_remaining() < 4 * 1024 * 1024)
 		throw StackOverflow(L"stack overflow");
 	
 	bool own_scope = scope == nullptr;
@@ -1517,7 +1490,8 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 
 ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>& args, const std::wstring& name, vscope* scope) { 
 
-	if (call_stack.size() + window_stack.size() == execution_stack_limit)
+	// Limit rest of stack by 4 Mb
+	if (ck_core::stack_locator::get_stack_remaining() < 4 * 1024 * 1024)
 		throw StackOverflow(L"stack overflow");
 
 	if (obj == nullptr)

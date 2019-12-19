@@ -11,6 +11,8 @@
 #include "exceptions.h"
 #include "GIL2.h"
 #include "exit_listener.h"
+#include "ck_args.h"
+#include "stack_locator.h"
 
 #include "ASTPrinter.h"
 
@@ -24,9 +26,6 @@
 #include "objects/Array.h"
 #include "objects/String.h"
 
-
-// #define DEBUG_OUTPUT
-
 using namespace std;
 using namespace ck_token;
 using namespace ck_parser;
@@ -39,21 +38,48 @@ using namespace ck_core;
 using namespace ck_vobject;
 using namespace ck_objects;
 
-// XXX: Use -DCK_SINGLETHREAD to defined singlethreaded usage and CK_SINGLETHREAD macro value
+// Main entry file.
+// Performs setting up default encoding for input-output streams.
+// Sets up environmental variables, composes arguments into __args array in global scope.
+// Defines global root scope and fills it with default fields like Object types, default 
+//  set of functions and constants.
+// Performs parsing of input code from file or (WIP) REPL console.
+// Performs translating input AST into bytecode and executed it on new instance of executer.
+// Initializes GIL2, executer and thread instance pointer for this MAIN thread.
+// Does waiting for other processes to finish their work and locks until they are done.
+// Does acting on input system signals by calling __defsignalhandler or calling GIL2::exit() 
+//  funciton to force stop the execution.
+// Finally, performs GarbageCollection and disposes all threads and globals.
+//
+// Optional build flags: 
+// -DCK_SINGLETHREAD - disable multithreading feature, disable locks / unlocks, block queue, 
+//  GIL2 synchronization and runs in a single thread.
+// -DDEBUG_OUTPUT - enables debug oytput of parsed AST, bytecode with captions and line 
+//  numbers table.
 
-// make && valgrind --leak-check=full --track-origins=yes ./test
-
-// About passing vector without reference: https://stackoverflow.com/questions/15120264/when-is-a-vector-copied-when-is-a-reference-passed
 
 // Main-local fields
-static vscope*      root_scope;
-static ck_script*  main_script;
-static GIL*       gil_instance;
+// Root execution scope is stored here to be accessible 
+//  from signal handler and main functions both.
+static vscope* root_scope;
+// Main script instance is stored here to be accessoble..
+//  ..why is it here?
+static ck_script* main_script;
+// Gil instance is stored inside global to be accessible 
+//  from signal handler and main both.
+static GIL* gil_instance;
 
-// Signal handling for main thread
-static bool    has_signaled;
-static int  signaled_number;
+// Signal state is stored in blobal to be accessible 
+//  from main and signal handler.
+static bool has_signaled;
+static int signaled_number;
 
+// Exception processing state of main function.
+bool exception_processing = 0;
+// Instance of catched exception.
+cake message;
+
+/*
 // https://devarea.com/linux-handling-signals-in-a-multithreaded-application/#.XLsn95gzbIU
 // 
 // XXX:
@@ -102,6 +128,7 @@ static int  signaled_number;
 // https://habr.com/ru/post/141206/
 // https://devarea.com/linux-handling-signals-in-a-multithreaded-application/#.XLoeW5gzbIU
 // Signals setup for handling them during execution
+*/
 static void signal_handler(int sig) {
 	// Set up ignore signals during signal processing
 	for (int i = 0; i < 64; ++i)
@@ -151,128 +178,9 @@ static void signal_handler(int sig) {
 	// GIL::instance()->notify();
 };
 
-int main(int argc, const char** argv, char** envp) {
-	// Set up locales
-	setlocale(LC_ALL, "");
-	
-	// Create UTF-8 locale
-	std::locale empty_locale;
-	auto codecvt = new std::codecvt_utf8<wchar_t>();
-	std::locale utf8_locale(empty_locale, codecvt); 
-	
-	// std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-	// std::string narrow = converter.to_bytes(wide_utf16_source_string);
-	// std::wstring wide = converter.from_bytes(narrow_utf8_source_string);
-	
-	// Apply locale on stdin
-	wcin.imbue(utf8_locale);
-	
-	// Apply locale on stdout
-	wcout.imbue(utf8_locale);
-	
-	// Apply locale on stderr
-	wcerr.imbue(utf8_locale);
-	
-	// Create converter between UTF8 and UTF16 characters.
-	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-	
-	// Preserve file name
-	wstring wfilename;
-	std::wifstream file;
-	
-	// Process filename
-	if (argc < 2) {
-		// Default file is cake.ck
-		file = std::wifstream("cake.ck");
-		wfilename = L"cake.ck";
-	} else {
-		file = std::wifstream(argv[1]);
-		wfilename = converter.from_bytes(argv[1]);
-	}
-	
-	// Preserve whitespaces for parser
-	file >> std::noskipws;
-	// Apply encoding UTF-8
-	file.imbue(utf8_locale);
-	
-	if (file.fail()) {
-		if (argc < 2)
-			std::wcerr << "No input file" << std::endl;
-		else
-			std::wcerr << "File " << wfilename << " not found" << std::endl;
-		return 1;
-	}
-	
-	// Convert input file to AST
-	stream_wrapper sw(file);
-	parser_massages pm(wfilename);
-	parser* p = new parser(pm, sw);
-	ASTNode* n = p->parse();
-	delete p;
-	
-	file.close();
-	
-	if (pm.errors()) {
-		pm.print();
-		delete n;
-		return 1;
-	}
-	
-	// Convert AST to bytecodes & initialize script instance
-	main_script = new ck_script();
-	main_script->directory = get_current_working_dir();
-	main_script->filename  = wfilename;
-	translate(main_script->bytecode.bytemap, main_script->bytecode.lineno_table, n);
-	
-#ifdef DEBUG_OUTPUT
-	wcout << "AST:" << endl;
-	printAST(n);
-	
-	wcout << "Bytecodes: " << endl;
-	print(main_script->bytecode.bytemap);
-	wcout << endl;
-				
-	wcout << "Lineno Table: " << endl;
-	print_lineno_table(main_script->bytecode.lineno_table);
-	wcout << endl;
-#endif
-	
-	/*
-	for (int i = 0; i < main_script->bytecode.bytemap.size(); ++i)
-		wcout << "[" << i << "] " << (int) main_script->bytecode.bytemap[i] << endl;
-	*/
-	
-	delete n;
-	
-	// Initialize GIL, GC and other root components
-	gil_instance = new GIL(); // <-- all is done inside
-	
-	root_scope = ck_objects::init_default(); // ?? XXX: Use prototype object for all classes
-	root_scope->root();
-	
-	// Collect arguments of the program & pass them as __args
-	Array* __args = new Array();
-	for (int i = 0; i < argc; ++i)
-		__args->items().push_back(new String(converter.from_bytes(argv[i])));
-	
-	root_scope->put(L"__args", __args);
-	
-	// Collect environment values & pass them as __env
-	Array* __env = new Array();
-	for (int i = 0; envp[i]; ++i) 
-		__env->items().push_back(new String(converter.from_bytes(envp[i])));
-	
-	root_scope->put(L"__env", __env);
-	
-	// Set up signals handling
-	for (int i = 0; i < 64; ++i)
-		signal(i, signal_handler); 
-	
-	// Indicates if main returned an exception
-	bool exception_processing = 0;
-	// Instance of catched cake
-	cake message;
-	
+// Main wrapper.
+// Called after setting up locales, parsing arguments and environment, initializing 
+void wrap_main(int argc, void* argv) {
 	// E X E C U T E _ P R O G R A M
 	
 	while (1) {
@@ -493,6 +401,172 @@ int main(int argc, const char** argv, char** envp) {
 	});
 	
 	GIL::instance()->unlock();
+}
+
+int main(int argc, const char** argv, const char** envp) {
+	
+	// S E T _ U P _ L O C A L E S
+	
+	// Set up locales
+	setlocale(LC_ALL, "");
+	
+	// Create UTF-8 locale
+	std::locale empty_locale;
+	auto codecvt = new std::codecvt_utf8<wchar_t>();
+	std::locale utf8_locale(empty_locale, codecvt); 
+	
+	// std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+	// std::string narrow = converter.to_bytes(wide_utf16_source_string);
+	// std::wstring wide = converter.from_bytes(narrow_utf8_source_string);
+	
+	// Apply locale on stdin
+	wcin.imbue(utf8_locale);
+	
+	// Apply locale on stdout
+	wcout.imbue(utf8_locale);
+	
+	// Apply locale on stderr
+	wcerr.imbue(utf8_locale);
+	
+	// Create converter between UTF8 and UTF16 characters.
+	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+	
+	// Preserve file name
+	wstring wfilename;
+	std::wifstream file;
+	
+	// P A R S E _ A R G U M E N T S
+	
+	ck_core::ck_args::parse(argc, argv);
+	
+	// Print help on command line options
+	if (argc > 1 && std::strcmp("-h", argv[0]) == 0) {
+		std::wcout << "Usage:" << std::endl;
+		std::wcout << "ck -h Display help message." << std::endl;
+		std::wcout << std::endl;
+		std::wcout << "ck <filename> Execute input file as cupcake script." << std::endl;
+		std::wcout << std::endl;
+		std::wcout << "ck <filename> { --CK::<key>=<value> or --CK::key } For passing execution options." << std::endl;
+		std::wcout << std::endl;
+		std::wcout << "Example: ck cake.ck --CK::STACK_SIZE=1000000" << std::endl;
+		std::wcout << std::endl;
+		std::wcout << "List of execution options:" << std::endl;
+		std::wcout << "--CK::STACK_SIZE=<size> Specify new stack size in bytes (> 16Mb)" << std::endl;
+		std::wcout << std::endl;
+	}
+	
+	// Get new stack size as command line parameter
+	// XXX: implement parsing of size notations, like mb, Mb, GB, Kb, etc..
+	int ck_new_stack_size = 8 * 1024 * 1024; // By default, is >= 16Mb
+	
+	if (ck_core::ck_args::has_option(L"STACK_SIZE")) try { 
+		int try_new_stack_size = std::stoi(ck_core::ck_args::get_option(L"STACK_SIZE"));
+		
+		if (try_new_stack_size > ck_new_stack_size)
+			ck_new_stack_size = try_new_stack_size;
+	} catch (...) {
+		std::wcout << "Invalid value for option --CK::STACK_SIZE (" << ck_core::ck_args::get_option(L"STACK_SIZE") << std::endl;
+		return 0;
+	}
+	
+	// P A R S E _ I N P U T
+	
+	// Process filename
+	if (argc < 2) {
+		// Default file is cake.ck
+		file = std::wifstream("cake.ck");
+		wfilename = L"cake.ck";
+	} else {
+		file = std::wifstream(argv[1]);
+		wfilename = converter.from_bytes(argv[1]);
+	}
+	
+	// Preserve whitespaces for parser
+	file >> std::noskipws;
+	
+	// Apply encoding UTF-8
+	file.imbue(utf8_locale);
+	
+	if (file.fail()) {
+		if (argc < 2)
+			std::wcerr << "No input file" << std::endl;
+		else
+			std::wcerr << "File " << wfilename << " not found" << std::endl;
+		return 1;
+	}
+	
+	// Convert input file to AST
+	stream_wrapper sw(file);
+	parser_massages pm(wfilename);
+	parser* p = new parser(pm, sw);
+	ASTNode* n = p->parse();
+	delete p;
+	
+	file.close();
+	
+	if (pm.errors()) {
+		pm.print();
+		delete n;
+		return 1;
+	}
+	
+	// Convert AST to bytecodes & initialize script instance
+	main_script = new ck_script();
+	main_script->directory = get_current_working_dir();
+	main_script->filename  = wfilename;
+	translate(main_script->bytecode.bytemap, main_script->bytecode.lineno_table, n);
+	
+#ifdef DEBUG_OUTPUT
+	wcout << "AST:" << endl;
+	printAST(n);
+	
+	wcout << "Bytecodes: " << endl;
+	print(main_script->bytecode.bytemap);
+	wcout << endl;
+				
+	wcout << "Lineno Table: " << endl;
+	print_lineno_table(main_script->bytecode.lineno_table);
+	wcout << endl;
+#endif
+	
+	// Free up memory
+	delete n;
+	
+	// I N I T _ G I L
+	
+	// Initialize GIL, GC and other root components
+	gil_instance = new GIL(); // <-- all is done inside
+	
+	root_scope = ck_objects::init_default(); // ?? XXX: Use prototype object for all classes
+	root_scope->root();
+	
+	// C O L L E C T _ A R G U M E N T S
+	
+	// Collect arguments of the program & pass them as __args
+	Array* __args = new Array();
+	for (int i = 0; i < ck_core::ck_args::args_size(); ++i)
+		__args->items().push_back(new String(ck_core::ck_args::get_args()[i]));
+	
+	root_scope->put(L"__args", __args);
+	
+	// Collect environment values & pass them as __env
+	Array* __env = new Array();
+	for (int i = 0; envp[i]; ++i) 
+		__env->items().push_back(new String(converter.from_bytes(envp[i])));
+	
+	root_scope->put(L"__env", __env);
+	
+	// Set up signals handling
+	for (int i = 0; i < 64; ++i)
+		signal(i, signal_handler); 
+	
+	// R U N _ C O D E
+	
+	// Perform execution on the new stack
+	if (!ck_core::stack_locator::call_replace_stack(0, nullptr, wrap_main, ck_new_stack_size))
+		std::wcout << "Failed to allocate stack for current operation" << std::endl;
+	
+	// D I S P O S E
 	
 	// Free up heap
 	delete gil_instance;
@@ -500,6 +574,8 @@ int main(int argc, const char** argv, char** envp) {
 	
 	// Dispose locale
 	delete codecvt;
+	
+	// D E T A C H _ T H R E A D S
 	
 	// To allow all detached threads to finish clearing
 	pthread_exit(0);

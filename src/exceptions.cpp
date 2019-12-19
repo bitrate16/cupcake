@@ -89,11 +89,6 @@ wostream& ck_exceptions::operator<<(wostream& os, const cake& m) {
 			break;
 		}
 		
-		case cake_type::CK_NATIVE_EXCEPTION: {
-			os << m.exception.what() << endl;
-			break;
-		}
-		
 		case cake_type::CK_UNKNOWN_EXCEPTION: {
 			os << "unknown exception" << endl;
 			break;
