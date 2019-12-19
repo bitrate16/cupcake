@@ -1460,6 +1460,15 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 	
 	// Do some useless shit again
 	while (1) {
+		
+		// XXX: Leave try/catch only in PUSH TRY and outer callers 
+		//  to avoid lond stack disposal on deep calls.
+		// New function try_execute_bytecode with single try/catch.
+		// On PUSH_TRY call try_execute_bytecode.
+		// On POP_TRY return from call to outer and keep executing.
+		// try/catch in main() and thread_wrapper().
+		// On stack for 20000 1 try/catch vs 20000.
+		
 		try {
 			exec_bytecode();
 			GIL::current_thread()->clear_blocks();
