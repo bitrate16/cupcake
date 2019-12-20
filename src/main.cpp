@@ -447,21 +447,18 @@ int main(int argc, const char** argv, const char** envp) {
 	ck_core::ck_args::parse(argc, argv);
 	
 	// Print help on command line options
-	if (argc > 1 && std::strcmp("-h", argv[0]) == 0) {
+	if (argc > 1 && std::strcmp("-h", argv[1]) == 0) {
 		std::wcout << "Usage:" << std::endl;
 		std::wcout << "ck -h Display help message." << std::endl;
-		std::wcout << std::endl;
 		std::wcout << "ck <filename> Execute input file as cupcake script." << std::endl;
-		std::wcout << std::endl;
-		std::wcout << "ck <filename> { --CK::<key>=<value> or --CK::key } For passing execution options." << std::endl;
+		std::wcout << "ck <filename> { --CK::<key>=<value> or --CK::<key> } For passing execution options." << std::endl;
 		std::wcout << std::endl;
 		std::wcout << "Example: ck cake.ck --CK::STACK_SIZE=1000000" << std::endl;
 		std::wcout << std::endl;
 		std::wcout << "List of execution options:" << std::endl;
-		std::wcout << "--CK::STACK_SIZE=<size> Specify new stack size in bytes (> 16Mb)" << std::endl;
-		std::wcout << std::endl;
-		std::wcout << "--CK::PRINT_BYTECODE Debug output bytecode for input script" << std::endl;
-		std::wcout << std::endl;
+		std::wcout << "--CK::STACK_SIZE=<size> Specify new stack size in bytes (> 8Mb)" << std::endl;
+		std::wcout << "--CK::PRINT_BYTECODE Debug output bytecode and AST for input script" << std::endl;
+		return 0;
 	}
 	
 	// Get new stack size as command line parameter
