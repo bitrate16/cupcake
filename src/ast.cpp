@@ -18,7 +18,7 @@ ck_ast::ASTNode::~ASTNode() {
 			
 		case ck_token::INTEGER:
 			if (objectlist)
-				delete (long long*) (objectlist->object);
+				delete (int64_t*) (objectlist->object);
 			break;
 			
 		case ck_token::BOOLEAN:

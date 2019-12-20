@@ -255,12 +255,16 @@ namespace ck_core {
 		
 		// Returns current script
 		inline ck_core::ck_script* get_script() {
-			return scripts.back();
+			if (scripts.size())
+				return scripts.back();
+			return nullptr;
 		};
 		
 		// Returns current scope
 		inline ck_vobject::vscope* get_scope() {
-			return scopes.back();
+			if (scopes.size())
+				return scopes.back();
+			return nullptr;
 		};
 		
 		// Returns amount of pending late_call functions

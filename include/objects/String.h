@@ -39,7 +39,7 @@ namespace ck_objects {
 		// II. If string length == 0 -> returns 0.
 		// III. If string is format of int -> return parsed int.
 		// IIII. Else return length.
-		virtual long long int_value();
+		virtual int64_t int_value();
 		
 		// Returns string
 		virtual std::wstring string_value();

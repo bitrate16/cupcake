@@ -1,4 +1,14 @@
+var a = function() { return 1; };
 
+ var func = parse('return a + b', 'a', 'b');
+
+println('keys()     = ', keys())
+println('println    = ', println)
+println('a          = ', a)
+println('a          = ', a(1))
+println('a()        = ', a())
+println('func       = ', func)
+println('func(3, 5) = ', func(3, 5))
 
 println('StackSize     = ', Thread.getStackSize());
 println('UsedStackSize = ', Thread.getUsedStackSize());

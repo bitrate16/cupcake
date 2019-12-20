@@ -154,7 +154,7 @@ bool Native::load(const std::wstring& filename, ck_vobject::vscope* scope, const
 };
 		
 // Returns size of loaded modules + 1
-long long Native::int_value() { 
+int64_t Native::int_value() { 
 	return modules.size() + 1;
 };
 

@@ -519,7 +519,7 @@ void String::gc_finalize() {};
 // String functions only
 
 // Returns length
-long long String::int_value() {
+int64_t String::int_value() {
 	return str.size();
 };
 

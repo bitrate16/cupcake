@@ -41,7 +41,7 @@ namespace ck_vobject {
 		virtual void gc_finalize() = 0;
 		
 		// Must return integer representation of an object
-		virtual long long int_value() = 0;
+		virtual int64_t int_value() = 0;
 		
 		// Must return string representation of an object
 		virtual std::wstring string_value() = 0;
@@ -98,7 +98,7 @@ namespace ck_vobject {
 		virtual void gc_finalize();
 		
 		// Must return integer representation of an object
-		virtual long long int_value();
+		virtual int64_t int_value();
 		
 		// Must return string representation of an object
 		virtual std::wstring string_value();
@@ -168,7 +168,7 @@ namespace ck_vobject {
 		virtual void gc_finalize();
 		
 		// Must return integer representation of an object
-		virtual long long int_value();
+		virtual int64_t int_value();
 		
 		// Must return string representation of an object
 		virtual std::wstring string_value();

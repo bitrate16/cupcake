@@ -59,7 +59,7 @@ namespace ck_objects {
 		// Print backtrace to stderr
 		void print_backtrace();
 		
-		virtual long long int_value();
+		virtual int64_t int_value();
 		
 		// Returns string
 		virtual std::wstring string_value();

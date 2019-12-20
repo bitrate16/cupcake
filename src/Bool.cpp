@@ -154,7 +154,7 @@ vobject* Bool::create_proto() {
 				return Undefined::instance();
 			
 			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) {
-				long long b = args[1]->int_value();
+				int64_t b = args[1]->int_value();
 				return new Int(i->value() & b);
 			}
 			return Undefined::instance();
@@ -165,7 +165,7 @@ vobject* Bool::create_proto() {
 				return Undefined::instance();
 			
 			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) {
-				long long b = args[1]->int_value();
+				int64_t b = args[1]->int_value();
 				return new Int(i->value() | b);
 			}
 			return Undefined::instance();
@@ -176,7 +176,7 @@ vobject* Bool::create_proto() {
 				return Undefined::instance();
 			
 			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) {
-				long long b = args[1]->int_value();
+				int64_t b = args[1]->int_value();
 				return Bool::instance(i->value() ^ (b != 0));
 			}
 			return Undefined::instance();
@@ -187,7 +187,7 @@ vobject* Bool::create_proto() {
 				return Undefined::instance();
 			
 			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) {
-				long long b = args[1]->int_value();
+				int64_t b = args[1]->int_value();
 				return new Int(i->value() << b);
 			}
 			return Undefined::instance();
@@ -198,7 +198,7 @@ vobject* Bool::create_proto() {
 				return Undefined::instance();
 			
 			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) {
-				long long b = args[1]->int_value();
+				int64_t b = args[1]->int_value();
 				return new Int(i->value() >> b);
 			}
 			return Undefined::instance();
@@ -209,8 +209,8 @@ vobject* Bool::create_proto() {
 				return Undefined::instance();
 			
 			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) {
-				unsigned long long a = i->value();
-				unsigned long long b = args[1]->int_value();
+				uint64_t a = i->value();
+				uint64_t b = args[1]->int_value();
 				return new Int(a >> b);
 			}
 			return Undefined::instance();
@@ -222,8 +222,8 @@ vobject* Bool::create_proto() {
 				return Undefined::instance();
 			
 			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) {
-				long long a = i->value();
-				long long b = args[1]->int_value();
+				int64_t a = i->value();
+				int64_t b = args[1]->int_value();
 				return Bool::instance(a && b);
 			}
 			return Undefined::instance();
@@ -234,8 +234,8 @@ vobject* Bool::create_proto() {
 				return Undefined::instance();
 			
 			if (Bool* i = dynamic_cast<Bool*>(args[0]); i) {
-				long long a = i->value();
-				long long b = args[1]->int_value();
+				int64_t a = i->value();
+				int64_t b = args[1]->int_value();
 				return Bool::instance(a || b);
 			}
 			return Undefined::instance();
@@ -356,7 +356,7 @@ vobject* Bool::call(ck_vobject::vscope* scope, const std::vector<vobject*>& args
 };
 
 
-long long Bool::int_value() {
+int64_t Bool::int_value() {
 	return val;
 };
 

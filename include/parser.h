@@ -18,7 +18,7 @@ namespace ck_parser {
 		int charno = -1;
 		
 		// integer value
-		long long iv = 0;
+		int64_t iv = 0;
 		// byte value
 		bool bv = 0;
 		// double value
@@ -176,21 +176,23 @@ namespace ck_parser {
 		parser_massages(const std::wstring& _filename) : filename(_filename) {};
 	
 		// Creates and adds new error instance to the container
-		void error(std::wstring m, int lineno = -1, int charno = -1) {
+		inline void error(std::wstring m, int lineno = -1, int charno = -1) {
 			messages.push_back(parser_message::error(m, lineno, charno));
 			++contains_error;
 		};
 		
 		// Creates and adds new warning instance to the container
-		void warning(std::wstring m, int lineno = -1, int charno = -1) {
+		inline void warning(std::wstring m, int lineno = -1, int charno = -1) {
 			messages.push_back(parser_message::warning(m, lineno, charno));
 		};
 		
 		// Returns number of errors
 		int errors() { return contains_error; };
 		
+		inline const std::wstring& get_filename() { return filename; }
+		
 		// Returns messages
-		std::vector<parser_message> &get_messages() { return messages; };
+		inline const std::vector<parser_message> &get_messages() { return messages; };
 		
 		void print() {
 			for (int i = 0; i < messages.size(); ++i) 

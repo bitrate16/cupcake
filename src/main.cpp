@@ -460,6 +460,8 @@ int main(int argc, const char** argv, const char** envp) {
 		std::wcout << "List of execution options:" << std::endl;
 		std::wcout << "--CK::STACK_SIZE=<size> Specify new stack size in bytes (> 16Mb)" << std::endl;
 		std::wcout << std::endl;
+		std::wcout << "--CK::PRINT_BYTECODE Debug output bytecode for input script" << std::endl;
+		std::wcout << std::endl;
 	}
 	
 	// Get new stack size as command line parameter
@@ -523,18 +525,20 @@ int main(int argc, const char** argv, const char** envp) {
 	main_script->filename  = wfilename;
 	translate(main_script->bytecode.bytemap, main_script->bytecode.lineno_table, n);
 	
-#ifdef DEBUG_OUTPUT
-	wcout << "AST:" << endl;
-	printAST(n);
-	
-	wcout << "Bytecodes: " << endl;
-	print(main_script->bytecode.bytemap);
-	wcout << endl;
-				
-	wcout << "Lineno Table: " << endl;
-	print_lineno_table(main_script->bytecode.lineno_table);
-	wcout << endl;
-#endif
+// #ifdef DEBUG_OUTPUT
+	if (ck_core::ck_args::has_option(L"PRINT_BYTECODE")) {
+		wcout << "AST:" << endl;
+		printAST(n);
+		
+		wcout << "Bytecodes: " << endl;
+		print(main_script->bytecode.bytemap);
+		wcout << endl;
+					
+		// wcout << "Lineno Table: " << endl;
+		// print_lineno_table(main_script->bytecode.lineno_table);
+		// wcout << endl;
+	}
+//#endif
 	
 	// Free up memory
 	delete n;

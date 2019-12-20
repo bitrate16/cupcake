@@ -388,13 +388,13 @@ vscope* iscope::get_parent() {
 
 
 // Must return integer representation of an object
-long long iscope::int_value() { 
-	return (int) (intptr_t) this; 
+int64_t iscope::int_value() { 
+	return (intptr_t) this; 
 };
 
 // Must return string representation of an object
 std::wstring iscope::string_value() { 
-	return std::wstring(L"[scope ") + std::to_wstring((int) (intptr_t) this) + std::wstring(L"]"); 
+	return std::wstring(L"[scope ") + std::to_wstring((intptr_t) this) + std::wstring(L"]"); 
 };
 
 
@@ -584,8 +584,8 @@ vscope* xscope::get_parent() {
 
 
 // Must return integer representation of an object
-long long xscope::int_value() { 
-	return (int) (intptr_t) this; 
+int64_t xscope::int_value() { 
+	return (intptr_t) this; 
 };
 
 // Must return string representation of an object

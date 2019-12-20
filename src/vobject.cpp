@@ -36,8 +36,8 @@ void vobject::gc_mark()     { ck_core::gc_object::gc_reachable = 1; };
 void vobject::gc_finalize() {};
 
 // Must return integer representation of an object
-long long vobject::int_value() { 
-	return (int) (intptr_t) this; 
+int64_t vobject::int_value() { 
+	return (intptr_t) this; 
 };
 
 // Must return string representation of an object

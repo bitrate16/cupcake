@@ -40,7 +40,7 @@ namespace ck_objects {	// WARNING: This and all standard objects uses prototype 
 		bool     remove  (const std::wstring&);
 		
 		// Must return integer representation of an object
-		virtual long long int_value();
+		virtual int64_t int_value();
 		
 		// Must return string representation of an object
 		virtual std::wstring string_value();

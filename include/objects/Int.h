@@ -13,11 +13,11 @@ namespace ck_objects {
 	protected:
 		
 		// Оёо Б3ърпф
-		long long val;
+		int64_t val;
 		
 	public:
 		
-		Int(long long value = 0);
+		Int(int64_t value = 0);
 		virtual ~Int();
 		
 		virtual vobject* get     (ck_vobject::vscope*, const std::wstring&);
@@ -28,12 +28,12 @@ namespace ck_objects {
 		
 		
 		// Returns value
-		virtual long long int_value();
+		virtual int64_t int_value();
 		
 		// Returns int to string
 		virtual std::wstring string_value();
 		
-		virtual long long value() {
+		virtual int64_t value() {
 			return val;
 		};
 		

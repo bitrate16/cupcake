@@ -109,9 +109,15 @@ namespace ck_translator {
 		std::vector<unsigned char> bytemap;
 	};
 	
+	// Performs translating entire AST into complete bytecode program
 	void translate(ck_bytecode& bytecode, ck_ast::ASTNode* n);
 	
 	void translate(std::vector<unsigned char>& bytemap, std::vector<int>& lineno_table, ck_ast::ASTNode* n);
+	
+	// performs translate AST into function body, used in eval()
+	void translate_function(ck_bytecode& bytecode, ck_ast::ASTNode* n);
+	
+	void translate_function(std::vector<unsigned char>& bytemap, std::vector<int>& lineno_table, ck_ast::ASTNode* n);
 	
 	void print(std::vector<unsigned char>& bytemap, int off = 0, int offset = -1, int limit = -1);
 	

@@ -46,7 +46,7 @@ namespace ck_objects {
 		}
 		
 		// Must return integer representation of an object
-		virtual long long int_value();
+		virtual int64_t int_value();
 		
 		// Must return string representation of an object
 		virtual std::wstring string_value();

@@ -373,8 +373,8 @@ void Thread::gc_mark() {
 void Thread::gc_finalize() {};
 
 // Must return integer representation of an object
-long long Thread::int_value() { 
-	return (int) (intptr_t) this; 
+int64_t Thread::int_value() { 
+	return (intptr_t) this; 
 };
 
 // Must return string representation of an object

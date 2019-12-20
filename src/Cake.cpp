@@ -310,8 +310,8 @@ void Cake::print_backtrace() {
 	}
 };
 
-long long Cake::int_value() {
-	return (int) (intptr_t) this; 
+int64_t Cake::int_value() {
+	return (intptr_t) this; 
 };
 
 wstring Cake::string_value() {

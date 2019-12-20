@@ -97,6 +97,6 @@ void BytecodeFunction::gc_mark() {
 
 
 wstring BytecodeFunction::string_value() {
-	return std::wstring(L"[Function ") + std::to_wstring((int) (intptr_t) this) + std::wstring(L"]"); 
+	return std::wstring(L"[Function ") + std::to_wstring((intptr_t) this) + std::wstring(L"]"); 
 };
 

@@ -655,7 +655,7 @@ int tokenizer::next_token() {
 			ss >> token->dv;
 			return put(DOUBLE);
 		} else if (type == INTEGER) {
-			long long mult = 1;
+			int64_t mult = 1;
 			for (int i = svref.size() - 1; i >= 0; --i) {
 				token->iv += mult * ('A' <= to_upper(svref[i]) && to_upper(svref[i]) <= L'Z' ? to_upper(svref[i]) - L'A' + 10 : to_upper(svref[i]) - L'0');
 				mult *= base;
@@ -855,7 +855,7 @@ ASTNode *parser::primaryexp() {
 		
 		ASTNode *integerexp = new ASTNode(get(-1)->lineno, INTEGER);
 		
-		long long *n = new long long;
+		int64_t *n = new int64_t;
 		*n = get(-1)->iv;
 		integerexp->addLastObject(n);
 		return integerexp;

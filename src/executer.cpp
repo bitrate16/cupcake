@@ -562,8 +562,8 @@ vobject* ck_executer::exec_bytecode() {
 			}
 			
 			case ck_bytecodes::PUSH_CONST_INT: {
-				long long i; 
-				read(sizeof(long long), &i);
+				int64_t i; 
+				read(sizeof(int64_t), &i);
 #ifdef DEBUG_OUTPUT
 				wcout << "> PUSH_CONST[int]: " << i << endl;
 #endif
@@ -1629,6 +1629,7 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 		
 		// This long loop without any protection of the objects is thread-safe because 
 		//  other threads can not call GC
+		obj = exec_bytecode();
 	
 		// Do some useless shit again
 		exec_bytecode();
@@ -1653,6 +1654,9 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 	else
 		wcout << "RETURNED: " << "NULL" << endl;
 #endif
+
+	if (!obj)
+		return Undefined::instance();
 
 	return obj;
 };

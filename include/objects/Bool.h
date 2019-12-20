@@ -28,7 +28,7 @@ namespace ck_objects {
 		
 		
 		// Returns value
-		virtual long long int_value();
+		virtual int64_t int_value();
 		
 		// Returns int to string
 		virtual std::wstring string_value();

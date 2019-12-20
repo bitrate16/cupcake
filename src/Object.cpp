@@ -280,12 +280,12 @@ bool Object::remove(const wstring& name) {
 };
 
 // Must return integer representation of an object
-long long Object::int_value() { 
-	return (int) (intptr_t) this; 
+int64_t Object::int_value() { 
+	return (intptr_t) this; 
 };
 
 // Must return string representation of an object
 std::wstring Object::string_value() { 
-	return std::wstring(L"[Object ") + std::to_wstring((int) (intptr_t) this) + std::wstring(L"]"); 
+	return std::wstring(L"[Object ") + std::to_wstring((intptr_t) this) + std::wstring(L"]"); 
 };
 

@@ -27,7 +27,7 @@ class ProtoObject<ProtoClass> : public vobject {
 	virtual void gc_mark();
 	virtual void gc_finalize();
 	
-	virtual long long int_value();
+	virtual int64_t int_value();
 	
 	virtual std::wstring string_value();
 }
@@ -55,7 +55,7 @@ class Proto<ProtoProtoClass> : public vobject {
 	virtual void gc_mark();
 	virtual void gc_finalize();
 	
-	virtual long long int_value();
+	virtual int64_t int_value();
 	
 	virtual std::wstring string_value();
 	

@@ -230,7 +230,7 @@ vobject* Double::create_proto() {
 				if (Double* d = dynamic_cast<Double*>(args[1]); d)
 					return new Double(i->value() / d->value());
 				
-				if (long long b = args[1]->int_value(); b)
+				if (int64_t b = args[1]->int_value(); b)
 					return new Double(i->value() / static_cast<double>(b));
 				else
 					return Double::NaN();
@@ -244,8 +244,8 @@ vobject* Double::create_proto() {
 				return Undefined::instance();
 			
 			if (Double* i = dynamic_cast<Double*>(args[0]); i) {
-				if (long long b = args[1]->int_value(); b)
-					return new Int(static_cast<long long>(round(i->value() / b)));
+				if (int64_t b = args[1]->int_value(); b)
+					return new Int(static_cast<int64_t>(round(i->value() / b)));
 				else
 					return Undefined::instance();
 			}
@@ -257,7 +257,7 @@ vobject* Double::create_proto() {
 				return Undefined::instance();
 			
 			if (Double* i = dynamic_cast<Double*>(args[0]); i) {
-				if (long long b = args[1]->int_value(); b)
+				if (int64_t b = args[1]->int_value(); b)
 					return new Double(fmod(i->value(), b));
 				else
 					return Undefined::instance();
@@ -271,8 +271,8 @@ vobject* Double::create_proto() {
 				return Undefined::instance();
 			
 			if (Double* i = dynamic_cast<Double*>(args[0]); i) {
-				long long b = args[1]->int_value();
-				return new Int(static_cast<long long>(round(i->value())) & b);
+				int64_t b = args[1]->int_value();
+				return new Int(static_cast<int64_t>(round(i->value())) & b);
 			}
 			return Undefined::instance();
 		}));
@@ -282,8 +282,8 @@ vobject* Double::create_proto() {
 				return Undefined::instance();
 			
 			if (Double* i = dynamic_cast<Double*>(args[0]); i) {
-				long long b = args[1]->int_value();
-				return new Int(static_cast<long long>(round(i->value())) | b);
+				int64_t b = args[1]->int_value();
+				return new Int(static_cast<int64_t>(round(i->value())) | b);
 			}
 			return Undefined::instance();
 		}));
@@ -293,8 +293,8 @@ vobject* Double::create_proto() {
 				return Undefined::instance();
 			
 			if (Double* i = dynamic_cast<Double*>(args[0]); i) {
-				long long b = args[1]->int_value();
-				return new Int(static_cast<long long>(round(i->value())) ^ b);
+				int64_t b = args[1]->int_value();
+				return new Int(static_cast<int64_t>(round(i->value())) ^ b);
 			}
 			return Undefined::instance();
 		}));
@@ -304,8 +304,8 @@ vobject* Double::create_proto() {
 				return Undefined::instance();
 			
 			if (Double* i = dynamic_cast<Double*>(args[0]); i) {
-				long long b = args[1]->int_value();
-				return new Int(static_cast<long long>(round(i->value())) << b);
+				int64_t b = args[1]->int_value();
+				return new Int(static_cast<int64_t>(round(i->value())) << b);
 			}
 			return Undefined::instance();
 		}));
@@ -315,8 +315,8 @@ vobject* Double::create_proto() {
 				return Undefined::instance();
 			
 			if (Double* i = dynamic_cast<Double*>(args[0]); i) {
-				long long b = args[1]->int_value();
-				return new Int(static_cast<long long>(round(i->value())) >> b);
+				int64_t b = args[1]->int_value();
+				return new Int(static_cast<int64_t>(round(i->value())) >> b);
 			}
 			return Undefined::instance();
 		}));
@@ -326,8 +326,8 @@ vobject* Double::create_proto() {
 				return Undefined::instance();
 			
 			if (Double* i = dynamic_cast<Double*>(args[0]); i) {
-				unsigned long long a = static_cast<long long>(round(i->value()));
-				unsigned long long b = args[1]->int_value();
+				uint64_t a = static_cast<int64_t>(round(i->value()));
+				uint64_t b = args[1]->int_value();
 				return new Int(a >> b);
 			}
 			return Undefined::instance();
@@ -339,7 +339,7 @@ vobject* Double::create_proto() {
 				return Undefined::instance();
 			
 			if (Double* i = dynamic_cast<Double*>(args[0]); i) {
-				long long b = args[1]->int_value();
+				int64_t b = args[1]->int_value();
 				return Bool::instance(i->value() != 0 && b);
 			}
 			return Undefined::instance();
@@ -350,7 +350,7 @@ vobject* Double::create_proto() {
 				return Undefined::instance();
 			
 			if (Double* i = dynamic_cast<Double*>(args[0]); i) {
-				long long b = args[1]->int_value();
+				int64_t b = args[1]->int_value();
 				return Bool::instance(i->value() != 0 || b);
 			}
 			return Undefined::instance();
@@ -412,7 +412,7 @@ vobject* Double::create_proto() {
 				return Undefined::instance();
 			
 			if (Double* i = dynamic_cast<Double*>(args[0]); i) 
-				return new Int(~static_cast<long long>(round(i->value())));
+				return new Int(~static_cast<int64_t>(round(i->value())));
 			
 			return Undefined::instance();
 		}));
@@ -463,8 +463,8 @@ Double* Double::NaN() {
 	return Double_NAN;
 }
 
-long long Double::int_value() {
-	return static_cast<long long>(round(val));
+int64_t Double::int_value() {
+	return static_cast<int64_t>(round(val));
 };
 
 wstring Double::string_value() {

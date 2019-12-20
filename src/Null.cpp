@@ -107,7 +107,7 @@ vobject* Null::call(ck_vobject::vscope* scope, const std::vector<vobject*>& args
 };
 
 
-long long Null::int_value() {
+int64_t Null::int_value() {
 	return 0;
 };
 

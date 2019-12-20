@@ -18,7 +18,7 @@ void printAST(ck_ast::ASTNode *localroot) { // XXX: how to save line numbers?
 			break;
 		
 		case ck_token::INTEGER:
-			wprintf(L"%d", *(long long*) (localroot->objectlist->object));
+			wprintf(L"%d", *(int64_t*) (localroot->objectlist->object));
 			break;
 			
 		case ck_token::BOOLEAN:

@@ -123,6 +123,7 @@ namespace ck_exceptions {
 			return contains_backtrace;
 		};
 		
+		// Performs printing out backtrace in an STDERR stream.
 		void print_backtrace();
 
 		inline cake_type get_type_id() const {

@@ -465,7 +465,7 @@ bool Array::set_item(int index, vobject* object, bool range_wrap, bool range_che
 };
 
 // Returns size of an array as integer value
-long long Array::int_value() { 
+int64_t Array::int_value() { 
 	return elements.size(); 
 };
 

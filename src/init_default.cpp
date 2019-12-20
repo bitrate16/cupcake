@@ -6,6 +6,10 @@
 #include "GIL2.h"
 #include "executer.h"
 #include "exceptions.h"
+#include "parser.h"
+#include "translator.h"
+#include "script.h"
+#include "ast.h"
 
 #include "vscope.h"
 #include "objects/Object.h"
@@ -106,10 +110,71 @@ static vobject* f_system(vscope* scope, const vector<vobject*>& args) {
 	return new Int(status);
 };
 
-// Do stop of the interpreter
+// GIL::stop()
 static vobject* f_exit(vscope* scope, const vector<vobject*>& args) {
 	GIL::instance()->stop();
 	return Undefined::instance();
+};
+
+// Perform parsing of argument as a code string.
+// args[0] - source string for the code.
+// args[1] - variable names used in the new code function.
+// Example:
+//  parse('return a + b;', 'a', 'b');
+// Will return Function(a, b).
+// Returns Function on success, Array with messages on failtyre.
+static vobject* f_parse(vscope* scope, const vector<vobject*>& args) {
+	if (args.size() == 0)
+		return Undefined::instance();
+	
+	if (args[0] == nullptr)
+		return Undefined::instance();
+	
+	std::wstring input_string = args[0]->string_value();
+	
+	// Convert input file to AST
+	ck_parser::stream_wrapper sw(input_string);
+	ck_parser::parser_massages pm(GIL::executer_instance()->get_script()->filename);
+	ck_parser::parser* p = new ck_parser::parser(pm, sw);
+	ck_ast::ASTNode* n = p->parse();
+	delete p;
+	
+	if (pm.errors()) {
+		Array* errors = new Array();
+		
+		for (int i = 0; i < pm.get_messages().size(); ++i) {
+			std::wstring message;
+			
+			if (pm.get_messages()[i].type == ck_parser::parser_message::MSG_ERROR)
+				message = L"error: " + pm.get_messages()[i].message + L", at <" + pm.get_filename() + L">:[" + std::to_wstring(pm.get_messages()[i].lineno) + L":" + std::to_wstring(pm.get_messages()[i].charno) + L"]";
+			
+			if (pm.get_messages()[i].type == ck_parser::parser_message::MSG_WARNING)
+				message = L"warning: " + pm.get_messages()[i].message + L", at <" + pm.get_filename() + L">:[" + std::to_wstring(pm.get_messages()[i].lineno) + L":" + std::to_wstring(pm.get_messages()[i].charno) + L"]";
+			
+			errors->items().push_back(new String(message));
+		}
+		
+		delete n;
+		return errors;
+	}
+	
+	// Convert AST to bytecodes & initialize script instance
+	ck_core::ck_script* main_script = new ck_script();
+	main_script->directory = GIL::executer_instance()->get_script()->directory;
+	main_script->filename  = GIL::executer_instance()->get_script()->filename;
+	ck_translator::translate_function(main_script->bytecode.bytemap, main_script->bytecode.lineno_table, n);
+	
+	// Free up memory
+	delete n;
+	
+	// Collect arguments
+	std::vector<std::wstring> argn;
+	for (int i = 1; i < args.size(); ++i)
+		if (args[i])
+			argn.push_back(args[i]->string_value());
+	
+	// Return result
+	return new BytecodeFunction(scope, main_script, argn);
 };
 
 // Get amount of gc objects
@@ -150,6 +215,9 @@ vscope* ck_objects::init_default() {
 	
 	// P R O C E S S
 	scope->put(L"exit",    new NativeFunction(f_exit));
+	
+	// P A R S E
+	scope->put(L"parse",   new NativeFunction(f_parse));
 	
 	scope->put(L"system",  new NativeFunction(f_system));
 	

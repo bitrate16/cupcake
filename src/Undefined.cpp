@@ -107,7 +107,7 @@ vobject* Undefined::call(ck_vobject::vscope* scope, const std::vector<vobject*>&
 };
 
 
-long long Undefined::int_value() {
+int64_t Undefined::int_value() {
 	return 0;
 };
 

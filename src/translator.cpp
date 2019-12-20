@@ -182,7 +182,7 @@ void visit(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n
 		
 		case INTEGER: {
 			push_byte(bytemap, ck_bytecodes::PUSH_CONST_INT);
-			push(bytemap, sizeof(long long), (n->objectlist->object));
+			push(bytemap, sizeof(int64_t), (n->objectlist->object));
 			break;
 		}
 		
@@ -2034,6 +2034,31 @@ void ck_translator::translate(vector<unsigned char>& bytemap, vector<int>& linen
 	lineno_table.push_back(last_lineno_addr);
 };
 
+void ck_translator::translate_function(ck_bytecode& bytecode, ASTNode* n) {
+	translate_function(bytecode.bytemap, bytecode.lineno_table, n);
+};
+
+void ck_translator::translate_function(vector<unsigned char>& bytemap, vector<int>& lineno_table, ASTNode* n) {
+	// lineno_table - Table of Line Numbers
+	// Provides range of commands mapped to a single line number
+	// [lineno, start_cmd]
+	
+	// bytemap - the resulting bytemap
+	
+	if (!(n && n->type != TERR))
+		return;
+	
+	// Translate bytecode inside "fake" function body
+	push_address(BREAK_PLACEMENT_FUNCTION, 0, nullptr, nullptr);
+	visit(bytemap, lineno_table, n);
+	pop_address(bytemap, 0, 0);
+	
+	last_lineno = -1;
+	lineno_table.push_back(last_lineno);
+	last_lineno_addr = bytemap.size();
+	lineno_table.push_back(last_lineno_addr);
+};
+
 bool read(vector<unsigned char>& bytemap, int& index, int size, void* p) {
 	if (index + size > bytemap.size())
 		return 0;
@@ -2075,8 +2100,8 @@ void ck_translator::print(vector<unsigned char>& bytemap, int off, int offset, i
 			}
 			
 			case ck_bytecodes::PUSH_CONST_INT: {
-				long long i; 
-				read(bytemap, k, sizeof(long long), &i);
+				int64_t i; 
+				read(bytemap, k, sizeof(int64_t), &i);
 				wcout << "> PUSH_CONST[int]: " << i << endl;
 				break;
 			}

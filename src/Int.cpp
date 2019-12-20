@@ -62,7 +62,7 @@ vobject* Int::create_proto() {
 			
 			std::wstring str = args[0]->string_value();
 			
-			long long dbl = 0.0;
+			int64_t dbl = 0.0;
 			std::wistringstream num(str);
 
 			num >> dbl;
@@ -184,7 +184,7 @@ vobject* Int::create_proto() {
 				if (Double* d = dynamic_cast<Double*>(args[1]); d)
 					return new Double(i->value() / d->value());
 				
-				if (long long b = args[1]->int_value(); b)
+				if (int64_t b = args[1]->int_value(); b)
 					return new Int(i->value() / static_cast<double>(b));
 				else
 					return Undefined::instance();
@@ -198,8 +198,8 @@ vobject* Int::create_proto() {
 				return Undefined::instance();
 			
 			if (Int* i = dynamic_cast<Int*>(args[0]); i) {
-				if (long long b = args[1]->int_value(); b)
-					return new Int(static_cast<long long>(round(i->value() / b)));
+				if (int64_t b = args[1]->int_value(); b)
+					return new Int(static_cast<int64_t>(round(i->value() / b)));
 				else
 					return Undefined::instance();
 			}
@@ -211,7 +211,7 @@ vobject* Int::create_proto() {
 				return Undefined::instance();
 			
 			if (Int* i = dynamic_cast<Int*>(args[0]); i) {
-				if (long long b = args[1]->int_value(); b)
+				if (int64_t b = args[1]->int_value(); b)
 					return new Int(i->value() % b);
 				else
 					return Undefined::instance();
@@ -225,7 +225,7 @@ vobject* Int::create_proto() {
 				return Undefined::instance();
 			
 			if (Int* i = dynamic_cast<Int*>(args[0]); i) {
-				long long b = args[1]->int_value();
+				int64_t b = args[1]->int_value();
 				return new Int(i->value() & b);
 			}
 			return Undefined::instance();
@@ -236,7 +236,7 @@ vobject* Int::create_proto() {
 				return Undefined::instance();
 			
 			if (Int* i = dynamic_cast<Int*>(args[0]); i) {
-				long long b = args[1]->int_value();
+				int64_t b = args[1]->int_value();
 				return new Int(i->value() | b);
 			}
 			return Undefined::instance();
@@ -247,7 +247,7 @@ vobject* Int::create_proto() {
 				return Undefined::instance();
 			
 			if (Int* i = dynamic_cast<Int*>(args[0]); i) {
-				long long b = args[1]->int_value();
+				int64_t b = args[1]->int_value();
 				return new Int(i->value() ^ b);
 			}
 			return Undefined::instance();
@@ -258,7 +258,7 @@ vobject* Int::create_proto() {
 				return Undefined::instance();
 			
 			if (Int* i = dynamic_cast<Int*>(args[0]); i) {
-				long long b = args[1]->int_value();
+				int64_t b = args[1]->int_value();
 				return new Int(i->value() << b);
 			}
 			return Undefined::instance();
@@ -269,7 +269,7 @@ vobject* Int::create_proto() {
 				return Undefined::instance();
 			
 			if (Int* i = dynamic_cast<Int*>(args[0]); i) {
-				long long b = args[1]->int_value();
+				int64_t b = args[1]->int_value();
 				return new Int(i->value() >> b);
 			}
 			return Undefined::instance();
@@ -280,8 +280,8 @@ vobject* Int::create_proto() {
 				return Undefined::instance();
 			
 			if (Int* i = dynamic_cast<Int*>(args[0]); i) {
-				unsigned long long a = i->value();
-				unsigned long long b = args[1]->int_value();
+				uint64_t a = i->value();
+				uint64_t b = args[1]->int_value();
 				return new Int(a >> b);
 			}
 			return Undefined::instance();
@@ -293,8 +293,8 @@ vobject* Int::create_proto() {
 				return Undefined::instance();
 			
 			if (Int* i = dynamic_cast<Int*>(args[0]); i) {
-				long long a = i->value();
-				long long b = args[1]->int_value();
+				int64_t a = i->value();
+				int64_t b = args[1]->int_value();
 				return Bool::instance(a && b);
 			}
 			return Undefined::instance();
@@ -305,8 +305,8 @@ vobject* Int::create_proto() {
 				return Undefined::instance();
 			
 			if (Int* i = dynamic_cast<Int*>(args[0]); i) {
-				long long a = i->value();
-				long long b = args[1]->int_value();
+				int64_t a = i->value();
+				int64_t b = args[1]->int_value();
 				return Bool::instance(a || b);
 			}
 			return Undefined::instance();
@@ -377,7 +377,7 @@ vobject* Int::create_proto() {
 };
 
 
-Int::Int(long long value) : val(value) {};
+Int::Int(int64_t value) : val(value) {};
 
 Int::~Int() {};
 
@@ -410,7 +410,7 @@ vobject* Int::call(ck_vobject::vscope* scope, const std::vector<vobject*>& args)
 };
 
 
-long long Int::int_value() {
+int64_t Int::int_value() {
 	return val;
 };
 
