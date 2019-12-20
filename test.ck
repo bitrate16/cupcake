@@ -3,15 +3,40 @@
 println('StackSize     = ', Thread.getStackSize());
 println('UsedStackSize = ', Thread.getUsedStackSize());
 
-/*var counter = 0;
+var counter = 0;
 var r = function() {
-	if (counter > 20000)
-		println(counter);
+	//if (counter > 20000)
+	//	println(counter);
 	++counter;
 	r() 
 }
-r()
-*/
+var g = function() {
+	r()
+	try {
+		try {
+			r() 
+		} catch (e) {
+			e.printBacktrace()
+		}
+	} catch (e) {
+		e.printBacktrace()
+	}
+}
+g()
+
+try {
+	try {
+		null()
+	} catch (e) {
+		println(e)
+	}
+} catch (e) {
+	println('e = ', e)
+}
+
+println('after')
+
+/*
 
 // println('SetStackSize  = ', Thread.setStackSize(4000));
 // println('StackSize     = ', Thread.getStackSize());

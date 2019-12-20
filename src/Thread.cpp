@@ -69,13 +69,14 @@ static vobject* call_handler(vscope* scope, const vector<vobject*>& args) {
 			try {
 				if (!cake_started) {
 					GIL::executer_instance()->call_object(runnable, nullptr, argso, L"<thread_runnable>", nscope);
+					GIL::executer_instance()->restore_all();
 					GIL::current_thread()->clear_blocks();
 				
 					// Finish execution loop on success
 					break;
 					
 				} else {
-					GIL::executer_instance()->clear();
+					GIL::executer_instance()->restore_all();
 					cake_started = 0;
 					
 					// On cake caught, call stack, windows stack and try stack are empty.
@@ -106,21 +107,27 @@ static vobject* call_handler(vscope* scope, const vector<vobject*>& args) {
 					// If reached this statement, then exception was processed correctly
 					break;
 				}
-			} catch (const cake& msg) {
-				GIL::current_thread()->clear_blocks();
-				
+			} catch (const cake& msg) {				
 				cake_started = 1;
 				message = msg;
+				message.collect_backtrace();
+				
+				GIL::executer_instance()->restore_all();
+				GIL::current_thread()->clear_blocks();
 			} catch (const std::exception& msg) {
-				GIL::current_thread()->clear_blocks();
-				
 				cake_started = 1;
 				message = msg;
-			} catch (...) {
-				GIL::current_thread()->clear_blocks();
+				message.collect_backtrace();
 				
+				GIL::executer_instance()->restore_all();
+				GIL::current_thread()->clear_blocks();
+			} catch (...) {
 				cake_started = 1;
 				message = UnknownException();
+				message.collect_backtrace();
+				
+				GIL::executer_instance()->restore_all();
+				GIL::current_thread()->clear_blocks();
 			}
 		}
 		

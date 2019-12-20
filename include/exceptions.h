@@ -80,18 +80,24 @@ namespace ck_exceptions {
 			// Convert to wstring
 			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
 			message = converter.from_bytes(ex.what());
+			
+			// collect_backtrace();
 		};
 		
 		// Used by RuntimeCake(type, message, type_id)
 		cake(const std::wstring& _type, const std::wstring& _message = L"", cake_type _type_id = CK_CAKE) : 
 																										type(_type), 
 																										message(_message), 
-																										type_id(_type_id) {};
+																										type_id(_type_id) {
+			// collect_backtrace();
+		};
 		
 		// Typed message with object
 		cake(ck_vobject::vobject* object) : 
 										object(object), 
-										type_id(CK_OBJECT) {};
+										type_id(CK_OBJECT) {
+			// collect_backtrace();
+		};
 												
 		cake(const cake& c) {
 			type_id = c.type_id;

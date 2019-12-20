@@ -4,7 +4,9 @@
 #include <string>
 
 #include "GC.h"
+#include "GIL2.h"
 #include "exceptions.h"
+#include "stack_locator.h"
 
 namespace ck_vobject {
 	class vobject;
@@ -23,10 +25,7 @@ namespace ck_exceptions {
 namespace ck_core {
 	
 	// Single execution stack frame.
-	struct stack_frame {
-		
-		stack_frame() {};
-		
+	struct stack_frame {		
 		// Set to 1 if call owns this scope.
 		bool own_scope = -1;
 		
@@ -179,21 +178,73 @@ namespace ck_core {
 		
 		// if (scopes.size() == 0 || scopes.back() == nullptr)
 		//	throw StackCorrupted();		
-		void validate_scope();
+		inline void validate_scope() {
+			if (scopes.size() == 0 || scopes.back() == nullptr)
+				throw ck_exceptions::StackCorruption(L"scopes stack corrupted");	
+		};
 		
 		// peek closest try_frame and follow it's catch block by jumping on it.
 		// If no frames in current script left, rethrow message up.
 		void follow_exception(const ck_exceptions::cake& msg);
 		
-		// Store stack frame
-		void store_frame(std::vector<stack_frame>& stack, int stack_id, const std::wstring& name, bool own_scope);
+		// Store state of different frame types
+		inline void store_try_frame(const std::wstring& name, bool own_scope) {
+			stack_frame frame;
+			frame.window_id = window_stack.size() - 1;
+			frame.try_id    = try_stack.size()    - 1;
+			frame.call_id   = call_stack.size()   - 1;
+			frame.script_id = scripts.size()      - 1;
+			frame.scope_id  = scopes.size()       - 1;
+			frame.object_id = objects.size()      - 1;
+			frame.own_scope = own_scope;
+			frame.name      = name;
+			frame.pointer   = pointer;
+			
+			try_stack.push_back(frame);
+		};
 		
-		// Restore stack frame.
-		//  Restored_frame_id used to prevent frame stack corruption 
-		//   by multiple calls to restore same frame.
-		void restore_frame(std::vector<stack_frame>& stack, int stack_id, int restored_frame_id);
+		inline void store_call_frame(const std::wstring& name, bool own_scope) {
+			stack_frame frame;
+			frame.window_id = window_stack.size() - 1;
+			frame.try_id    = try_stack.size()    - 1;
+			frame.call_id   = call_stack.size()   - 1;
+			frame.script_id = scripts.size()      - 1;
+			frame.scope_id  = scopes.size()       - 1;
+			frame.object_id = objects.size()      - 1;
+			frame.own_scope = own_scope;
+			frame.name      = name;
+			frame.pointer   = pointer;
+			
+			call_stack.push_back(frame);
+		};
+		
+		inline void store_window_frame(const std::wstring& name, bool own_scope) {
+			stack_frame frame;
+			frame.window_id = window_stack.size() - 1;
+			frame.try_id    = try_stack.size()    - 1;
+			frame.call_id   = call_stack.size()   - 1;
+			frame.script_id = scripts.size()      - 1;
+			frame.scope_id  = scopes.size()       - 1;
+			frame.object_id = objects.size()      - 1;
+			frame.own_scope = own_scope;
+			frame.name      = name;
+			frame.pointer   = pointer;
+			
+			window_stack.push_back(frame);
+		};
+		
+		// Restore state of different frame types
+		inline void restore_try_frame(int restored_frame_id);
+		
+		void restore_call_frame(int restored_frame_id);
+		
+		void restore_window_frame(int restored_frame_id);
 		
 	public:
+		
+		// Restore to empty state.
+		// Reatore all try_frame, call_frame, window_frame, deattach all scopes.
+		void restore_all();
 		
 		ck_executer();
 		

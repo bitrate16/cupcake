@@ -188,6 +188,7 @@ void wrap_main(int argc, void* argv) {
 			if (!exception_processing) {
 				// Normal execution, no exception processing
 				GIL::executer_instance()->execute(main_script, root_scope);
+				GIL::executer_instance()->restore_all();
 				GIL::current_thread()->clear_blocks();
 			
 				// Finish execution loop on success
@@ -195,7 +196,7 @@ void wrap_main(int argc, void* argv) {
 				
 			} else {
 				// Processing exception
-				GIL::executer_instance()->clear();
+				GIL::executer_instance()->restore_all();
 				exception_processing = 0;
 				
 				// On cake caught, call stack, windows stack and try stack are empty.
@@ -227,23 +228,29 @@ void wrap_main(int argc, void* argv) {
 				break;
 			}
 		} catch (const cake& msg) {
+			exception_processing = 1;
+			message = msg;
+			message.collect_backtrace();
+			
 			// Catch ck message exception
+			GIL::executer_instance()->restore_all();
 			GIL::current_thread()->clear_blocks();
-			
-			exception_processing = 1;
-			message = msg;
 		} catch (const std::exception& msg) {
-			// Catch native message exception
-			GIL::current_thread()->clear_blocks();
-			
 			exception_processing = 1;
 			message = msg;
-		} catch (...) {
-			// Catch something unresolved
-			GIL::current_thread()->clear_blocks();
+			message.collect_backtrace();
 			
+			// Catch native message exception
+			GIL::executer_instance()->restore_all();
+			GIL::current_thread()->clear_blocks();
+		} catch (...) {
 			exception_processing = 1;
 			message = UnknownException();
+			message.collect_backtrace();
+			
+			// Catch something unresolved
+			GIL::executer_instance()->restore_all();
+			GIL::current_thread()->clear_blocks();
 		}
 	}
 	
