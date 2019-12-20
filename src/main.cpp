@@ -452,6 +452,7 @@ int main(int argc, const char** argv, const char** envp) {
 		std::wcout << "ck -h Display help message." << std::endl;
 		std::wcout << "ck <filename> Execute input file as cupcake script." << std::endl;
 		std::wcout << "ck <filename> { --CK::<key>=<value> or --CK::<key> } For passing execution options." << std::endl;
+		std::wcout << "ck <filename> { --CK::<key>=<value> or --CK::<key> or any other argument } Full execution syntax." << std::endl;
 		std::wcout << std::endl;
 		std::wcout << "List of execution options:" << std::endl;
 		std::wcout << "--CK::STACK_SIZE=<size> Specify new stack size in bytes (> 8Mb)" << std::endl;
