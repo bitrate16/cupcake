@@ -214,7 +214,7 @@ void wrap_main(int argc, void** argv) {
 						} else
 							wcerr << "Unhandled cake in Thread main: " << message << endl;
 					else
-						wcerr << "Unhandled cake Thread main: " << message << endl;
+						wcerr << "Unhandled cake in Thread main: " << message << endl;
 					
 					// Unhandled exception -> terminate
 					GIL::instance()->stop();
