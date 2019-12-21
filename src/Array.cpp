@@ -236,9 +236,7 @@ vobject* Array::get(vscope* scope, const wstring& name) {
 	
 	// Integer indexing
 	{
-		#ifndef CK_SINGLETHREAD
-			ck_pthread::mutex_lock lck(mutex());
-		#endif
+		vsobject::vslock lk(this);
 		
 		// Check if string is valid number
 		bool is_int = name.size();
@@ -281,9 +279,7 @@ void Array::put(vscope* scope, const wstring& name, vobject* object) {
 		return;
 	
 	{
-		#ifndef CK_SINGLETHREAD
-			ck_pthread::mutex_lock lck(mutex());
-		#endif
+		vsobject::vslock lk(this);
 		
 		// Check if string is valid number
 		bool is_int = 1;
@@ -325,9 +321,7 @@ bool Array::contains(vscope* scope, const wstring& name) {
 		return 1;
 	
 	{
-		#ifndef CK_SINGLETHREAD
-			ck_pthread::mutex_lock lck(mutex());
-		#endif
+		vsobject::vslock lk(this);
 		
 		// Check if string is valid number
 		bool is_int = 1;
@@ -364,9 +358,7 @@ bool Array::remove(vscope* scope, const wstring& name) {
 		return 0;
 	
 	{
-		#ifndef CK_SINGLETHREAD
-			ck_pthread::mutex_lock lck(mutex());
-		#endif
+		vsobject::vslock lk(this);
 		
 		// Check if string is valid number
 		bool is_int = 1;

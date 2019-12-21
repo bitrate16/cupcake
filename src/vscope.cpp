@@ -427,9 +427,7 @@ vobject* iscope::get(const std::wstring& name, bool parent_get, bool proto_get) 
 	map<wstring, vobject*>::const_iterator pos;
 
 	{
-		#ifndef CK_SINGLETHREAD
-			ck_pthread::mutex_lock lck(mutex());
-		#endif
+		vsobject::vslock lk(this);
 		
 		pos = objects.find(name);
 		if (pos != objects.end())
@@ -452,9 +450,7 @@ bool iscope::put(const std::wstring& name, vobject* object, bool parent_put, boo
 	map<wstring, vobject*>::const_iterator pos;
 	
 	{
-		#ifndef CK_SINGLETHREAD
-			ck_pthread::mutex_lock lck(mutex());
-		#endif
+		vsobject::vslock lk(this);
 		
 		pos = objects.find(name);
 		if (pos != objects.end()) {
@@ -467,17 +463,13 @@ bool iscope::put(const std::wstring& name, vobject* object, bool parent_put, boo
 		if (parent->put(name, object, 1, 0))
 			return 1;
 		else if (create_new) {
-			#ifndef CK_SINGLETHREAD
-				ck_pthread::mutex_lock lck(mutex());
-			#endif
+			vsobject::vslock lk(this);
 			
 			objects[name] = object;
 			return 1;
 		}
 	} else if (create_new) {
-		#ifndef CK_SINGLETHREAD
-			ck_pthread::mutex_lock lck(mutex());
-		#endif
+		vsobject::vslock lk(this);
 		
 		objects[name] = object;
 		return 1;
@@ -497,9 +489,7 @@ bool iscope::remove(const std::wstring& name, bool parent_remove) {
 	map<wstring, vobject*>::const_iterator pos;
 	
 	{
-		#ifndef CK_SINGLETHREAD
-			ck_pthread::mutex_lock lck(mutex());
-		#endif
+		vsobject::vslock lk(this);
 			
 		pos = objects.find(name);
 		if (pos != objects.end()) {

@@ -2,8 +2,8 @@
 
 #include <string>
 #include <vector>
+#include <thread>
 
-#include "ck_pthread.h"
 #include "GC.h"
 
 
@@ -47,29 +47,65 @@ namespace ck_vobject {
 	// Must be used in multithreaded mode to avoid priority race breaks.
 	class vsobject : public vobject {
 		
+	public:
+		
+		// Utility for acquiring life-time lock on object.
+		// Locked on create, unlocked on destruct.
+		// Example: vslock lk(this);
+		class vslock {
+		#ifndef CK_SINGLETHREAD
+			vsobject* o;
+			
+		public:
+		
+			vslock(vsobject* o) {
+				this->o = o;
+				this->o->lock();
+			};
+			
+			~vslock() {
+				o->unlock();
+			};
+		#else
+	
+		public:
+	
+			vslock(vsobject* o) {};
+		
+			~vslock() {};
+		#endif
+		};
+		
 		#ifndef CK_SINGLETHREAD
 			
 			// Synchronization mutex.
 			//  The default type of this mutex is recursive_mutex
-			ck_pthread::recursive_mutex lock_mutex;
+			std::recursive_mutex lock_mutex;
 			
 		protected:
 			
 			// Synchronization methods.
 			//  must be called on any access to object's fields inside 
 			//  of get/put/call/contains/remode, e.t.c.
-			inline bool lock() {
-				return !lock_mutex.lock();
+			inline void lock() {
+				lock_mutex.lock();
 			};
 			
-			inline bool unlock() {
-				return !lock_mutex.unlock();
+			inline void unlock() {
+				lock_mutex.unlock();
 			};
 			
-			inline ck_pthread::recursive_mutex& mutex() {
+			inline std::recursive_mutex& mutex() {
 				return lock_mutex;
 			};
 		
+		#else
+			
+		protected:
+			
+			inline void lock() {};
+			
+			inline void unlock() {};
 		#endif
 	};
 };

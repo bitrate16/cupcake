@@ -38,11 +38,11 @@ namespace ck_core {
 			// Stack arguments
 
 			// Number of arguments to pass to wrap function
-			int   argc = 0;
+			int argc = 0;
 			// Number arguments pass to the wrap function
-			void* argv = nullptr;
+			void** argv = nullptr;
 			// Wrap function
-			void (*wrap_function) (int, void*) = nullptr;
+			void (*wrap_function) (int, void**) = nullptr;
 			// indicates if exception was thrown during wrapper call
 			bool exception_handled = 0;
 		};
@@ -55,7 +55,7 @@ namespace ck_core {
 		// _argv - argument array pointer for _wrap_function
 		// _wrap_function - function to be called on new stack
 		// Returns 1 on success, 0 on fail.
-		static bool call_replace_stack(int argc, void** argv, void (*wrap_function) (int, void*), size_t stack_size) {
+		static bool call_replace_stack(int argc, void** argv, void (*wrap_function) (int, void**), size_t stack_size) {
 			if (!(wrap_function))
 				return 0;
 			
@@ -163,6 +163,12 @@ namespace ck_core {
 			}
 
 			return 0;
+		};
+	
+		// Unsafe operation, used only in thread calls.
+		// Erase all information about current stacks.
+		inline void erase_all() {
+			ck_core::stack_locator::descriptors.resize(0);
 		};
 	};
 };

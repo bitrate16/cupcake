@@ -103,7 +103,7 @@ void GC::attach(gc_object *o) {
 		return;
 	
 #ifndef CK_SINGLETHREAD 
-	ck_pthread::mutex_lock lk(protect_lock);
+	std::unique_lock<std::recursive_mutex> lk(protect_lock);
 	// GIL_lock lock; // в этой херне жопа, гц блочится на сборку, эта хня блочит этот поток, объект удаляют ещё до инициализации
 #endif
 
@@ -132,7 +132,7 @@ void GC::attach_root(gc_object *o) {
 		return;
 	
 #ifndef CK_SINGLETHREAD
-	ck_pthread::mutex_lock lk(protect_lock);
+	std::unique_lock<std::recursive_mutex> lk(protect_lock);
 #endif
 
 	if (o->gc_lock)
@@ -158,7 +158,7 @@ void GC::deattach_root(gc_object *o) {
 		return;
 	
 #ifndef CK_SINGLETHREAD
-	ck_pthread::mutex_lock lk(protect_lock);
+	std::unique_lock<std::recursive_mutex> lk(protect_lock);
 #endif
 
 	if (!o->gc_root)
@@ -174,7 +174,7 @@ void GC::lock(gc_object *o) {
 		return;
 	
 #ifndef CK_SINGLETHREAD
-	ck_pthread::mutex_lock lk(protect_lock);
+	std::unique_lock<std::recursive_mutex> lk(protect_lock);
 #endif
 
 	if (o->gc_lock)
@@ -211,29 +211,22 @@ void GC::unlock(gc_object *o) {
 };
 
 // Amount of objects registered by GC.
-int GC::count() { return size; };
+int32_t GC::count() { return size; };
 
 // Amount of roots
-int GC::roots_count() { return roots_size; };
+int32_t GC::roots_count() { return roots_size; };
 
 // Amount of locked obejcts
-int GC::locks_count() { return locks_size; };
+int32_t GC::locks_count() { return locks_size; };
 
 void GC::collect(bool forced_collect) {
 	
-	// XXX: Sopport for GC.collect on very deep objects (aka list with very large size)
+	// XXX: Support for GC.collect on very deep objects (aka linked list with very large size)
 	
 	// First check if collection can be performed
 	if (created_interval <= GC::MIN_CREATED_INTERVAL && !forced_collect)
 		return;
 	
-	// Then try to lock the GC
-	//#ifndef CK_SINGLETHREAD
-	//	GIL::current_thread()->set_locked(1);
-	//	GIL::instance()->notify();
-	//	ck_pthread::mutex_lock lk(protect_lock);
-	//	GIL::current_thread()->set_locked(0);
-	//#endif
 	if (collecting)
 		return;
 	
@@ -259,7 +252,6 @@ void GC::collect(bool forced_collect) {
 			chain         = chain->next;
 			delete tmp;
 		} else if (!chain->obj->gc_root) {
-			// attach(chain->obj);
 			chain->obj->gc_root_chain = nullptr;
 			
 			gc_list *tmp = chain;
@@ -286,8 +278,6 @@ void GC::collect(bool forced_collect) {
 			chain         = chain->next;
 			delete tmp;
 		} else if (!chain->obj->gc_lock) {
-			// <> already recorded
-			// attach(chain->obj);
 			chain->obj->gc_lock_chain = nullptr;
 			
 			gc_list *tmp = chain;
@@ -346,6 +336,7 @@ void GC::dispose() {
 	#ifndef CK_SINGLETHREAD
 		GIL_lock lock;
 	#endif
+	
 	if (collecting)
 		return;
 	

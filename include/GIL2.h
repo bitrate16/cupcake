@@ -1,29 +1,61 @@
 #pragma once
 
 #include <thread>
-#include <vector>
 #include <condition_variable>
+#include <mutex>
 #include <atomic>
+#include <vector>
 #include <functional>
 
 #include "exceptions.h"
-#include "ck_pthread.h"
 
 
 namespace ck_core {
 	
-	class ckthread {
-		friend class GIL;
+	class GIL;
+	
+	// Structure with arguments of thread spawner, 
+	//  used to pass GIL environment
+	struct thread_spawner_args {
+		GIL*                   gil;
+		std::function<void ()> body;
+		std::thread*           thread;
 		
-		// Indicates that this thread has native thread intance attached
-		bool has_native = 0;
-		// Contains instance of the native thread
-		ck_pthread::thread* native_thread = nullptr;
+		// Synchronization
+		// During execution, 
+		//  init_sync has to be acquired when thread is initializing.
+		//  init_state is set to 1.
+		// DuriAfter execution,
+		//  init_state is set to 0.
+		//  init_sync is unlocked.
+		//  init_sync_var is notified for parent thread to continue.
+		std::atomic<bool>       init_state = 1;
+		std::mutex              init_sync;
+		std::condition_variable init_sync_var;
+		
+		// Size of new stack for thread
+		int64_t thread_stack_size = 8 * 1024 * 1024;
+	};
+	
+	extern void thread_spawn_wrapper(thread_spawner_args* args);
+	
+	class gil_thread {
+		friend class GIL;
+		friend void thread_spawn_wrapper(thread_spawner_args* args);
+		
+		// Set to 1 if this instance of gil_thread contains pointer to std::thread
+		bool has_native_thread_pointer = 0;
+		
+		// Containt instance of std::thread for this gil_thread
+		std::thread* native_thread_pointer = nullptr;
+		
 		// Contains native thread integer id for faster search over threads list
-		uint64_t native_thread_id = 0;
+		std::thread::id native_thread_id;
+		
 		// Total thread amount counter (For debug)
-		static uint64_t thread_counter;
-		// Thread descriptor id
+		static std::atomic<uint64_t> thread_counter;
+		
+		// Thread descriptor id (= thread_counter++)
 		uint64_t thread_id;
 		
 		// Thread state is described by values below.
@@ -40,21 +72,29 @@ namespace ck_core {
 		bool own_gil = 0;
 		
 		// Default constructor,
-		//  Used in GIL constructor to attach descriptor of current thread.
-		//  Used on spawning new thread and GIL manually adding all fields into it.
-		ckthread() : native_thread_id(ck_pthread::thread::this_thread().get_id()) { thread_id = thread_counter++; };
+		//  Binds std::this_thread to native_thread
+		//  Binds native_thread_id value
+		//  Binds thread_id value
+		gil_thread() {
+			native_thread_id          = std::this_thread::get_id();
+			has_native_thread_pointer = 0;
+			
+			thread_id = thread_counter++;
+		};
+		
+		gil_thread(std::thread* thread) {
+			native_thread_pointer     = thread;
+			native_thread_id          = thread->get_id();
+			has_native_thread_pointer = 1;
+			
+			thread_id = thread_counter++;
+		};
 		
 	public:
 		
-		// Destructor have to dispose thread instance by itself.
-		// Aka safe constructor for newly created ck_pthread object.
-		~ckthread() {
-			// native_thread is not null if it was created by GIL::spawn_thread
-			// Logically ckthread is disposed with native_thread
-			
-			// Delete ck_pthread instance here, because thread is stopping right now
-			if (has_native)
-				delete native_thread;
+		~gil_thread() {
+			if (has_native_thread_pointer)
+				delete native_thread_pointer;
 		};
 		
 		inline bool is_running() {
@@ -89,11 +129,21 @@ namespace ck_core {
 			return !running || locked || blocked;
 		};
 		
-		// Returns id of ck_pthread
-		inline uint64_t get_native_id() {
+		// Returns id of std::thread
+		inline std::thread::id get_native_id() {
 			return native_thread_id;
 		};
-	
+		
+		// Returns 1 if imstance has native bind
+		inline bool has_native_pointer() {
+			return has_native_thread_pointer;
+		};
+		
+		// Returns native pointer if it exists
+		inline std::thread* get_native_pointer() {
+			return native_thread_pointer;
+		};
+		
 		// Set blocked = locked = 0
 		inline void clear_blocks() {
 			blocked = locked = 0;
@@ -101,15 +151,18 @@ namespace ck_core {
 		
 		// Total threads count
 		inline static uint64_t count() {
-			return ckthread::thread_counter;
+			return gil_thread::thread_counter;
 		};
 		
-		// Returns id of this ckthread 
+		// Returns id of this gil_thread 
 		inline uint64_t get_id() {
 			return thread_id;
 		};
 		
 		// Resets state of the thread to the default
+		// running = 1
+		// locked  = 0
+		// blocked = 0
 		inline void restate() {
 			running = 1;
 			locked  = 0;
@@ -121,17 +174,15 @@ namespace ck_core {
 	class GC;
 	class ck_executer;
 	
-	extern void* thread_spawn_wrapper(void* args);
-	
 	class GIL {
 
-		friend void* thread_spawn_wrapper(void* args);
+		friend void thread_spawn_wrapper(thread_spawner_args* args);
 		
 		// Array of all created threads
-		std::vector<ckthread*> threads;
+		std::vector<gil_thread*> threads;
 		
-		// Main synchronization mutex & conditional var
-		ck_pthread::cond_var sync_condition;
+		// Main synchronization mutex & condition var
+		std::condition_variable_any sync_condition;
 		
 		// I.
 		//  Locked when one of the threads needs to require a special prior access over 
@@ -146,18 +197,18 @@ namespace ck_core {
 		//   main goes into wait and receive the signals.
 		// III.
 		//  Locked on any conditions because the optimal way to sync is use single mutex.
-		ck_pthread::recursive_mutex sync_mutex;
+		std::recursive_mutex sync_mutex;
 		
 		// Mutex used for thread vector synchromized access
-		ck_pthread::recursive_mutex threads_mutex;
+		std::recursive_mutex threads_mutex;
 	
 		// Set to 1 if lock is requested by someone
 		bool lock_requested = 0;
 	
-		// Points to the current ckthread
+		// Points to the current gil_thread
 		// Assigned when thread is being spawned via 
 		// spawn_thread or creation of GIL
-		static thread_local ckthread* current_thread_ptr;
+		static thread_local gil_thread* current_thread_ptr;
 		
 		// Assigned on thread creation. Thread-local instance of executer.
 		static thread_local ck_executer* executer;
@@ -169,21 +220,13 @@ namespace ck_core {
 		
 		// Instance of Garbage Collector
 		GC* gc;
-		
-		// Structure with arguments of thread spawner, 
-		//  used to pass GIL environment
-		struct thread_spawner_args {
-			GIL* gil;
-			ckthread* thread;
-			std::function<void ()> body;
-		};
 	
 	public:
 		
 		GIL();
 		~GIL();
 		
-		inline static ckthread* current_thread() {
+		inline static gil_thread* current_thread() {
 			return GIL::current_thread_ptr;
 		};
 		
@@ -199,20 +242,20 @@ namespace ck_core {
 			return GIL::instance()->executer;
 		};
 		
-		inline const std::vector<ckthread*>& get_threads() {
+		inline const std::vector<gil_thread*>& get_threads() {
 			return threads;
 		};
 		
-		inline ck_pthread::cond_var& sync_var() {
+		inline std::condition_variable_any& sync_var() {
 			return sync_condition;
 		};
 		
-		inline ck_pthread::recursive_mutex& sync_mtx() {
+		inline std::recursive_mutex& sync_mtx() {
 			return sync_mutex;
 		};
 		
 		// Returns threads_mutex. It has to be locked for safe threads list access
-		inline ck_pthread::recursive_mutex& threads_mtx() {
+		inline std::recursive_mutex& threads_mtx() {
 			return threads_mutex;
 		};
 		
@@ -223,10 +266,10 @@ namespace ck_core {
 		// Find thread by thread_id
 		// WARNING: This call is not thread-safe, meaning thread 
 		//  should request GIL lock before call this function.
-		inline static ckthread* thread_by_id(int thread_id) {
+		inline static gil_thread* thread_by_id(int thread_id) {
 			GIL* gil = GIL::instance();
 			
-			ck_pthread::mutex_lock lk(GIL::instance()->threads_mutex);
+			std::unique_lock<std::recursive_mutex> lk(GIL::instance()->threads_mutex);
 			
 			for (int i = 0; i < gil->threads.size(); ++i)
 				if (gil->threads[i]->get_id() == thread_id)
@@ -269,36 +312,30 @@ namespace ck_core {
 		// Performs unlocking of the mutex. 
 		// If mutex was not locked or the error ocurred, 
 		//  returns 0.
-		inline bool unlock() {
+		inline void unlock() {
 		#ifndef CK_SINGLETHREAD
-			bool res = sync_mutex.unlock();
+			sync_mutex.unlock();
 			
 			// To avoid the situation when other threads waiting for some shit
 			//  on sync_condition, ping them all.
 			notify();
 			accept_lock();
-			
-			return res;
 		#endif
-			return 0;
 		};
 		
 		// Performs unlocking of the mutex. 
 		// If mutex was not locked or the error ocurred, 
 		//  returns 0.
-		inline bool unlock_no_accept() {
+		inline void unlock_no_accept() {
 		#ifndef CK_SINGLETHREAD
-			bool res = sync_mutex.unlock();
+			sync_mutex.unlock();
 			
 			// To avoid the situation when other threads waiting for some shit
 			//  on sync_condition, ping them all.
 			notify();
-			
-			return res;
 		#endif
-			return 0;
 		};
-		
+				
 		// Called by thread to acquire lock on sync_mutex and 
 		//  notify other threads to lock by setting lock_requestd to 1.
 		inline void request_lock() {
@@ -307,8 +344,19 @@ namespace ck_core {
 			if (current_thread()->own_gil || lock_requested)
 				return;
 			
+			// S Y N C _ L O C K
+			
 			// Request sync_lock
-			lock();
+			current_thread()->set_locked(1);
+			
+			notify();
+			
+			std::unique_lock<std::recursive_mutex> sync_mutex_lock(sync_mutex);
+			
+			current_thread()->set_locked(0);
+			
+			
+			// O W N E R S H I P
 			
 			// Mark this thread indicate ownership of the GIL lock.
 			current_thread()->own_gil = 1;
@@ -317,15 +365,18 @@ namespace ck_core {
 			// Requesting all threads to lock
 			lock_requested = 1;
 			
+			
+			// W A I T _ A C Q U I R E
+			
 			current_thread()->set_locked(1);
 			
 			notify();
 			
 			// Wait for other threads to pause by indicating lock_requested
-			sync_condition.wait(sync_mutex, []() -> bool {
+			sync_condition.wait(sync_mutex_lock, []() -> bool {
 				// Mutex is locked here, so no threads can dispose or create before it is released.
 			
-				ck_pthread::mutex_lock lk(GIL::instance()->threads_mutex);
+				std::unique_lock<std::recursive_mutex> lk(GIL::instance()->threads_mutex);
 				
 				bool all_locked = 1;
 				if (GIL::instance()->get_threads().size() > 1) {
@@ -339,6 +390,12 @@ namespace ck_core {
 				return all_locked;
 			});
 			
+			
+			// R E L E A S E  &  R E T U R N
+			
+			// Release lock
+			sync_mutex_lock.release();
+			
 			current_thread()->set_locked(0);
 			
 			// Here thread owns unique lock beyond other threads.
@@ -351,9 +408,22 @@ namespace ck_core {
 			if (current_thread()->own_gil || lock_requested)
 				return 0;
 			
+			// S Y N C _ L O C K
+			
 			// Request sync_lock
-			if (!try_lock())
+			current_thread()->set_locked(1);
+			
+			notify();
+			
+			std::unique_lock<std::recursive_mutex> sync_mutex_lock(sync_mutex, std::try_to_lock);
+			
+			current_thread()->set_locked(0);
+			
+			if (!sync_mutex_lock.owns_lock())
 				return 0;
+			
+			
+			// O W N E R S H I P
 			
 			// Mark this thread indicate ownership of the GIL lock.
 			current_thread()->own_gil = 1;
@@ -362,31 +432,40 @@ namespace ck_core {
 			// Requesting all threads to lock
 			lock_requested = 1;
 			
+			
+			// W A I T _ A C Q U I R E
+			
 			current_thread()->set_locked(1);
 			
 			notify();
 			
 			// Wait for other threads to pause by indicating lock_requested
-			sync_condition.wait(sync_mutex, []() -> bool {
-				// Mutex is locked here, so no threads can dispose or create befure it is released.
+			sync_condition.wait(sync_mutex_lock, []() -> bool {
+				// Mutex is locked here, so no threads can dispose or create before it is released.
 			
-				ck_pthread::mutex_lock lk(GIL::instance()->threads_mutex);
+				std::unique_lock<std::recursive_mutex> lk(GIL::instance()->threads_mutex);
 				
 				bool all_locked = 1;
 				if (GIL::instance()->get_threads().size() > 1) {
-					for (int i = 0; i < GIL::instance()->get_threads().size(); ++i) 
-						if (GIL::instance()->get_threads()[i]->get_id() != current_thread()->get_id() && !GIL::instance()->get_threads()[i]->locked_state()) {
+					for (int i = 0; i < GIL::instance()->get_threads().size() && !all_locked; ++i)
+						if (GIL::instance()->get_threads()[i] != current_thread() && !GIL::instance()->get_threads()[i]->locked_state()) {
 							all_locked = 0;
 							break;
 						}
 				}
-					
+				
 				return all_locked;
 			});
 			
+			
+			// R E L E A S E  &  R E T U R N
+			
+			// Release lock
+			sync_mutex_lock.release();
+			
 			current_thread()->set_locked(0);
 			
-			// Here thread owns unique lock over other threads.
+			// Here thread owns unique lock beyond other threads.
 		#endif
 			return 1;
 		};
@@ -418,7 +497,7 @@ namespace ck_core {
 			// Unsafe ares that can be called from sgnal processor 
 			//  or any other part that does allow gil lock
 			
-			ck_pthread::mutex_lock lk(threads_mutex);
+			std::unique_lock<std::recursive_mutex> lk(threads_mutex);
 			
 			for (int i = 0; i < threads.size(); ++i)
 				threads[i]->set_running(0);
@@ -478,51 +557,41 @@ namespace ck_core {
 		// Returns id of created thread
 		// After call was performed and successfully complete, GIL lock is 
 		//  still locked by created thread.
-		uint64_t spawn_thread(std::function<void ()> body) {
+		int64_t spawn_thread(int64_t stack_size, std::function<void ()> body) {
 		#ifndef CK_SINGLETHREAD
-			ckthread* th = new ckthread();
-			ck_pthread::thread* nt;
-			
 			// Lock in here to prevent uninitialized value acccess if thread finishes 
-			//  before it was attached and delached from GIL threads array
+			//  before it was attached and detached from GIL threads array
 			GIL::instance()->lock();
 			
-			// For thread creation
-			ck_pthread::mutex_lock lk(threads_mutex);
-			
-			thread_spawner_args* args = new thread_spawner_args;
+			thread_spawner_args* args = new thread_spawner_args();
 			args->gil    = this;
-			args->thread = th;
 			args->body   = body;
+			args->thread_stack_size = stack_size < 8 * 1024 * 1024 ? 8 * 1024 * 1024 : stack_size;
 			
-			// XXX: Custom thread stack size
-			// Create thread descriptor, by default tread is running & not locked to prevent GC.
-			int retnum;
-			nt = new ck_pthread::thread(ck_core::thread_spawn_wrapper, args, &retnum);
+			// Lock init_sunc to prevent created thread access 
+			//  args.thread before assignment.
+			std::unique_lock<std::mutex> init_lk(args->init_sync);
 			
-			// Failed to create thread
-			if (retnum) {
-				delete args;
-				delete nt;
-				delete th;
-				
-				return -1;
-			}
+			// Create new thread & add it to arguments
+			args->thread = new std::thread(ck_core::thread_spawn_wrapper, args);
+			args->thread->detach();
 			
-			nt->detach();
+			// Unlock & waith for thread initialization
+			args->init_sync_var.wait(init_lk, [&args]() -> bool {
+				return !args->init_state;
+			});
 			
-			// Assign to descriptor
-			th->native_thread    = nt;
-			th->native_thread_id = nt->get_id();
-			th->has_native       = 1;
-			
-			threads.push_back(th);
-			
-			uint64_t tid = th->get_id();
+			init_lk.unlock();
+			init_lk.release();
 			
 			GIL::instance()->unlock();
 			
-			return tid;
+			std::unique_lock<std::recursive_mutex> lk(GIL::instance()->threads_mtx());
+			for (int i = 0; i < GIL::threads.size(); ++i)
+				if (GIL::threads[i]->get_native_id() == args->thread->get_id())
+					return GIL::threads[i]->get_id();
+			
+			return -1;
 		#else
 			return -1;
 		#endif
@@ -541,6 +610,21 @@ namespace ck_core {
 		
 		~GIL_lock() {
 			GIL::instance()->unlock();
+		};
+	};
+
+	// Class used to produce GIL lock during function call
+	// GIL::lock() is called on creation,
+	// GIL::unlock_no_accept() is called on destruction of object.
+	class GIL_no_accept_lock {
+	public:
+		
+		GIL_no_accept_lock() {
+			GIL::instance()->lock();
+		};
+		
+		~GIL_no_accept_lock() {
+			GIL::instance()->unlock_no_accept();
 		};
 	};
 }

@@ -6,6 +6,7 @@
 #include "GIL2.h"
 #include "executer.h"
 #include "stack_locator.h"
+#include "ck_args.h"
 
 #include "objects/Object.h"
 #include "objects/Int.h"
@@ -33,7 +34,10 @@ static vobject* call_handler(vscope* scope, const vector<vobject*>& args) {
 	// Copy backtrace from parent thread
 	vector<BacktraceFrame>* backtrace = new vector<BacktraceFrame>(GIL::executer_instance()->collect_backtrace());
 	
-	Thread* t = new Thread(GIL::instance()->spawn_thread([scope, argv, backtrace]() -> void {
+	vobject* StackSize = ThreadProto->Object::get(L"StackSize");
+	
+	Thread* t = new Thread(GIL::instance()->spawn_thread(StackSize ? StackSize->int_value() : 8 * 1024 * 1024, [scope, argv, backtrace]() -> void {
+		
 		// Create new scope for this thread
 		vscope* nscope = new iscope(scope);
 		nscope->root();
@@ -87,12 +91,13 @@ static vobject* call_handler(vscope* scope, const vector<vobject*>& args) {
 					vobject* __defcakehandler = root_scope->get(L"__defcakehandler");
 					if (__defcakehandler == nullptr || __defcakehandler->as_type<Undefined>() || __defcakehandler->as_type<Null>()) {
 						if (message.get_type_id() == cake_type::CK_OBJECT && message.get_object() != nullptr)
-							if (message.get_object()->as_type<Cake>())
+							if (message.get_object()->as_type<Cake>()) {
+								wcerr << "Unhandled cake in Thread " << GIL::current_thread()->get_id() << ": ";
 								((Cake*) message.get_object())->print_backtrace();
-							else
-								wcerr << "Unhandled cake: " << message << endl;
+							} else
+								wcerr << "Unhandled cake in Thread " << GIL::current_thread()->get_id() << ": " << message << endl;
 						else
-							wcerr << "Unhandled cake: " << message << endl;
+							wcerr << "Unhandled cake in Thread " << GIL::current_thread()->get_id() << ": " << message << endl;
 						
 						// Unhandled exception -> terminate
 						GIL::instance()->stop();
@@ -109,7 +114,7 @@ static vobject* call_handler(vscope* scope, const vector<vobject*>& args) {
 				}
 			} catch (const cake& msg) {				
 				cake_started = 1;
-				message = msg;
+				message = msg;std::wcout << message.get_message() << std::endl;
 				message.collect_backtrace();
 				
 				GIL::executer_instance()->restore_all();
@@ -149,6 +154,19 @@ vobject* Thread::create_proto() {
 	ThreadProto->Object::put(L"__typename", new String(L"Thread"));
 	ThreadProto->Object::put(L"__proto", ObjectProto);
 	
+	// StackSize as input argument option from main
+	int64_t stack_size = 8 * 1024 * 1024;
+	if (ck_core::ck_args::has_option(L"THREAD_STACK_SIZE")) try { 
+		// Check for valid integer
+		int64_t new_thread_stack_size = std::stoi(ck_core::ck_args::get_option(L"THREAD_STACK_SIZE"));
+		if (stack_size < new_thread_stack_size)
+			stack_size = new_thread_stack_size;
+	} catch (...) {
+		std::wcout << "Invalid value for option --CK::THREAD_STACK_SIZE (" << ck_core::ck_args::get_option(L"THREAD_STACK_SIZE") << std::endl;
+		return 0;
+	}
+	ThreadProto->Object::put(L"StackSize", new Int(stack_size));
+	
 	// Static
 	ThreadProto->Object::put(L"currentThread", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
@@ -173,33 +191,6 @@ vobject* Thread::create_proto() {
 			return new Int(ck_core::stack_locator::get_stack_remaining());
 		}));
 	
-	/*
-	// Sets stack size in frames for executer
-	// Returns new stack size in frames
-	ThreadProto->Object::put(L"setStackSize", new NativeFunction(
-		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
-			if (args.size() < 1 || args[0] == nullptr)
-				return Undefined::instance();
-			
-			int new_size_frames = args[0]->int_value();
-			
-			// Check for increase
-			if (new_size_frames < GIL::executer_instance()->get_stack_size_limit())
-				return new Int(GIL::executer_instance()->get_stack_size_limit());
-			
-			size_t new_size = new_size_frames * ck_core::ck_executer::def_stack_frame_size + 2 * 1024 * 1024;
-			
-			int new_size_ret = ck_pthread::thread::this_thread().set_stack_size(new_size);
-			
-			if (new_size_ret)
-				throw ck_exceptions::Error(L"Failed setting stack size");
-			
-			GIL::executer_instance()->calculate_stack_limits();
-			
-			return new Int(GIL::executer_instance()->get_stack_size_limit());
-		}));
-	*/
-	
 	// XXX: Thread blocking function
 	// Depends on object
 	ThreadProto->Object::put(L"isRunning", new NativeFunction(
@@ -215,7 +206,8 @@ vobject* Thread::create_proto() {
 			// Acquire lock over threads array
 			GIL::instance()->lock();
 			
-			ck_core::ckthread* th = GIL::instance()->thread_by_id(t->get_id());
+			ck_core::gil_thread* th = GIL::instance()->thread_by_id(t->get_id());
+			
 			vobject* ret;
 			if (th)
 				ret = Bool::instance(th->is_running());
@@ -241,7 +233,8 @@ vobject* Thread::create_proto() {
 			// Acquire lock over threads array
 			GIL::instance()->lock();
 			
-			ck_core::ckthread* th = GIL::instance()->thread_by_id(t->get_id());
+			ck_core::gil_thread* th = GIL::instance()->thread_by_id(t->get_id());
+			
 			vobject* ret;
 			if (th)
 				ret = Bool::instance(th->is_locked());
@@ -267,7 +260,8 @@ vobject* Thread::create_proto() {
 			// Acquire lock over threads array
 			GIL::instance()->lock();
 			
-			ck_core::ckthread* th = GIL::instance()->thread_by_id(t->get_id());
+			ck_core::gil_thread* th = GIL::instance()->thread_by_id(t->get_id());
+			
 			vobject* ret;
 			if (th)
 				ret = Bool::instance(th->is_blocked());

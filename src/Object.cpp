@@ -234,18 +234,14 @@ vector<wstring> Object::keys() {
 // Scope-independent getter-setter-checker.
 void Object::put(const wstring& name, vobject* object) {
 	
-	#ifndef CK_SINGLETHREAD
-		ck_pthread::mutex_lock lck(mutex());
-	#endif
+	vsobject::vslock lk(this);
 	
 	objects[name] = object;
 };
 
 vobject* Object::get(const wstring& name) {
 	
-	#ifndef CK_SINGLETHREAD
-		ck_pthread::mutex_lock lck(mutex());
-	#endif
+	vsobject::vslock lk(this);
 	
 	//wcout << this->string_value() << " getting " << name << endl;
 	map<wstring, vobject*>::const_iterator pos = objects.find(name);
@@ -256,9 +252,7 @@ vobject* Object::get(const wstring& name) {
 
 bool Object::contains(const wstring& name) {
 	
-	#ifndef CK_SINGLETHREAD
-		ck_pthread::mutex_lock lck(mutex());
-	#endif
+	vsobject::vslock lk(this);
 	
 	map<wstring, vobject*>::const_iterator pos = objects.find(name);
 	if (pos == objects.end())
@@ -268,9 +262,7 @@ bool Object::contains(const wstring& name) {
 
 bool Object::remove(const wstring& name) {
 	
-	#ifndef CK_SINGLETHREAD
-		ck_pthread::mutex_lock lck(mutex());
-	#endif
+	vsobject::vslock lk(this);
 	
 	map<wstring, vobject*>::const_iterator pos = objects.find(name);
 	if (pos == objects.end())

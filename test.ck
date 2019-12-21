@@ -13,6 +13,17 @@ println('func(3, 5) = ', func(3, 5))
 println('StackSize     = ', Thread.getStackSize());
 println('UsedStackSize = ', Thread.getUsedStackSize());
 
+Thread(function() {
+	println('ThreadStackSize     = ', Thread.StackSize);
+	println('Hello from thread' + Thread.currentThread().getId())
+	try {
+		null()
+	} catch (e) {
+		println("Thread 1:", e)
+		throw e
+	}
+})
+
 var counter = 0;
 var r = function() {
 	//if (counter > 20000)
@@ -32,7 +43,7 @@ var g = function() {
 		e.printBacktrace()
 	}
 }
-g()
+//g()
 
 try {
 	try {
@@ -43,6 +54,8 @@ try {
 } catch (e) {
 	println('e = ', e)
 }
+
+null()
 
 println('after')
 

@@ -18,10 +18,10 @@ using namespace ck_exceptions;
 
 
 // Init with nothing
-thread_local ckthread*         GIL::current_thread_ptr = nullptr;
+thread_local gil_thread*       GIL::current_thread_ptr = nullptr;
 GIL*                           GIL::gil_instance       = nullptr;
 thread_local ck_executer*      GIL::executer           = nullptr;
-uint64_t                  ckthread::thread_counter     = 0;
+std::atomic<uint64_t>   gil_thread::thread_counter     = 0;
 
 
 // GIL constructor is called on main() call.
@@ -36,7 +36,7 @@ GIL::GIL() { // : sync_lock(sync_mutex, sync_condition) {
 	GIL::gil_instance = this;
 	
 	// Create descriptor for current thread & store it as Thread0
-	current_thread_ptr = new ckthread();
+	current_thread_ptr = new gil_thread();
 	threads.push_back(current_thread_ptr); // no lock needed
 	
 	// Create GC instance before any object is created
@@ -64,10 +64,10 @@ GIL::~GIL() {
 	// Prevent creating new threads.
 	
 	// Logically there are no threads left.
-	// ck_pthread::mutex_lock lock(sync_lock);
 	
 	// At this moment ignoring all signals from OS.
 	
+	// XXX: Platform-dependent code
 	// Make program ignore all signals from OS.
 	sigset_t set;
 	sigfillset(&set);
@@ -90,8 +90,18 @@ GIL::~GIL() {
 	// Delete instance of main thread
 	
 	// Delete descriptor of Main thread
-	delete threads[0];
+	delete current_thread_ptr;
 };
+
+// Called on new stack created
+void thread_stack_wrapper(int argc, void** argv) {
+	// argv ~ thread_spawner_args
+	thread_spawner_args* args = (thread_spawner_args*) ((thread_spawner_args**) argv) [0];
+	
+	try {
+		args->body();
+	} catch (...) {}
+}
 
 // Dummy wrapper for newly created thread.
 // Set ups signal handlers for this thread so it will not react to any signal.
@@ -106,49 +116,75 @@ GIL::~GIL() {
 //   GIL global lock acquired.
 // Finally GIL have to lock again, mark thread as dead, 
 //  remove it from list of threads & delete.
-void* ck_core::thread_spawn_wrapper(void* argv) {
-	// argv points to GIL::thread_spawner_args
+void ck_core::thread_spawn_wrapper(ck_core::thread_spawner_args* args) {	
 	
-	if (!argv)
-		return 0;
+	// L O C K _ P A R E N T
 	
+	args->init_sync.lock();
+	args->init_state = 1;
+	
+	
+	// S I G N A L _ I N I T
+	
+	// XXX: Platform-dependent code
 	// Set to ignore all signals to make main thread catch them instead
 	sigset_t set;
 	sigfillset(&set);
 	if (pthread_sigmask(SIG_BLOCK, &set, NULL)) 
-		return 0;
+		return;
 	
-	GIL::thread_spawner_args* args = static_cast<GIL::thread_spawner_args*>(argv);
+	
+	// T H R E A D _ I N I T
+	
+	// Append current thread to threads vector
+	{	
+		// For thread creation
+		std::unique_lock<std::recursive_mutex> lk(GIL::instance()->threads_mtx());
+		
+		// Create new gil_thread pointing to std::thread
+		GIL::current_thread_ptr = new ck_core::gil_thread(args->thread);	
+		GIL::instance()->threads.push_back(GIL::current_thread_ptr);
+	}
+	
 	// Copy pointers to GIL values
 	GIL::gil_instance = args->gil; // unused, static
-	GIL::current_thread_ptr = args->thread;	
-	
-	// Wait for parent thread to finish initialization
-	// GC can not be called because this thread is not marked locked.
-	// GIL::instance()->lock(); // unused because GC will not call
-	
 	GIL::executer     = new ck_core::ck_executer();
 	
 	// Copy id of thread, requires thread-safe
-	uint64_t ctid = GIL::current_thread()->get_id();
+	int64_t ctid = GIL::current_thread()->get_id();
 	
-	// Set state of this thread as running to indicate for executer that it can run now
-	// GIL::current_thread_ptr->set_running(1); // Unused, because set by default
+	// Erase stack replacement
+	ck_core::stack_locator::erase_all();
 	
-	// Call passed lambda
-	args->body(); // XXX: Try-catch, unhandled only
+	
+	// U N L O C K _ P A R E N T
+	
+	args->init_sync.unlock();
+	args->init_state = 0;
+	args->init_sync_var.notify_all();
+	
+	
+	// T H R E A D _ R U N
+	
+	// Call passed lambda.
+	// GIL is locked during call
+	// Call new thread on new stack
+	if (!ck_core::stack_locator::call_replace_stack(1, (void**) &args, &thread_stack_wrapper, args->thread_stack_size))
+	
+	// D I S P O S E _ T H R E A D
 	
 	// Dispose instance of thread if it still exist
 	GIL::instance()->lock();
 	
 	// Dispose used values
 	delete GIL::executer;
+	delete args;
 	
 	// Mark thread as dead
 	GIL::current_thread_ptr->set_running(0);
 	
 	// Lock to delete	
-	ck_pthread::mutex_lock lk(GIL::instance()->threads_mtx());
+	std::unique_lock<std::recursive_mutex> lk(GIL::instance()->threads_mtx());
 	
 	// Remove this thread from list of threads
 	auto& threads = GIL::instance()->threads;
@@ -157,13 +193,8 @@ void* ck_core::thread_spawn_wrapper(void* argv) {
 			threads.erase(threads.begin() + i);
 			break;
 		}
-		
-	delete args->thread;
-	delete args;
 	
 	// Release GIL to breath free
 	GIL::instance()->unlock_no_accept();
-	
-	return 0;
 };
 

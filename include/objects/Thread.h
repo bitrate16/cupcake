@@ -19,8 +19,10 @@ namespace ck_objects {
 	
 		// Bind thread id instance to this object, no check
 		Thread(uint64_t tid);
+		
 		// Get current_thread from GIL, save id only
 		Thread();
+		
 		virtual ~Thread();
 		
 		virtual vobject* get     (ck_vobject::vscope*, const std::wstring&);

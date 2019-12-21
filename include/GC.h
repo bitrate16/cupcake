@@ -1,6 +1,7 @@
 #pragma once
 
-#include "ck_pthread.h"
+#include <thread>
+#include <mutex>
 
 namespace ck_core {		
 	/*
@@ -12,7 +13,7 @@ namespace ck_core {
 	
 	public: // WARNING: put destructor and constructor in PUBLIC section
 		
-		// XXX: Cintrol memory usage to not overflow process limit, add total memory counter on GC
+		// XXX: Control memory usage to not overflow process limit, add total memory counter on GC
 		void* operator new(std::size_t count);
 		void* operator new[](std::size_t count);
 		
@@ -80,18 +81,18 @@ namespace ck_core {
 	private:
 	
 		// Protects object list from multiple threads access.
-		ck_pthread::recursive_mutex protect_lock;
+		std::recursive_mutex protect_lock;
 		
-		int collecting;
-		int size;
-		int roots_size;
-		int locks_size;
+		bool collecting;
+		int32_t size;
+		int32_t roots_size;
+		int32_t locks_size;
 		gc_list *objects;
 		gc_list *roots;
 		gc_list *locks;
 		
 		// Number of objects created since last gc_collect pass
-		int created_interval;
+		int32_t created_interval;
 		
         // Number of minimum objects to be created before next GC
         // Yes, i like number 64.
@@ -183,13 +184,13 @@ namespace ck_core {
 		void unlock(gc_object *o);
 		
 		// Amount of objects registered by GC.
-		int count();
+		int32_t count();
 		
 		// Amount of roots
-		int roots_count();
+		int32_t roots_count();
 		
 		// Amount of locked obejcts
-		int locks_count();
+		int32_t locks_count();
 		
 		// if forced_collect is 1, GC will ignore checking conditons for optimizing and perform collection.
 		void collect(bool forced_collect = 0);

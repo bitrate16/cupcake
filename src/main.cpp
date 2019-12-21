@@ -2,6 +2,7 @@
 #include <fstream>
 #include <codecvt>
 #include <locale>
+#include <cstring>
 
 #include "parser.h"
 #include "translator.h"
@@ -180,7 +181,7 @@ static void signal_handler(int sig) {
 
 // Main wrapper.
 // Called after setting up locales, parsing arguments and environment, initializing 
-void wrap_main(int argc, void* argv) {
+void wrap_main(int argc, void** argv) {
 	// E X E C U T E _ P R O G R A M
 	
 	while (1) {
@@ -207,12 +208,13 @@ void wrap_main(int argc, void* argv) {
 				vobject* __defcakehandler = root_scope->get(L"__defcakehandler");
 				if (__defcakehandler == nullptr || __defcakehandler->as_type<Undefined>() || __defcakehandler->as_type<Null>()) {
 					if (message.get_type_id() == cake_type::CK_OBJECT && message.get_object() != nullptr)
-						if (message.get_object()->as_type<Cake>())
+						if (message.get_object()->as_type<Cake>()) {
+							std::wcout << "Unhandled cake in Thread main: ";
 							((Cake*) message.get_object())->print_backtrace();
-						else
-							wcerr << "Unhandled cake: " << message << endl;
+						} else
+							wcerr << "Unhandled cake in Thread main: " << message << endl;
 					else
-						wcerr << "Unhandled cake: " << message << endl;
+						wcerr << "Unhandled cake Thread main: " << message << endl;
 					
 					// Unhandled exception -> terminate
 					GIL::instance()->stop();
@@ -279,7 +281,7 @@ void wrap_main(int argc, void* argv) {
 			
 			// Waiting for thermal death of the universe
 		
-			ck_pthread::mutex_lock lk(GIL::instance()->threads_mtx());
+			std::unique_lock<std::recursive_mutex> lk(GIL::instance()->threads_mtx());
 			
 			bool universe_is_dead = 1;
 			for (int i = 1; i < GIL::instance()->get_threads().size() && universe_is_dead; ++i) // loop from 1 because main thread index is 0
@@ -395,7 +397,7 @@ void wrap_main(int argc, void* argv) {
 		
 		// Waiting for thermal death of the universe
 		
-		ck_pthread::mutex_lock lk(GIL::instance()->threads_mtx());
+		std::unique_lock<std::recursive_mutex> lk(GIL::instance()->threads_mtx());
 		
 		bool universe_is_dead = 1;
 		for (int i = 1; i < GIL::instance()->get_threads().size() && universe_is_dead; ++i) // loop from 1 because main thread index is 0
@@ -473,6 +475,14 @@ int main(int argc, const char** argv, const char** envp) {
 			ck_new_stack_size = try_new_stack_size;
 	} catch (...) {
 		std::wcout << "Invalid value for option --CK::STACK_SIZE (" << ck_core::ck_args::get_option(L"STACK_SIZE") << std::endl;
+		return 0;
+	}
+	
+	if (ck_core::ck_args::has_option(L"THREAD_STACK_SIZE")) try { 
+		// Check for valid integer
+		int new_thread_stack_size = std::stoi(ck_core::ck_args::get_option(L"THREAD_STACK_SIZE"));
+	} catch (...) {
+		std::wcout << "Invalid value for option --CK::THREAD_STACK_SIZE (" << ck_core::ck_args::get_option(L"THREAD_STACK_SIZE") << std::endl;
 		return 0;
 	}
 	

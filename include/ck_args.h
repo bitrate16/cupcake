@@ -1,8 +1,10 @@
 #pragma once
 
 #include <string>
-#include <map>
+#include <codecvt>
+#include <locale>
 #include <vector>
+#include <map>
 
 // Utility used to parse input arguments.
 // Accepts argc, argv as input and splits argv into two sets:
@@ -14,11 +16,11 @@ namespace ck_core {
 	
 		// Map of <key, value> pairs for values with syntax 
 		//  --CK::<argkey>, --CK::<argkey>=<argvalue>
-		std::map<std::wstring, std::wstring> ck_options;
+		extern std::map<std::wstring, std::wstring> ck_options;
 		// Vector of all other arguments, passed to the program.
-		std::vector<std::wstring> ck_args;
+		extern std::vector<std::wstring> ck_args;
 		// Empty key, used for get_option(key)
-		std::wstring empty_value;
+		extern std::wstring empty_value;
 		
 		// Hold instance in global contest to make it auto-disposable.
 		// Does not matter if it is visible, it has to be accessed 
