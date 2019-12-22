@@ -458,6 +458,9 @@ int main(int argc, const char** argv, const char** envp) {
 		std::wcout << std::endl;
 		std::wcout << "List of execution options:" << std::endl;
 		std::wcout << "--CK::STACK_SIZE=<size> Specify new stack size in bytes (> 8Mb)" << std::endl;
+		std::wcout << "--CK::THREAD_STACK_SIZE=<size> Specify new stack size for threads in bytes (> 8Mb)" << std::endl;
+		std::wcout << "--CK::MAX_HEAP_SIZE=<size> Limit heap size per current process, default is 512Mb, minimal is 8Mb" << std::endl;
+		std::wcout << "--CK::MIN_GC_INTERVAL=<amount> Minimal amount of objects to be created before gc call, default is 64" << std::endl;
 		std::wcout << "--CK::PRINT_BYTECODE Debug output bytecode and AST for input script" << std::endl;
 		std::wcout << std::endl;
 		std::wcout << "Example: ck cake.ck --CK::STACK_SIZE=1000000" << std::endl;
@@ -480,9 +483,29 @@ int main(int argc, const char** argv, const char** envp) {
 	
 	if (ck_core::ck_args::has_option(L"THREAD_STACK_SIZE")) try { 
 		// Check for valid integer
-		int new_thread_stack_size = std::stoi(ck_core::ck_args::get_option(L"THREAD_STACK_SIZE"));
+		std::stoi(ck_core::ck_args::get_option(L"THREAD_STACK_SIZE"));
 	} catch (...) {
 		std::wcout << "Invalid value for option --CK::THREAD_STACK_SIZE (" << ck_core::ck_args::get_option(L"THREAD_STACK_SIZE") << std::endl;
+		return 0;
+	}
+	
+	if (ck_core::ck_args::has_option(L"MAX_HEAP_SIZE")) try { 
+		// Check for valid integer
+		int new_heap_size = std::stol(ck_core::ck_args::get_option(L"MAX_HEAP_SIZE"));
+		
+		GC::MAX_HEAP_SIZE = new_heap_size < 8 * 1024 * 1024 ? 8 * 1024 * 1024 : new_heap_size;
+	} catch (...) {
+		std::wcout << "Invalid value for option --CK::MAX_HEAP_SIZE (" << ck_core::ck_args::get_option(L"MAX_HEAP_SIZE") << std::endl;
+		return 0;
+	}
+	
+	if (ck_core::ck_args::has_option(L"MIN_GC_INTERVAL")) try { 
+		// Check for valid integer
+		int new_gc_interval = std::stoi(ck_core::ck_args::get_option(L"MIN_GC_INTERVAL"));
+		
+		GC::MIN_GC_INTERVAL = new_gc_interval < 0 ? 0 : new_gc_interval;
+	} catch (...) {
+		std::wcout << "Invalid value for option --CK::MIN_GC_INTERVAL (" << ck_core::ck_args::get_option(L"MIN_GC_INTERVAL") << std::endl;
 		return 0;
 	}
 	

@@ -1,6 +1,7 @@
 #include "GC.h"
 
 #include <exception>
+#include <cstdlib>
 #include <new>
 
 #include "exceptions.h"
@@ -9,6 +10,10 @@
 using namespace ck_core;
 using namespace ck_exceptions;
 
+
+int64_t GC::MAX_HEAP_SIZE             = 512 * 1024 * 1024;
+int32_t GC::MIN_GC_INTERVAL           = 64;
+std::atomic<int64_t> GC::memory_usage = 0;
 
 // gc_object		
 gc_object::gc_object() : 
@@ -32,30 +37,24 @@ void gc_object::gc_finalize() {};
 
 
 void* gc_object::operator new(std::size_t count) {
-	try {
-		return ::operator new(count);
-	} catch (...) {
-		throw OutOfMemory(L"allocation out of memory");
-	}
+	if (GC::memory_usage + count > GC::MAX_HEAP_SIZE)
+		throw OutOfMemory(L"Out of memory");
+	
+	void* object = std::malloc(count);
+	if (!object)
+		throw OutOfMemory(L"Out of memory");
+	
+	static_cast<gc_object*>(object)->self_size = count;
+	GC::memory_usage += count;
+	
+	return object;
 };
 
-void* gc_object::operator new[](std::size_t count) {
-	try {
-		return ::operator new[](count);
-	} catch (std::bad_alloc) {
-		throw OutOfMemory(L"allocation out of memory");
-	}
+void gc_object::operator delete(void* ptr) {
+	GC::memory_usage -= static_cast<gc_object*>(ptr)->self_size;
+	
+	std::free(ptr);
 };
-
-// void gc_object::operator delete  (void* ptr) {
-// 	// Assuming that operator delete is not accessible
-// 	::delete(ptr);
-// };
-// 
-// void gc_object::operator delete[](void* ptr) {
-// 	// Assuming that operator delete is not accessible
-// 	::delete[](ptr);
-// };
 
 
 // gc_list
@@ -210,21 +209,12 @@ void GC::unlock(gc_object *o) {
 	--locks_size;
 };
 
-// Amount of objects registered by GC.
-int32_t GC::count() { return size; };
-
-// Amount of roots
-int32_t GC::roots_count() { return roots_size; };
-
-// Amount of locked obejcts
-int32_t GC::locks_count() { return locks_size; };
-
 void GC::collect(bool forced_collect) {
 	
 	// XXX: Support for GC.collect on very deep objects (aka linked list with very large size)
 	
 	// First check if collection can be performed
-	if (created_interval <= GC::MIN_CREATED_INTERVAL && !forced_collect)
+	if (created_interval <= GC::MIN_GC_INTERVAL && !forced_collect)
 		return;
 	
 	if (collecting)

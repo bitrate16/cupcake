@@ -31,6 +31,9 @@ using namespace ck_core;
 using namespace ck_objects;
 using namespace ck_vobject;
 
+
+// F U N C T I O N S
+
 // Print without newline
 static vobject* f_print(vscope* scope, const vector<vobject*>& args) {
 	for (int i = 0; i < args.size(); ++i)
@@ -177,10 +180,32 @@ static vobject* f_parse(vscope* scope, const vector<vobject*>& args) {
 	return new BytecodeFunction(scope, main_script, argn);
 };
 
+
+// G C
+
+static vobject* f_gc_getUsedMemory(vscope* scope, const vector<vobject*>& args) {
+	return new Int(GIL::gc_instance()->get_used_memory());
+};
+
+static vobject* f_gc_getObjectCount(vscope* scope, const vector<vobject*>& args) {
+	return new Int(GIL::gc_instance()->count());
+};
+
+static vobject* c_gc() {
+	Object* gc_object = new Object();
+	gc_object->Object::put(L"getUsedMemory",  new NativeFunction(f_gc_getUsedMemory));
+	gc_object->Object::put(L"getObjectCount", new NativeFunction(f_gc_getObjectCount));
+	
+	return gc_object;
+};
+
 // Get amount of gc objects
 static vobject* f_gc_objects(vscope* scope, const vector<vobject*>& args) {
 	return new Int(GIL::gc_instance()->count());
 };
+
+
+// E N T R Y
 
 // Initialize default types and functions in root scope
 vscope* ck_objects::init_default() {
@@ -205,6 +230,9 @@ vscope* ck_objects::init_default() {
 	scope->put(L"Cake",             Cake            ::create_proto());
 	scope->put(L"Thread",           Thread          ::create_proto());
 	scope->put(L"Native",           Native          ::create_proto());
+	
+	// G C
+	scope->put(L"GC", c_gc());
 	
 	// Define other objects and fields
 	// I O

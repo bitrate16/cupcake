@@ -1,7 +1,18 @@
 var a = function() { return 1; };
 
- var func = parse('return a + b', 'a', 'b');
+var func = parse('return a + b', 'a', 'b');
+ 
+println('getUsedMemory  =', GC.getUsedMemory());
+println('getObjectCount =', GC.getObjectCount());
 
+var arr = [];
+var i = 0;
+while (i < 10000)
+	arr.push(i++);
+ 
+println('getUsedMemory  =', GC.getUsedMemory());
+println('getObjectCount =', GC.getObjectCount());
+/*
 println('keys()     = ', keys())
 println('println    = ', println)
 println('a          = ', a)

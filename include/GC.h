@@ -2,6 +2,7 @@
 
 #include <thread>
 #include <mutex>
+#include <atomic>
 
 namespace ck_core {		
 	/*
@@ -13,13 +14,13 @@ namespace ck_core {
 	
 	public: // WARNING: put destructor and constructor in PUBLIC section
 		
-		// XXX: Control memory usage to not overflow process limit, add total memory counter on GC
+		// Override new, new[] to record size of dynamical objects.
 		void* operator new(std::size_t count);
-		void* operator new[](std::size_t count);
+		// void* operator new[](std::size_t count);
 		
 		// Let's look like it is private
 		//  Else that's not my problem if you delete it from somewhere.
-		// void operator delete  (void* ptr);
+		void operator delete(void* ptr);
 		// void operator delete[](void* ptr);
 		
 		gc_object();
@@ -35,7 +36,11 @@ namespace ck_core {
 		// Mark current object as reachable
 		inline void gc_reach() { gc_reachable = 1; };
 		
+		// Indicates if obejcts is reachable and can not be collected.
 		bool gc_reachable = 0;
+		
+		// Returns size of current object requred on malloc.
+		inline size_t get_size() { return self_size; };
 		
 	private:
 	
@@ -55,6 +60,9 @@ namespace ck_core {
 		gc_list *gc_lock_chain;
 		// Pointer to alignation to current GC root
 		gc_list *gc_root_chain;
+		
+		// Allow derived to know, how much it contains
+		std::size_t self_size;
 	};
 	
 	/*
@@ -77,6 +85,8 @@ namespace ck_core {
 	 * Garbage collector. Collects your shit.
 	 */
 	class GC {
+		
+		friend class gc_object;
 	
 	private:
 	
@@ -93,6 +103,9 @@ namespace ck_core {
 		
 		// Number of objects created since last gc_collect pass
 		int32_t created_interval;
+		
+		// Current memory usage
+		static std::atomic<int64_t> memory_usage;
 		
         // Number of minimum objects to be created before next GC
         // Yes, i like number 64.
@@ -164,9 +177,13 @@ namespace ck_core {
         // 
         // >> https://www.youtube.com/watch?v=osR1jctb47Y <<
         // 
-		const int MIN_CREATED_INTERVAL = 64;
 		
 	public:
+		
+		// Maximal allowed size of heap usage, 512Mb
+		static int64_t MAX_HEAP_SIZE;
+		// Minimal amount of objects to be created before GC collect, 64
+		static int32_t MIN_GC_INTERVAL;
 		
 		GC();
 		~GC();
@@ -184,13 +201,15 @@ namespace ck_core {
 		void unlock(gc_object *o);
 		
 		// Amount of objects registered by GC.
-		int32_t count();
-		
+		inline int32_t count() { return size; };
+
 		// Amount of roots
-		int32_t roots_count();
-		
+		inline int32_t roots_count() { return roots_size; };
+
 		// Amount of locked obejcts
-		int32_t locks_count();
+		inline int32_t locks_count() { return locks_size; };
+		
+		inline int64_t get_used_memory() { return memory_usage; };
 		
 		// if forced_collect is 1, GC will ignore checking conditons for optimizing and perform collection.
 		void collect(bool forced_collect = 0);
