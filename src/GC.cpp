@@ -35,6 +35,21 @@ void gc_object::gc_mark() {
 		
 void gc_object::gc_finalize() {};
 
+void gc_object::gc_make_root() {
+	GIL::gc_instance()->attach_root(this);
+};
+
+void gc_object::gc_make_unroot() {
+	GIL::gc_instance()->deattach_root(this);
+};
+
+void gc_object::gc_make_lock() {
+	GIL::gc_instance()->lock(this);
+};
+
+void gc_object::gc_make_unlock() {
+	GIL::gc_instance()->unlock(this);
+};
 
 void* gc_object::operator new(std::size_t count) {
 	if (GC::memory_usage + count > GC::MAX_HEAP_SIZE)
@@ -55,6 +70,14 @@ void gc_object::operator delete(void* ptr) {
 	
 	std::free(ptr);
 };
+
+/*
+void gc_object::operator delete(void* ptr, std::size_t size) {
+	GC::memory_usage -= size;
+	
+	::operator delete(ptr, size);
+};
+*/
 
 
 // gc_list

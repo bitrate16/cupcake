@@ -21,9 +21,17 @@ namespace ck_core {
 		// Let's look like it is private
 		//  Else that's not my problem if you delete it from somewhere.
 		void operator delete(void* ptr);
-		// void operator delete[](void* ptr);
+		// void operator delete(void* ptr, std::size_t size);
 		
 		gc_object();
+		
+		void gc_make_root();
+		
+		void gc_make_unroot();
+		
+		void gc_make_lock();
+		
+		void gc_make_unlock();
 		
 		virtual ~gc_object();
 		

@@ -1,17 +1,58 @@
-var a = function() { return 1; };
+var forKeys = function(object, functor) {
+	println(keys())
+	var keys = object.keys();
+	for (var i = 0; i < keys.size; ++i)
+		functor(keys[i], '=', object[keys[i]])
+}
+
+/*var a = function(arg) { return arg; };
+println(a(1))
 
 var func = parse('return a + b', 'a', 'b');
  
 println('getUsedMemory  =', GC.getUsedMemory());
 println('getObjectCount =', GC.getObjectCount());
 
-var arr = [];
-var i = 0;
-while (i < 10000)
-	arr.push(i++);
- 
-println('getUsedMemory  =', GC.getUsedMemory());
-println('getObjectCount =', GC.getObjectCount());
+/*Thread(function() {
+	var arr = [];
+	var i = 0;
+	while (i < 10000)
+		arr.push(i++);
+
+	println('getUsedMemory  =', GC.getUsedMemory());
+	println('getObjectCount =', GC.getObjectCount());
+})*/
+
+var forKeys = function(object, functor) {
+	println(this.keys()) // this is required because {} pushes new scope
+	var keys = object.keys();
+	for (var i = 0; i < keys.size(); ++i)
+		functor(keys[i], '=', object[keys[i]])
+	
+	return 'okie'
+}
+
+var stream = function(array, functor) {
+	for (var i = 0; i < array.size(); ++i)
+		functor(array[i])
+}
+
+var streamCall = function(array, callname, argument) {
+	for (var i = 0; i < array.size(); ++i)
+		array[i][callname](argument)
+}
+
+var forKeysStream = function(object, printer) {
+	stream(object.keys(), function(key) {
+		printer(key, '=', object[key])
+	})
+}
+
+//println(a(1))
+println(forKeys(Platform, println))
+println(forKeysStream(Platform, println))
+println(forKeysStream(Int, println))
+
 /*
 println('keys()     = ', keys())
 println('println    = ', println)

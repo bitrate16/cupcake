@@ -199,6 +199,18 @@ static vobject* c_gc() {
 	return gc_object;
 };
 
+
+// P L A T F O R M
+
+static vobject* c_platform() {
+	Object* gc_object = new Object();
+	gc_object->Object::put(L"Name",    new String(ck_platform::get_name()));
+	gc_object->Object::put(L"Cpu",     new String(ck_platform::get_cpu()));
+	gc_object->Object::put(L"Newline", new String(ck_platform::newline_string()));
+	
+	return gc_object;
+};
+
 // Get amount of gc objects
 static vobject* f_gc_objects(vscope* scope, const vector<vobject*>& args) {
 	return new Int(GIL::gc_instance()->count());
@@ -231,8 +243,10 @@ vscope* ck_objects::init_default() {
 	scope->put(L"Thread",           Thread          ::create_proto());
 	scope->put(L"Native",           Native          ::create_proto());
 	
-	// G C
+	// O B J E C T S
 	scope->put(L"GC", c_gc());
+	// O B J E C T S
+	scope->put(L"Platform", c_platform());
 	
 	// Define other objects and fields
 	// I O

@@ -486,7 +486,10 @@ void ck_executer::follow_exception(const cake& msg) {
 				break;
 				
 			case ck_bytecodes::TRY_WITH_ARG: {
-				vscope* scope = new iscope(scopes.size() == 0 ? nullptr : scopes.back());
+				if (scopes.size() == 0)
+					throw StackCorruption(L"scopes stack corrupted");
+				
+				vscope* scope = new iscope(scopes.back());
 				scope->root();
 				scope->put(handler, msg.get_type_id() == cake_type::CK_OBJECT ? msg.get_object() : new Cake(msg), 0, 1);
 				scopes.push_back(scope);
@@ -508,7 +511,10 @@ void ck_executer::follow_exception(const cake& msg) {
 				break;
 				
 			case ck_bytecodes::TRY_WITH_ARG: {
-				vscope* scope = new iscope(scopes.size() == 0 ? nullptr : scopes.back());
+				if (scopes.size() == 0)
+					throw StackCorruption(L"scopes stack corrupted");
+				
+				vscope* scope = new iscope(scopes.back());
 				scope->root();
 				scope->put(handler, copy.get_type_id() == cake_type::CK_OBJECT ? copy.get_object() : new Cake(copy), 0, 1);
 				scopes.push_back(scope);
@@ -1154,8 +1160,11 @@ vobject* ck_executer::exec_bytecode() {
 			case ck_bytecodes::VSTATE_PUSH_SCOPE: {
 #ifdef DEBUG_OUTPUT
 				wcout << "> VSTATE_PUSH_SCOPE" << endl;
-#endif
-				vscope* s = new iscope(scopes.size() == 0 ? nullptr : scopes.back());
+#endif			
+				if (scopes.size() == 0)
+					throw StackCorruption(L"scopes stack corrupted");
+				
+				vscope* s = new iscope(scopes.back());
 				GIL::gc_instance()->attach_root(s);
 				scopes.push_back(s);
 				break;
@@ -1599,8 +1608,10 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 		// Pass given scope as proxy to avoid overwritting of __this value.
 		if (scope)
 			scope = new xscope(scope);
+		else if (scopes.size() == 0)
+			throw StackCorruption(L"scopes stack corrupted");
 		else
-			scope = new iscope(scopes.size() == 0 ? nullptr : scopes.back());
+			scope = new iscope(scopes.back());
 		scope->root();
 		own_scope = 1;
 		

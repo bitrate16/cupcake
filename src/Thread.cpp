@@ -42,6 +42,14 @@ static vobject* call_handler(vscope* scope, const vector<vobject*>& args) {
 		vscope* nscope = new iscope(scope);
 		nscope->root();
 		
+		// Root function to prevent delete
+		vobject* runnable = (*argv)[0];
+		if (!runnable) {
+			GIL::instance()->unlock();
+			return;
+		}
+		runnable->gc_make_root();
+		
 		// Unlock when entered this function call to be sure there 
 		//  was no priority race and arguments and score are still relevant
 		GIL::instance()->unlock();
@@ -54,7 +62,6 @@ static vobject* call_handler(vscope* scope, const vector<vobject*>& args) {
 		// Append parent thread backtrae to this executer
 		GIL::executer_instance()->append_backtrace(*backtrace);
 		
-		vobject* runnable = (*argv)[0];
 		
 		// dipose copy of backtrace
 		delete backtrace;
@@ -137,6 +144,7 @@ static vobject* call_handler(vscope* scope, const vector<vobject*>& args) {
 		}
 		
 		nscope->unroot();
+		runnable->gc_make_unroot();
 	}));
 	
 	t->Object::put(L"runnable", args[0]);

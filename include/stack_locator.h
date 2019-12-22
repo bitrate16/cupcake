@@ -4,6 +4,8 @@
 #include <cstdlib>
 #include <vector>
 
+#include "ck_platform.h"
+
 // Utility used to move execution stack.
 // Allocates requered space in heap, stores ESP of current
 //  stack & does migrating of stack.
@@ -12,10 +14,9 @@ namespace ck_core {
 		
 		// Define base types for ESP / RSP
 
-#if defined(__x86_64__)
+#if defined(X64)
 		typedef uint64_t type_int;
-#endif
-#if defined(__i386__)
+#elif defined(X32)
 		typedef uint32_t type_int;
 #endif
 
@@ -82,15 +83,14 @@ namespace ck_core {
 			descriptors.push_back(descriptor);
 			
 			// Swap ESP / RSP
-#if defined(__x86_64__)
+#if defined(X64)
 			__asm__ (
 				  "mov %%rsp, %%rax\n"
 				  "mov %%rbx, %%rsp\n"
 				: "=a"(descriptors.back().old_esp)
 				: "b"(descriptors.back().new_esp)
 				);
-#endif
-#if defined(__i386__)
+#elif defined(X32)
 			__asm__ (
             	  "mov %%esp, %%eax\n"
             	  "mov %%ebx, %%esp\n"
@@ -107,14 +107,13 @@ namespace ck_core {
 			}
 			
 			// Restore ESP / RSP
-#if defined(__x86_64__)
+#if defined(X64)
 			__asm__(
 				  "mov %%rax, %%rsp"
 				: "=a"(descriptors.back().old_esp)
 				: "a"(descriptors.back().old_esp)
 				);
-#endif
-#if defined(__i386__)
+#elif defined(X32)
 			__asm__(
             	  "mov %%eax, %%esp"
             	: "=a"(descriptors.back().old_esp)

@@ -422,11 +422,7 @@ int main(int argc, const char** argv, const char** envp) {
 	// Create UTF-8 locale
 	std::locale empty_locale;
 	auto codecvt = new std::codecvt_utf8<wchar_t>();
-	std::locale utf8_locale(empty_locale, codecvt); 
-	
-	// std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-	// std::string narrow = converter.to_bytes(wide_utf16_source_string);
-	// std::wstring wide = converter.from_bytes(narrow_utf8_source_string);
+	std::locale utf8_locale(empty_locale, codecvt);
 	
 	// Apply locale on stdin
 	wcin.imbue(utf8_locale);
@@ -461,7 +457,8 @@ int main(int argc, const char** argv, const char** envp) {
 		std::wcout << "--CK::THREAD_STACK_SIZE=<size> Specify new stack size for threads in bytes (> 8Mb)" << std::endl;
 		std::wcout << "--CK::MAX_HEAP_SIZE=<size> Limit heap size per current process, default is 512Mb, minimal is 8Mb" << std::endl;
 		std::wcout << "--CK::MIN_GC_INTERVAL=<amount> Minimal amount of objects to be created before gc call, default is 64" << std::endl;
-		std::wcout << "--CK::PRINT_BYTECODE Debug output bytecode and AST for input script" << std::endl;
+		std::wcout << "--CK::PRINT_BYTECODE Debug output bytecode" << std::endl;
+		std::wcout << "--CK::PRINT_AST Debug output AST for input script" << std::endl;
 		std::wcout << std::endl;
 		std::wcout << "Example: ck cake.ck --CK::STACK_SIZE=1000000" << std::endl;
 		return 0;
@@ -557,10 +554,12 @@ int main(int argc, const char** argv, const char** envp) {
 	translate(main_script->bytecode.bytemap, main_script->bytecode.lineno_table, n);
 	
 // #ifdef DEBUG_OUTPUT
-	if (ck_core::ck_args::has_option(L"PRINT_BYTECODE")) {
+	if (ck_core::ck_args::has_option(L"PRINT_AST")) {
 		wcout << "AST:" << endl;
 		printAST(n);
+	}
 		
+	if (ck_core::ck_args::has_option(L"PRINT_BYTECODE")) {
 		wcout << "Bytecodes: " << endl;
 		print(main_script->bytecode.bytemap);
 		wcout << endl;

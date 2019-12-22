@@ -1,6 +1,6 @@
 #include "sfile.h"
 
-#ifdef _WIN32
+#ifdef WINDOWS
 	#include <direct.h>
 	#define GetCurrentDir _getcwd
 #else
@@ -19,6 +19,6 @@ std::wstring ck_sfile::get_current_working_dir() {
 		return L"";
 	
 	std::string str(buff);
-	std::wstring current_working_dir(str.begin(), str.end());
-	return current_working_dir;
+	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+	return converter.from_bytes(str);
 };

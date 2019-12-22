@@ -2,7 +2,12 @@
 
 #include <vector>
 #include <string>
+#include <sstream>
 #include <iostream>
+#include <codecvt>
+#include <locale>
+
+#include "ck_platform.h"
 
 // Simple file class.
 // Allows representing input path as a tree of file paths
@@ -14,6 +19,7 @@ namespace ck_sfile {
 	
 	// XXX: Allow directory walking: ../, <path> + ../../......
 	 
+	// Returns current directory of a process.
 	std::wstring get_current_working_dir();
 	
 	class sfile {
@@ -36,7 +42,7 @@ namespace ck_sfile {
 			for (int i = 0; i < nstr.size(); ++i) { 
 				// Iter on '/' or '\' and skip first '/' on linux
 				if (nstr[i] == U'\\' || nstr[i] == U'/') {
-#ifdef _WIN32
+#ifdef WINDOWS
 					// owo
 #else               // > NOTWINDOWS
 					if (i == 0) {
@@ -58,7 +64,7 @@ namespace ck_sfile {
 						
 						path.push_back(temp);
 						
-#ifdef _WIN32           // > WINDOWS
+#ifdef WINDOWS          // > WINDOWS
 						if (path.size() == 1 && nstr.back() == U':') // windows root notation <key>:
 							absolute_path;
 #endif                  // < WINDOWS
@@ -77,10 +83,11 @@ namespace ck_sfile {
 		
 		
 		// Construct object from string splitting it by '/' and '\'
-		sfile(const std::string& str) : sfile(std::wstring(str.begin(), str.end())) {};
+		sfile(const std::string& str) : sfile(std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>>().from_bytes(str)) {};
 		
 		// Create new path by appending subpath to the passed ref.
-		sfile(const sfile& ref, const std::string& subpath) : sfile(ref, std::wstring(subpath.begin(), subpath.end())) {};
+		sfile(const std::string& ref, const std::string& subpath) : sfile(std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>>().from_bytes(ref),
+																		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>>().from_bytes(subpath)){};
 		
 		// Returns amount of entries in path
 		inline int size() const {
@@ -122,9 +129,15 @@ namespace ck_sfile {
 		};
 		
 		
-		// Returns path entry reference
+		// Returns path entry
 		// GETTER
-		sfile operator[](int index) const {
+		const std::wstring& operator[](int index) const {
+			return path[index];
+		};
+		
+		// Returns path entry reference
+		// SETTER
+		std::wstring& operator[](int index) {
 			return path[index];
 		};
 		
@@ -182,30 +195,27 @@ namespace ck_sfile {
 		
 		// Converts given object to string representing file path
 		inline std::wstring to_string() const {
-			std::wstring string_path;
+			std::wstringstream stream;
 			
 			int i = 0;
 			
 			if (absolute_path) {
-#ifdef _WIN32
-				string_path += get_current_working_dir()[0]; // <-- Gets the current drive letter
-				string_path += U':';
+#ifdef WINDOWS
+				stream << path[0] << ':'; // <- Current drive letter
 				i = 1;
 #else
-				string_path += U'/';
+				stream << '/';
 #endif
 			}
 
 			for (; i < path.size(); ++i) {
-				string_path += path[i]; // <-- Gets the current drive letter
-#ifdef _WIN32
-				string_path += U'\\';
-#else
-				string_path += U'/';
-#endif		
+				stream << path[i];
+					
+				if (i != path.size() - 1)
+					stream << PLATFORM_PATH_SEPARATOR;
 			}
 			
-			return string_path;
+			return stream.str();
 		};
 	
 		// Normalize current path using passed parent path.
@@ -278,31 +288,26 @@ namespace ck_sfile {
 		};
 		
 		friend std::wostream& operator<<(std::wostream& os, const sfile& f) {
-				if (f.absolute_path) {
-#ifdef _WIN32
+			int i = 0;
+			
+			if (f.absolute_path) {
+#ifdef WINDOWS
+				os << f.path[0] << ':'; // <- Current drive letter
+				i = 1;
+#else
+				os << '/';
+#endif
+			}
+
+			for (; i < f.path.size(); ++i) {
+				os << f.path[i];
 					
-#else
-					os << L"/ ";
-#endif
-				}
-				
-				for (int i = 0; i < f.path.size(); ++i) {			
-#ifdef _WIN32
-					if (i != path.size() - 1)
-						os << f.path[i] << L" \\ ";
-					else
-						os << f.path[i];
-#else
-					if (i != f.path.size() - 1)
-						os << f.path[i] << L" / ";
-					else
-						os << f.path[i];
-#endif
-				}
+				if (i != f.path.size() - 1)
+					os << PLATFORM_PATH_SEPARATOR;
+			}
 			
 			return os;
 		};
-		
 		
 		static inline sfile current_directory() {
 			return get_current_working_dir();
