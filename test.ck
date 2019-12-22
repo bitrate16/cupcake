@@ -49,9 +49,15 @@ var forKeysStream = function(object, printer) {
 }
 
 //println(a(1))
-println(forKeys(Platform, println))
-println(forKeysStream(Platform, println))
-println(forKeysStream(Int, println))
+forKeys(Platform, println)
+forKeysStream(Platform, println)
+forKeysStream(Int, println)
+forKeysStream(File, println)
+
+println('File.currentDirectory():', File.currentDirectory())
+println('File.currentDirectory().exists():', File.currentDirectory().exists())
+//println('File("blah").mkdir():', File("blah").mkdir())
+println('File("blah/mah").createFile():', File("blah/mah").createFile())
 
 /*
 println('keys()     = ', keys())

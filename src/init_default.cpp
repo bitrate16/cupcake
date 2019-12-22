@@ -25,6 +25,7 @@
 #include "objects/NativeFunction.h"
 #include "objects/Thread.h"
 #include "objects/Native.h"
+#include "objects/File.h"
 
 using namespace std;
 using namespace ck_core;
@@ -242,6 +243,7 @@ vscope* ck_objects::init_default() {
 	scope->put(L"Cake",             Cake            ::create_proto());
 	scope->put(L"Thread",           Thread          ::create_proto());
 	scope->put(L"Native",           Native          ::create_proto());
+	scope->put(L"File",             File            ::create_proto());
 	
 	// O B J E C T S
 	scope->put(L"GC", c_gc());

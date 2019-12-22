@@ -25,10 +25,15 @@ static vobject* call_handler(vscope* scope, const vector<vobject*>& args) {
 	if (args.size() == 0)
 		return new String();
 	
-	if (args[0]->as_type<String>())
-		return new String(((String*) args[0])->value());
-		
-	return new String(args[0]->string_value());
+	std::wstringstream ss;
+	
+	for (int i = 0; i < args.size(); ++i)
+		if (args[i])
+			ss << args[i]->string_value();
+		else
+			ss << "null";
+	
+	return new String(ss.str());
 };
 
 vobject* String::create_proto() {
@@ -441,6 +446,9 @@ vobject* String::get(ck_vobject::vscope* scope, const std::wstring& name) {
 	num >> index;
 
 	if(!num.fail() && num.eof()) {
+		if (str.size() == 0)
+			throw RangeError(L"String is empty");
+	
 		int index = std::stoi(name);
 		index = ((index % str.size()) + str.size()) % str.size();
 		
@@ -465,7 +473,7 @@ void String::put(ck_vobject::vscope* scope, const std::wstring& name, vobject* o
 	num >> index;
 
 	if(!num.fail() && num.eof()) 
-		throw UnsupportedOperation(L"can not change const string");
+		throw UnsupportedOperation(L"can not change const String");
 };
 
 bool String::contains(ck_vobject::vscope* scope, const std::wstring& name) {
@@ -479,6 +487,9 @@ bool String::contains(ck_vobject::vscope* scope, const std::wstring& name) {
 	num >> index;
 
 	if(!num.fail() && num.eof()) {
+		if (str.size() == 0)
+			throw RangeError(L"String is empty");
+	
 		int index = std::stoi(name);
 		if (index < 0)
 			return 0;
@@ -500,9 +511,9 @@ bool String::remove(ck_vobject::vscope* scope, const std::wstring& name) {
 	num >> index;
 
 	if(!num.fail() && num.eof()) 
-		throw UnsupportedOperation(L"can not change const string");
+		throw UnsupportedOperation(L"can not change const String");
 	
-	return StringProto && StringProto->Object::remove(name);
+	return 0;
 };
 
 vobject* String::call(ck_vobject::vscope* scope, const std::vector<vobject*>& args) {
@@ -560,7 +571,7 @@ int String::length() {
 //  Returns -1 if out of bounds.
 wchar_t String::charAt(int index) {
 	if (str.size() == 0)
-		throw RangeError(L"String is empty");
+		throw RangeError(L"string is empty");
 	
 	index = (index % str.size() + str.size()) % str.size();
 	

@@ -1,6 +1,7 @@
 #include "objects/Int.h"
 
 #include <string>
+#include <limits>
 #include <sstream>
 #include <climits>
 #include <cmath>
@@ -49,8 +50,8 @@ vobject* Int::create_proto() {
 	GIL::gc_instance()->attach_root(IntProto);
 	
 	IntProto->Object::put(L"__typename", new String(L"Int"));
-	IntProto->Object::put(L"MAX_VALUE", new Int(LLONG_MAX));
-	IntProto->Object::put(L"MIN_VALUE", new Int(LLONG_MIN));
+	IntProto->Object::put(L"MAX_VALUE", new Int(std::numeric_limits<int64_t>::max()));
+	IntProto->Object::put(L"MIN_VALUE", new Int(std::numeric_limits<int64_t>::min()));
 	IntProto->Object::put(L"SIZEOF", new Int(sizeof(long long)));
 	IntProto->Object::put(L"parse", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {

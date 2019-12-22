@@ -6,6 +6,7 @@
 #include <iostream>
 #include <codecvt>
 #include <locale>
+#include <cstdio>
 
 #include "ck_platform.h"
 
@@ -81,6 +82,17 @@ namespace ck_sfile {
 			*this += subpath;
 		};
 		
+		// Create new path by appending subpath to the passed ref.
+		sfile(const sfile& ref, const std::wstring& subpath) {
+			*this = ref;
+			*this += subpath;
+		};
+		
+		// Create new path by appending subpath to the passed ref.
+		sfile(const std::wstring& ref, const std::wstring& subpath) {
+			*this = ref;
+			*this += subpath;
+		};
 		
 		// Construct object from string splitting it by '/' and '\'
 		sfile(const std::string& str) : sfile(std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>>().from_bytes(str)) {};
@@ -88,6 +100,9 @@ namespace ck_sfile {
 		// Create new path by appending subpath to the passed ref.
 		sfile(const std::string& ref, const std::string& subpath) : sfile(std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>>().from_bytes(ref),
 																		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>>().from_bytes(subpath)){};
+																		
+		// Create new path by appending subpath to the passed ref.
+		sfile(const sfile& ref, const std::string& subpath) : sfile(ref, std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>>().from_bytes(subpath)){};
 		
 		// Returns amount of entries in path
 		inline int size() const {
@@ -128,6 +143,48 @@ namespace ck_sfile {
 			return f;
 		};
 		
+		inline sfile get_parent() const {
+			if (!has_parent())
+				return sfile();
+			
+			sfile f = *this;
+			f.path.pop_back();
+			
+			return f;
+		};
+		
+		inline bool exists() const {
+			std::string multibyte = std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>>().to_bytes(to_string());
+			
+			FILE* f = fopen(multibyte.c_str(), "r");
+			if (!f)
+				return 0;
+			
+			fclose(f);
+			return 1;
+		};
+		
+		// Create file if not exists
+		inline bool create_file() const {
+			std::string multibyte = std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>>().to_bytes(to_string());
+			
+			FILE* f = fopen(multibyte.c_str(), "r");
+			if (f) {
+				fclose(f);
+				return 0;
+			}
+			
+			f = fopen(multibyte.c_str(), "w");
+			if (!f)
+				return 0;
+			
+			fclose(f);
+			
+			return 1;
+		};
+		
+		// Create directory pointed by this path
+		bool mkdir();
 		
 		// Returns path entry
 		// GETTER
@@ -153,10 +210,6 @@ namespace ck_sfile {
 		};
 		
 		sfile& operator+=(const sfile& sub) {
-			// Can not append absolute path
-			if (sub.absolute_path)
-				return *this;
-			
 			for (int i = 0; i < sub.size(); ++i)
 				path.push_back(sub.path[i]);
 			
@@ -164,12 +217,7 @@ namespace ck_sfile {
 		};
 		
 		sfile& operator+(const sfile& sub) {
-			// Can not append absolute path
-			if (sub.absolute_path)
-				return *this;
-			
-			*this += sub;
-			return *this;
+			return *this += sub;
 		};
 		
 		bool operator==(const sfile& o) {
@@ -184,6 +232,10 @@ namespace ck_sfile {
 					return 0;
 			
 			return 1;
+		};
+		
+		bool operator!=(const sfile& o) {
+			return !(*this == o);
 		};
 		
 		// Allow creating paths at runtime with <path> / <subpath>

@@ -390,8 +390,6 @@ bool Array::remove(vscope* scope, const wstring& name) {
 	
 	if (Object::remove(name))
 		return 1;
-	if (ArrayProto && ArrayProto->Object::remove(name))
-		return 1;
 	return 0;
 };
 
