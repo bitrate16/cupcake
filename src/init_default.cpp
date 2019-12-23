@@ -87,9 +87,9 @@ static vobject* f_println(vscope* scope, const vector<vobject*>& args) {
 static vobject* f_readln(vscope* scope, const vector<vobject*>& args) {
 	// Read input string
 	std::wstring input;
-	wcin >> input;
-	
-	return new String(input);
+	if (std::getline(std::wcin, input))
+		return new String(input);
+	return Undefined::instance();
 };
 
 // read single character
@@ -126,7 +126,7 @@ static vobject* f_exit(vscope* scope, const vector<vobject*>& args) {
 // Example:
 //  parse('return a + b;', 'a', 'b');
 // Will return Function(a, b).
-// Returns Function on success, Array with messages on failtyre.
+// Returns Function on success, Array with messages on failture.
 static vobject* f_parse(vscope* scope, const vector<vobject*>& args) {
 	if (args.size() == 0)
 		return Undefined::instance();
@@ -179,6 +179,108 @@ static vobject* f_parse(vscope* scope, const vector<vobject*>& args) {
 	
 	// Return result
 	return new BytecodeFunction(scope, main_script, argn);
+};
+
+// Performs parsing of input script source and executing it as expression.
+// args[0] - source string for the code.
+// args[1] - scope to execute in
+// Example:
+//  eval('1 + 2') == 3
+// Will return Function(a, b).
+// Returns value on success, Array with messages on failture.
+static vobject* f_eval(vscope* scope, const vector<vobject*>& args) {
+	if (args.size() == 0)
+		return Undefined::instance();
+	
+	if (args[0] == nullptr)
+		return Undefined::instance();
+	
+	std::wstring input_string = args[0]->string_value();
+	
+	// Convert input file to AST
+	ck_parser::stream_wrapper sw(input_string);
+	ck_parser::parser_massages pm(GIL::executer_instance()->get_script()->filename);
+	ck_parser::parser* p = new ck_parser::parser(pm, sw);
+	ck_ast::ASTNode* n = p->parse();
+	delete p;
+	
+	if (pm.errors()) {
+		Array* errors = new Array();
+		
+		for (int i = 0; i < pm.get_messages().size(); ++i) {
+			std::wstring message;
+			
+			if (pm.get_messages()[i].type == ck_parser::parser_message::MSG_ERROR)
+				message = L"error: " + pm.get_messages()[i].message + L", at <" + pm.get_filename() + L">:[" + std::to_wstring(pm.get_messages()[i].lineno) + L":" + std::to_wstring(pm.get_messages()[i].charno) + L"]";
+			
+			if (pm.get_messages()[i].type == ck_parser::parser_message::MSG_WARNING)
+				message = L"warning: " + pm.get_messages()[i].message + L", at <" + pm.get_filename() + L">:[" + std::to_wstring(pm.get_messages()[i].lineno) + L":" + std::to_wstring(pm.get_messages()[i].charno) + L"]";
+			
+			errors->items().push_back(new String(message));
+		}
+		
+		delete n;
+		return errors;
+	}
+	
+	// Iterate over all nodes of the root and put RETURN at the last expression.
+	ck_ast::ASTNode* expr_node = nullptr;
+	ck_ast::ASTNode* curr_node = n->left;
+	while (curr_node) {
+		if (curr_node->type == ck_token::EXPRESSION)
+			expr_node = curr_node;
+		curr_node = curr_node->next;
+	}
+	
+	// XXX: Split ASTRoot into set of ASTRoot childs, execute them one by one and return last non-null value as result
+	
+	// Change type to return value
+	if (expr_node)
+		expr_node->type = ck_token::RETURN;
+	
+	// Convert AST to bytecodes & initialize script instance
+	ck_core::ck_script* main_script = new ck_script();
+	main_script->directory = GIL::executer_instance()->get_script()->directory;
+	main_script->filename  = GIL::executer_instance()->get_script()->filename;
+	ck_translator::translate_function(main_script->bytecode.bytemap, main_script->bytecode.lineno_table, n);
+	
+	// Free up memory
+	delete n;
+	
+	// Make execution scope for call
+	ck_vobject::vscope* func_scope = scope;
+	if (args.size() > 1 && args[1])
+		if (args[1]->as_type<ck_vobject::vscope>())
+			scope = static_cast<ck_vobject::vscope*>(args[1]);
+		else
+			scope = new ck_vobject::xscope(args[1], scope);
+	
+	// Make function
+	BytecodeFunction* eval_function = new BytecodeFunction(scope, main_script, {});
+	eval_function->gc_make_root();
+	ck_vobject::vobject* ret = nullptr;
+	
+	// Execute function in safe context to prevent it staying root forever
+	try {
+		if (GIL::executer_instance())
+			ret = GIL::executer_instance()->call_object(eval_function, nullptr, {}, L"<eval>", scope, 1);
+	
+		if (!ret)
+			ret = Undefined::instance();
+		
+		eval_function->gc_make_unroot();
+	} catch(const ck_exceptions::cake& msg) {
+		eval_function->gc_make_unroot();
+		throw msg;
+	} catch (const std::exception& ex) {
+		eval_function->gc_make_unroot();
+		throw ck_exceptions::NativeException(ex);
+	} catch (...) {
+		eval_function->gc_make_unroot();
+		throw ck_exceptions::UnknownException();
+	} 
+	
+	return ret;
 };
 
 
@@ -262,8 +364,10 @@ vscope* ck_objects::init_default() {
 	
 	// P A R S E
 	scope->put(L"parse",   new NativeFunction(f_parse));
+	scope->put(L"eval",    new NativeFunction(f_eval));
 	
 	scope->put(L"system",  new NativeFunction(f_system));
 	
 	return scope;
 };
+

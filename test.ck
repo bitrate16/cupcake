@@ -63,6 +63,20 @@ println('File("delete") / "sas":', File("delete") / "sas")
 println('File("delete").createFile():', File("delete").createFile())
 println('File("delete").deleteFile():', File("delete").deleteFile())
 
+// Pseudo-repl
+var context = {};
+while (1) {
+	try {
+		print('> ');
+		var line = readln();
+		var result = eval(line, context);
+		println(result);
+	} catch (e) {
+		print(e)
+	}
+	// eval(readln());
+}
+
 /*
 println('keys()     = ', keys())
 println('println    = ', println)

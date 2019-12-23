@@ -50,6 +50,12 @@ namespace ck_core {
 		// Returns size of current object requred on malloc.
 		inline size_t get_size() { return self_size; };
 		
+		// Retuns 1 if object is GC root
+		inline bool gc_is_root() { return gc_root; };
+		
+		// Retuns 1 if object is GC lock
+		inline bool gc_is_lock() { return gc_lock; };
+		
 	private:
 	
 		// Allow access only from GC class.

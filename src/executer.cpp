@@ -1580,7 +1580,7 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 	return;
 };
 
-ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>& args, const std::wstring& name, vscope* scope) { 
+ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>& args, const std::wstring& name, vscope* scope, bool use_scope_without_wrap) { 
 
 	// Limit rest of stack by 4 Mb
 	if (ck_core::stack_locator::get_stack_remaining() < 4 * 1024 * 1024)
@@ -1592,33 +1592,41 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 	// Construct scope
 	// vscope* scope = nullptr;
 	bool own_scope = 0;
+	bool scope_is_root = scope && scope->gc_is_root();
 	
 	if (obj->as_type<BytecodeFunction>()) {
 		// Apply new scope
-		BytecodeFunction* f = (BytecodeFunction*) obj;
-		
-		// Write binded __this reference if it doesnt exist
-		ref = f->get_bind() ? f->get_bind() : ref;
-		
-		// Apply this & args on scope
-		scope = f->apply(ref, args);
-		scope->root();
-		own_scope = 1;
+		if (!scope || !use_scope_without_wrap) {
+			BytecodeFunction* f = (BytecodeFunction*) obj;
+			
+			// Write binded __this reference if it doesnt exist
+			ref = f->get_bind() ? f->get_bind() : ref;
+			
+			// Apply this & args on scope
+			scope = f->apply(ref, args); // XXX: Remove apply and use something else.
+		}
 	} else {
 		// Pass given scope as proxy to avoid overwritting of __this value.
-		if (scope)
-			scope = new xscope(scope);
-		else if (scopes.size() == 0)
-			throw StackCorruption(L"scopes stack corrupted");
-		else
-			scope = new iscope(scopes.back());
-		scope->root();
-		own_scope = 1;
-		
-		if (ref != nullptr)
-			scope->put(L"__this", ref);
+		if (!scope && !use_scope_without_wrap) {
+			if (scope)
+				scope = new xscope(scope);
+			else if (scopes.size() == 0)
+				throw StackCorruption(L"scopes stack corrupted");
+			else
+				scope = new iscope(scopes.back());
+		}
 	}
 	
+	// Apply root
+	if (!scope_is_root) {
+		scope->root();
+		own_scope = 1;
+	}
+	
+	// Apply __this bind
+	if (ref != nullptr)
+		scope->put(L"__this", ref);
+
 	// Push scope
 	scopes.push_back(scope);
 	
@@ -1636,14 +1644,12 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 	
 	if (obj->as_type<BytecodeFunction>()) {
 		// Reset pointer to 0 and start
-		pointer = 0;
+		goto_address(0);
 		
 		// This long loop without any protection of the objects is thread-safe because 
 		//  other threads can not call GC
 		obj = exec_bytecode();
-	
-		// Do some useless shit again
-		exec_bytecode();
+		
 		GIL::current_thread()->clear_blocks();
 	} else if (obj->as_type<NativeFunction>()) {
 		// Do some useless shit

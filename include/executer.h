@@ -286,7 +286,10 @@ namespace ck_core {
 		// 2. obj is any other type and does not support direct call. Then obj.::vobject::call() is called.
 		// Ref will be assigned to scope::self
 		// Name is used in traceback (empty for none)
-		ck_vobject::vobject* call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>&, const std::wstring& name, ck_vobject::vscope* scope = nullptr);
+		// use_scope_without_wrap. If set to 1, passed scope will be used as execution scope without proxy, wrapping and applying function arguments.
+		//  If 0, passed scope is used as regular.
+		//  Scope has to be non-null, or scope will be calculated as regular for call.
+		ck_vobject::vobject* call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>&, const std::wstring& name, ck_vobject::vscope* scope = nullptr, bool use_scope_without_wrap = 0);
 		
 		// Performing late object call by execution passed function on the next executer step
 		void late_call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>&, const std::wstring& name, ck_vobject::vscope* scope = nullptr);
