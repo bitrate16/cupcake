@@ -168,16 +168,36 @@ namespace ck_exceptions {
 		return cake(L"Error", message);
 	};
 	
-	static inline cake StateError(const std::wstring& message = L"") {
+	static inline cake IllegalStateError(const std::wstring& message = L"") {
 		return cake(L"StateError", message);
+	};
+	
+	static inline cake IllegalArgumentError(const std::wstring& message = L"") {
+		return cake(L"IllegalArgumentError", message);
+	};
+	
+	static inline cake NumberFormatError(const std::wstring& message = L"") {
+		return cake(L"NumberFormatError", message);
+	};
+	
+	static inline cake UndefinedError(const std::wstring& message = L"") {
+		return cake(L"UndefinedError", message);
+	};
+	
+	static inline cake NullPointerError(const std::wstring& message = L"") {
+		return cake(L"NullPointerError", message);
+	};
+	
+	static inline cake IOError(const std::wstring& message = L"") {
+		return cake(L"IOError", message);
+	};
+	
+	static inline cake RuntimeError(const std::wstring& message = L"") {
+		return cake(L"RuntimeError", message);
 	};
 	
 	static inline cake TypeError(const std::wstring& message = L"") {
 		return cake(L"TypeError", message);
-	};
-	
-	static inline cake InvalidState(const std::wstring& message = L"") {
-		return cake(L"InvalidState", message);
 	};
 	
 	static inline cake StackOverflow(const std::wstring& message = L"") {

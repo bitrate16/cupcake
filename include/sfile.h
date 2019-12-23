@@ -186,6 +186,15 @@ namespace ck_sfile {
 		// Create directory pointed by this path
 		bool mkdir();
 		
+		// Delete existing file
+		bool delete_file();
+		
+		// Check if file is directory
+		bool is_directory();
+		
+		// List files on a directory
+		std::vector<ck_sfile::sfile> list_files();
+		
 		// Returns path entry
 		// GETTER
 		const std::wstring& operator[](int index) const {

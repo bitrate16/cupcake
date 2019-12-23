@@ -5,12 +5,12 @@
 #include <algorithm>
 
 #include "exceptions.h"
-#include "GIL2.h"
 
 #include "objects/Bool.h"
 #include "objects/String.h"
 #include "objects/NativeFunction.h"
 #include "objects/Undefined.h"
+#include "objects/Array.h"
 #include "objects/Int.h"
 
 using namespace std;
@@ -145,10 +145,83 @@ vobject* File::create_proto() {
 			
 			return Bool::instance(f->createFile());
 		}));
+	FileProto->Object::put(L"isDirectory", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->as_type<File>())
+				return Undefined::instance();
+			
+			File* f = static_cast<File*>(__this);
+			
+			if (!f->exists())
+				throw ck_exceptions::IOError(L"File " + f->value().to_string() + L" does not exist");
+			
+			return Bool::instance(f->isDirectory());
+		}));
+	FileProto->Object::put(L"deleteFile", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->as_type<File>())
+				return Undefined::instance();
+			
+			File* f = static_cast<File*>(__this);
+			
+			if (!f->exists())
+				return Bool::False();
+			
+			return Bool::instance(f->deleteFile());
+		}));
 	FileProto->Object::put(L"currentDirectory", new NativeFunction(
 		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
 			return File::currentDirectory();
 		}));
+	FileProto->Object::put(L"listFiles", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->as_type<File>())
+				return Undefined::instance();
+			
+			File* f = static_cast<File*>(__this);
+			
+			if (!f->exists())
+				throw ck_exceptions::IOError(L"File " + f->value().to_string() + L" does not exist");
+			
+			Array* array = new Array();
+			std::vector<File*> files = f->listFiles();
+			
+			for (int i = 0; i < files.size(); ++i)
+				array->items().push_back(files[i]);
+			
+			return array;
+		}));
+	FileProto->Object::put(L"listFilesPath", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			// Validate __this
+			if (!scope) return Undefined::instance();
+			vobject* __this = scope->get(L"__this", 1);
+			if (!__this || !__this->as_type<File>())
+				return Undefined::instance();
+			
+			File* f = static_cast<File*>(__this);
+			
+			if (!f->exists())
+				throw ck_exceptions::IOError(L"File " + f->value().to_string() + L" does not exist");
+			
+			Array* array = new Array();
+			std::vector<std::wstring> files = f->listFilesPath();
+			
+			for (int i = 0; i < files.size(); ++i)
+				array->items().push_back(new String(files[i]));
+			
+			return array;
+		}));
+	
 	
 	// Operators
 	FileProto->Object::put(L"__operator==", new NativeFunction(
@@ -171,7 +244,17 @@ vobject* File::create_proto() {
 			
 			return Bool::instance(static_cast<File*>(args[0])->value() != static_cast<File*>(args[1])->value());
 		}));
-		
+	FileProto->Object::put(L"__operator/", new NativeFunction(
+		[](vscope* scope, const vector<vobject*>& args) -> vobject* {
+			if (args.size() < 2 || !args[0] || !args[1])
+				return Undefined::instance();
+			
+			std::wstring patha = args[0]->string_value();
+			std::wstring pathb = args[1]->string_value();
+			
+			return new File(ck_sfile::sfile(patha, pathb));
+		}));
+	
 	return FileProto;
 };
 

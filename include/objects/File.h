@@ -7,6 +7,9 @@
 #include "sfile.h"
 #include "vobject.h"
 #include "exceptions.h"
+#include "executer.h"
+#include "script.h"
+#include "GIL2.h"
 
 #include "Object.h"
 #include "CallableObject.h"
@@ -85,10 +88,13 @@ namespace ck_objects {
 		// Creates file with absolute path from existing file, 
 		//  returns itself if already absolute
 		inline File* getAbsolute() {
-			if (path.is_absolute())
+			if (path.is_absolute()) // Already contains path from drive root
 				return this;
 			
-			return new File(path.get_absolute());
+			if (ck_core::GIL::executer_instance() && ck_core::GIL::executer_instance()->get_script()) // Relative to script
+				return new File(ck_sfile::sfile(ck_core::GIL::executer_instance()->get_script()->directory, path));
+			else // No script, return absolute
+				return new File(path.get_absolute());
 		};
 		
 		// Returns path to the file
@@ -101,14 +107,16 @@ namespace ck_objects {
 			if (path.is_absolute())
 				return path.to_string();
 			
-			ck_sfile::sfile absolute = path.get_absolute();
-			return absolute.to_string();
+			if (ck_core::GIL::executer_instance() && ck_core::GIL::executer_instance()->get_script()) // Relative to script
+				return ck_sfile::sfile(ck_core::GIL::executer_instance()->get_script()->directory, path).to_string();
+			else // No script, return absolute
+				return path.get_absolute().to_string();
 		};
 		
 		// Returns parent file path
 		inline std::wstring getParentPath() {
 			if (!path.has_parent())
-				throw ck_exceptions::StateError(L"Could not get parent file");
+				throw ck_exceptions::IllegalStateError(L"Could not get parent file");
 			
 			return path.get_parent().to_string();
 		};
@@ -116,7 +124,7 @@ namespace ck_objects {
 		// Returns parent file
 		inline File* getParent() {
 			if (!path.has_parent())
-				throw ck_exceptions::StateError(L"Could not get parent file");
+				throw ck_exceptions::IllegalStateError(L"Could not get parent file");
 			
 			return new File(path.get_parent());
 		};
@@ -135,9 +143,45 @@ namespace ck_objects {
 			return path.create_file();
 		};
 		
+		// Returns current directory of execution
 		inline static File* currentDirectory() {
-			return new File(ck_sfile::sfile::current_directory());
+			if (ck_core::GIL::executer_instance() && ck_core::GIL::executer_instance()->get_script()) // Relative to script
+				return new File(ck_core::GIL::executer_instance()->get_script()->directory);
+			else // No script, return absolute
+				return new File(ck_sfile::sfile::current_directory());
 		};
+		
+		// list files even if directory does not exist. in that case returns empty list
+		inline std::vector<File*> listFiles() {
+			std::vector<ck_sfile::sfile> files = path.list_files();
+			std::vector<File*> Files(files.size());
+			
+			for (int i = 0 ; i < files.size(); ++i)
+				Files[i] = new File(files[i]);
+			
+			return Files;
+		};
+		
+		// list files even if directory does not exist. in that case returns empty list
+		inline std::vector<std::wstring> listFilesPath() {
+			std::vector<ck_sfile::sfile> files = path.list_files();
+			std::vector<std::wstring> Files(files.size());
+			
+			for (int i = 0 ; i < files.size(); ++i)
+				Files[i] = files[i].to_string();
+			
+			return Files;
+		};
+		
+		// Returns 1 if existing path is a directory, 0 else
+		inline bool isDirectory() {
+			return path.is_directory();
+		}
+		
+		// Returns 1 if existing path deleted, 0 else
+		inline bool deleteFile() {
+			return path.delete_file();
+		}
 		
 		// Called on interpreter start to initialize prototype
 		static vobject* create_proto();

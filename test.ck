@@ -58,6 +58,10 @@ println('File.currentDirectory():', File.currentDirectory())
 println('File.currentDirectory().exists():', File.currentDirectory().exists())
 //println('File("blah").mkdir():', File("blah").mkdir())
 println('File("blah/mah").createFile():', File("blah/mah").createFile())
+println('File.currentDirectory().listFiles():', File.currentDirectory().listFiles())
+println('File("delete") / "sas":', File("delete") / "sas")
+println('File("delete").createFile():', File("delete").createFile())
+println('File("delete").deleteFile():', File("delete").deleteFile())
 
 /*
 println('keys()     = ', keys())

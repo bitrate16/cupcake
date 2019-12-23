@@ -1517,7 +1517,7 @@ vobject* ck_executer::exec_bytecode() {
 				break;
 			}
 			
-			default: throw InvalidState(L"invalid bytecode [" + to_wstring(scripts.back()->bytecode.bytemap[pointer-1]) + L"]");
+			default: throw IllegalStateError(L"invalid bytecode [" + to_wstring(scripts.back()->bytecode.bytemap[pointer-1]) + L"]");
 		}
 		
 		// Respond to GIL requests
@@ -1685,7 +1685,7 @@ void ck_executer::late_call_object(ck_vobject::vobject* obj, ck_vobject::vobject
 
 void ck_executer::goto_address(int bytecode_address) {
 	if (bytecode_address < 0 || bytecode_address > scripts.back()->bytecode.bytemap.size())
-		throw InvalidState(L"goto out of range [" + to_wstring(bytecode_address) + L"] for range [0, " + to_wstring(scripts.back()->bytecode.bytemap.size()) + L"]");
+		throw IllegalStateError(L"goto out of range [" + to_wstring(bytecode_address) + L"] for range [0, " + to_wstring(scripts.back()->bytecode.bytemap.size()) + L"]");
 	
 	pointer = bytecode_address;
 };

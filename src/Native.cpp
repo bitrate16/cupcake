@@ -10,6 +10,7 @@
 #include "GIL2.h"
 #include "executer.h"
 #include "script.h"
+#include "sfile.h"
 
 #include "objects/Object.h"
 #include "objects/Native.h"
@@ -18,6 +19,7 @@
 #include "objects/NativeFunction.h"
 #include "objects/Undefined.h"
 #include "objects/String.h"
+#include "objects/File.h"
 
 #include "exit_listener.h"
 
@@ -46,7 +48,20 @@ vobject* Native::create_proto() {
 			
 			std::vector<vobject*> args_crop(args.begin() + 1, args.end());
 			
-			return Bool::instance(Native::load(args[0]->string_value(), scope, args_crop));
+			// Extract current directory
+			ck_sfile::sfile current;
+			if (args[0]->as_type<File>())
+				current = static_cast<File*>(args[0])->getAbsolutePath();
+			else {
+				if (GIL::executer_instance())
+					if (GIL::executer_instance()->get_script())
+						current = GIL::executer_instance()->get_script()->directory;
+					
+				// Compile full file path
+				current = ck_sfile::sfile(current, args[0]->string_value()); 
+			}
+			
+			return Bool::instance(Native::load(current.to_string(), scope, args_crop));
 		}));
 	
 	// Bing exit hook
@@ -79,7 +94,7 @@ vobject* Native::create_proto() {
 
 Native::Native() {
 	if (NativeProto != nullptr)
-		throw ck_exceptions::StateError(L"Native instance duplicate");
+		throw ck_exceptions::IllegalStateError(L"Native instance duplicate");
 };
 
 Native::~Native() {};
