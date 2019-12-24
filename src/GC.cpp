@@ -135,7 +135,7 @@ void GC::attach(gc_object *o) {
 	gc_list *c = new gc_list;
 	if (!c)
 		throw OutOfMemory(L"GC list allocation error");
-	
+		
 	++created_interval;
 	
 	o->gc_record    = 1;

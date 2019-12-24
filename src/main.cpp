@@ -241,9 +241,49 @@ static void signal_handler(int sig) {
 			if (sig == SIGINT)
 				GIL::instance()->stop();
 #endif
-		} else if (GIL::executer_instance()->late_call_size() == 0)
-			// Function should be appended only if there is no other events to prevent corruption.
-			GIL::executer_instance()->late_call_object(__defsignalhandler, nullptr, { new Int(sig) }, L"__defsignalhandler", root_scope);
+		} else if (GIL::executer_instance()->late_call_size() == 0) {
+			/* 
+			
+			
+			
+			
+			XXX: Bad action, thread can be GC during critical section.
+			
+			
+			
+			
+			// Wait for GIL unlock before creating argument object
+			// var i = 0; while (i++ < 1000) println(i);
+			// var i = 0; while (i++ < 50) println(GC.getObjectCount(), ' ', GC.getRootsCount(), ' ', GC.getLocksCount()); exit();
+			// If this thread was not locked, it can safety create argument for the handler.
+			// Else - wait for GIL lock (not unique global lock, just lock the condition) and create reaction to the signal.
+			if (GIL::current_thread() && GIL::current_thread()->locked_state()) {
+				// Save thread state
+				bool is_running = GIL::current_thread()->is_running();
+				bool is_blocked = GIL::current_thread()->is_blocked();
+				bool is_locked  = GIL::current_thread()->is_locked();
+				
+				// Wait for lock
+				GIL::instance()->lock();
+				
+				// Function should be appended only if there is no other events to prevent corruption.
+				GIL::executer_instance()->late_call_object(__defsignalhandler, nullptr, { new Int(sig) }, L"__defsignalhandler", root_scope);
+				
+				GIL::instance()->unlock();
+				
+				// Restore thread state
+				GIL::current_thread()->set_running(is_running);
+				GIL::current_thread()->set_blocked(is_blocked);
+				GIL::current_thread()->set_locked(is_locked);
+			} else
+				GIL::executer_instance()->late_call_object(__defsignalhandler, nullptr, { new Int(sig) }, L"__defsignalhandler", root_scope);
+			*/
+			
+			#pragma message "XXX: Add passing constants in GIL context"
+			#pragma message "XXX: Make attempt to pass lambda-generator for aguments to prevent gc collection of the scopes"
+			
+			GIL::executer_instance()->late_call_object(__defsignalhandler, nullptr, { /* new Int(sig) */ }, L"__defsignalhandler", root_scope);
+		}
 	} else {
 		has_signaled = 1;
 		// Clear blocking and mark thread alive

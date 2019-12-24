@@ -9,7 +9,7 @@ OBJ_FILES := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRC_FILES))
 LDFLAGS  := -rdynamic -O3 -std=c++17 -pthread -fpermissive
 CPPFLAGS := -rdynamic -O3 -std=c++17 -pthread -fpermissive
 CXXFLAGS := 
-CAAFLAGS := -ldl
+CAAFLAGS := -w -g -ldl
 
 ck: $(OBJ_FILES)
 	g++ $(LDFLAGS) -o $@ $^ $(CAAFLAGS)

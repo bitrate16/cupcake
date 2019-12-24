@@ -223,6 +223,11 @@ static vobject* f_eval(vscope* scope, const vector<vobject*>& args) {
 		return errors;
 	}
 	
+	if (n == nullptr) {
+		delete n;
+		return Undefined::instance();
+	}
+	
 	// Make execution scope for call
 	ck_vobject::vscope* func_scope = scope;
 	if (args.size() > 1 && args[1])
@@ -264,7 +269,7 @@ static vobject* f_eval(vscope* scope, const vector<vobject*>& args) {
 		// Execute bytecode in safe context
 		try {
 			if (GIL::executer_instance())
-				ret = GIL::executer_instance()->call_object(main_script, nullptr, {}, L"<eval>", scope, 1, 0);
+				ret = GIL::executer_instance()->call_bytecode(main_script, nullptr, {}, L"<eval>", scope, 1, 0);
 			
 			if (ret)
 				ret_value = ret;
@@ -330,10 +335,20 @@ static vobject* f_gc_getObjectCount(vscope* scope, const vector<vobject*>& args)
 	return new Int(GIL::gc_instance()->count());
 };
 
+static vobject* f_gc_getRootsCount(vscope* scope, const vector<vobject*>& args) {
+	return new Int(GIL::gc_instance()->roots_count());
+};
+
+static vobject* f_gc_getLocksCount(vscope* scope, const vector<vobject*>& args) {
+	return new Int(GIL::gc_instance()->locks_count());
+};
+
 static vobject* c_gc() {
 	Object* gc_object = new Object();
 	gc_object->Object::put(L"getUsedMemory",  new NativeFunction(f_gc_getUsedMemory));
 	gc_object->Object::put(L"getObjectCount", new NativeFunction(f_gc_getObjectCount));
+	gc_object->Object::put(L"getRootsCount",  new NativeFunction(f_gc_getRootsCount));
+	gc_object->Object::put(L"getLocksCount",  new NativeFunction(f_gc_getLocksCount));
 	
 	return gc_object;
 };

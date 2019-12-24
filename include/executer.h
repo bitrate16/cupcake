@@ -188,7 +188,8 @@ namespace ck_core {
 		void follow_exception(const ck_exceptions::cake& msg);
 		
 		// Store state of different frame types
-		inline void store_try_frame(const std::wstring& name, bool own_scope) {
+		// Try/catch does not push the scope
+		inline void store_try_frame(const std::wstring& handler_name) {
 			stack_frame frame;
 			frame.window_id = window_stack.size() - 1;
 			frame.try_id    = try_stack.size()    - 1;
@@ -196,8 +197,8 @@ namespace ck_core {
 			frame.script_id = scripts.size()      - 1;
 			frame.scope_id  = scopes.size()       - 1;
 			frame.object_id = objects.size()      - 1;
-			frame.own_scope = own_scope;
-			frame.name      = name;
+			frame.own_scope = 0;
+			frame.name      = handler_name;
 			frame.pointer   = pointer;
 			
 			try_stack.push_back(frame);
@@ -234,7 +235,21 @@ namespace ck_core {
 		};
 		
 		// Restore state of different frame types
-		inline void restore_try_frame(int restored_frame_id);
+		// During execution, multiple scopes can be created on stack.
+		// Scopes stack will have the following layout:
+		//
+		// |               |
+		// |    scopeN     |        
+		// |      ..       |    <-- Current call
+		// |    scope1     |         
+		// ----------------|                             
+		// |      ..       |  
+		// |               |    <-- Previous calls
+		// |               |  
+		// During call (store_stack) scope1 is the scope that is pushed by the call.
+		// scope2-scopeN is scopes pushed by the VSTATE_PUSH_SCOPE.
+		//  They all are marked as root and must be disposed by .unroot() call.
+		void restore_try_frame(int restored_frame_id);
 		
 		void restore_call_frame(int restored_frame_id);
 		
@@ -291,7 +306,7 @@ namespace ck_core {
 		//  Scope has to be non-null, or scope will be calculated as regular for call.
 		// return_non_null - If 1, if result is null, returns Undefined.
 		//  If 0, returns null.
-		ck_vobject::vobject* call_object(ck_core::ck_script* scr, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>&, const std::wstring& name, ck_vobject::vscope* scope = nullptr, bool use_scope_without_wrap = 0, bool return_non_null = 1);
+		ck_vobject::vobject* call_bytecode(ck_core::ck_script* scr, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>&, const std::wstring& name, ck_vobject::vscope* scope = nullptr, bool use_scope_without_wrap = 0, bool return_non_null = 1);
 		
 		// Allows executing object as a function.
 		// Expected only two branches: 

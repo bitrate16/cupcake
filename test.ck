@@ -1,4 +1,49 @@
-var forKeys = function(object, functor) {
+
+println('Before ', GC.getObjectCount(), ' ', GC.getRootsCount(), ' ', GC.getLocksCount());
+
+var i = 0; while (i++ < 50) println(GC.getObjectCount(), ' ', GC.getRootsCount(), ' ', GC.getLocksCount());
+
+println('After  ', GC.getObjectCount(), ' ', GC.getRootsCount(), ' ', GC.getLocksCount());
+println('After  ', GC.getObjectCount(), ' ', GC.getRootsCount(), ' ', GC.getLocksCount());
+println('After  ', GC.getObjectCount(), ' ', GC.getRootsCount(), ' ', GC.getLocksCount());
+println('After  ', GC.getObjectCount(), ' ', GC.getRootsCount(), ' ', GC.getLocksCount());
+println('After  ', GC.getObjectCount(), ' ', GC.getRootsCount(), ' ', GC.getLocksCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+println(GC.getObjectCount());
+
+
+/*var forKeys = function(object, functor) {
 	println(keys())
 	var keys = object.keys();
 	for (var i = 0; i < keys.size; ++i)
@@ -23,7 +68,7 @@ println('getObjectCount =', GC.getObjectCount());
 	println('getObjectCount =', GC.getObjectCount());
 })*/
 
-var forKeys = function(object, functor) {
+/*var forKeys = function(object, functor) {
 	println(this.keys()) // this is required because {} pushes new scope
 	var keys = object.keys();
 	for (var i = 0; i < keys.size(); ++i)

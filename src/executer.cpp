@@ -215,6 +215,9 @@ void ck_executer::restore_try_frame(int restored_frame_id) {
 	
 	if (restored_frame_id > try_stack.size() - 1)
 		return;
+	
+	if (restored_frame_id < 0)
+		throw ck_exceptions::StackCorruption(L"try stack id out of range");
 
 	int window_id = try_stack[restored_frame_id].window_id;
 	int try_id    = try_stack[restored_frame_id].try_id;
@@ -225,43 +228,38 @@ void ck_executer::restore_try_frame(int restored_frame_id) {
 	int pointer_v = try_stack[restored_frame_id].pointer;
 
 	// Restore window scopes
+	// id of scope attached to this window is window_stack[i].scope_id + 1
 	if (window_stack.size())
 		for (int i = window_stack.size() - 1; i > window_id; --i)
-			if (window_stack[i].scope_id >= 0 
-			&& window_stack[i].scope_id > scope_id 
-			&& window_stack[i].scope_id < scopes.size()
-			&& scopes[window_stack[i].scope_id] != nullptr) {
+			if (window_stack[i].scope_id + 1 > scope_id 
+			&& window_stack[i].scope_id + 1 < scopes.size()
+			&& scopes[window_stack[i].scope_id + 1] != nullptr) {
 				if (window_stack[i].own_scope)
-					scopes[window_stack[i].scope_id]->unroot();
+					scopes[window_stack[i].scope_id + 1]->unroot();
 				
-				scopes[window_stack[i].scope_id] = nullptr;
+				scopes[window_stack[i].scope_id + 1] = nullptr;
 			}
 	
 	// Restore call stack
+	// id of scope attached to this call is call_stack[i].scope_id + 1
 	if (call_stack.size())
-		for (int i = call_stack.size() - 1; i > call_id; --i)
-			if (call_stack[i].scope_id >= 0 
-			&& call_stack[i].scope_id > scope_id 
-			&& call_stack[i].scope_id < scopes.size()
-			&& scopes[call_stack[i].scope_id] != nullptr) {
+		for (int i = call_stack.size() - 1; i > call_id; --i) {
+			if (call_stack[i].scope_id + 1 > scope_id 
+			&& call_stack[i].scope_id + 1 < scopes.size()
+			&& scopes[call_stack[i].scope_id + 1] != nullptr) {
 				if (call_stack[i].own_scope)
-					scopes[call_stack[i].scope_id]->unroot();
+					scopes[call_stack[i].scope_id + 1]->unroot();
 				
-				scopes[call_stack[i].scope_id] = nullptr;
+				scopes[call_stack[i].scope_id + 1] = nullptr;
 			}
-	
-	// Restore try stack
-	if (try_stack.size())
-		for (int i = try_stack.size() - 1; i > try_id; --i)
-			if (try_stack[i].scope_id >= 0 
-			&& try_stack[i].scope_id > scope_id 
-			&& try_stack[i].scope_id < scopes.size()
-			&& scopes[try_stack[i].scope_id] != nullptr) {
-				if (try_stack[i].own_scope)
-					scopes[try_stack[i].scope_id]->unroot();
-				
-				scopes[try_stack[i].scope_id] = nullptr;
-			}
+		}
+			
+	// Clear all scopes untill scope_id value and .unroot() them.
+	// All resting scopes (except scope_id+1 is created by VSTATE_PUSH_SCOPE
+	//  and marked as root by default).
+	for (int i = scopes.size() - 1; i > scope_id + 1; --i)
+		if (scopes[i])
+			scopes[i]->unroot();
 	
 	// Restore stacks position
 	window_stack.resize(window_id + 1);
@@ -276,12 +274,15 @@ void ck_executer::restore_try_frame(int restored_frame_id) {
 	pointer = pointer_v;
 };
 
-void ck_executer::restore_call_frame(int restored_frame_id) {	
+void ck_executer::restore_call_frame(int restored_frame_id) {
 	if (call_stack.size() == 0)
 		throw ck_exceptions::StackCorruption(L"call stack corrupted");
 	
 	if (restored_frame_id > call_stack.size() - 1)
 		return;
+	
+	if (restored_frame_id < 0)
+		throw ck_exceptions::StackCorruption(L"call stack id out of range");
 
 	int window_id = call_stack[restored_frame_id].window_id;
 	int try_id    = call_stack[restored_frame_id].try_id;
@@ -292,43 +293,38 @@ void ck_executer::restore_call_frame(int restored_frame_id) {
 	int pointer_v = call_stack[restored_frame_id].pointer;
 
 	// Restore window scopes
+	// id of scope attached to this window is window_stack[i].scope_id + 1
 	if (window_stack.size())
 		for (int i = window_stack.size() - 1; i > window_id; --i)
-			if (window_stack[i].scope_id >= 0 
-			&& window_stack[i].scope_id > scope_id 
-			&& window_stack[i].scope_id < scopes.size()
-			&& scopes[window_stack[i].scope_id] != nullptr) {
+			if (window_stack[i].scope_id + 1 > scope_id 
+			&& window_stack[i].scope_id + 1 < scopes.size()
+			&& scopes[window_stack[i].scope_id + 1] != nullptr) {
 				if (window_stack[i].own_scope)
-					scopes[window_stack[i].scope_id]->unroot();
+					scopes[window_stack[i].scope_id + 1]->unroot();
 				
-				scopes[window_stack[i].scope_id] = nullptr;
+				scopes[window_stack[i].scope_id + 1] = nullptr;
 			}
 	
 	// Restore call stack
+	// id of scope attached to this call is call_stack[i].scope_id + 1
 	if (call_stack.size())
-		for (int i = call_stack.size() - 1; i > call_id; --i)
-			if (call_stack[i].scope_id >= 0 
-			&& call_stack[i].scope_id > scope_id 
-			&& call_stack[i].scope_id < scopes.size()
-			&& scopes[call_stack[i].scope_id] != nullptr) {
+		for (int i = call_stack.size() - 1; i > call_id; --i) {
+			if (call_stack[i].scope_id + 1 > scope_id 
+			&& call_stack[i].scope_id + 1 < scopes.size()
+			&& scopes[call_stack[i].scope_id + 1] != nullptr) {
 				if (call_stack[i].own_scope)
-					scopes[call_stack[i].scope_id]->unroot();
+					scopes[call_stack[i].scope_id + 1]->unroot();
 				
-				scopes[call_stack[i].scope_id] = nullptr;
+				scopes[call_stack[i].scope_id + 1] = nullptr;
 			}
-	
-	// Restore try stack
-	if (try_stack.size())
-		for (int i = try_stack.size() - 1; i > try_id; --i)
-			if (try_stack[i].scope_id >= 0 
-			&& try_stack[i].scope_id > scope_id 
-			&& try_stack[i].scope_id < scopes.size()
-			&& scopes[try_stack[i].scope_id] != nullptr) {
-				if (try_stack[i].own_scope)
-					scopes[try_stack[i].scope_id]->unroot();
-				
-				scopes[try_stack[i].scope_id] = nullptr;
-			}
+		}
+			
+	// Clear all scopes untill scope_id value and .unroot() them.
+	// All resting scopes (except scope_id+1 is created by VSTATE_PUSH_SCOPE
+	//  and marked as root by default).
+	for (int i = scopes.size() - 1; i > scope_id + 1; --i)
+		if (scopes[i])
+			scopes[i]->unroot();
 	
 	// Restore stacks position
 	window_stack.resize(window_id + 1);
@@ -349,6 +345,9 @@ void ck_executer::restore_window_frame(int restored_frame_id) {
 	
 	if (restored_frame_id > window_stack.size() - 1)
 		return;
+	
+	if (restored_frame_id < 0)
+		throw ck_exceptions::StackCorruption(L"window stack id out of range");
 
 	int window_id = window_stack[restored_frame_id].window_id;
 	int try_id    = window_stack[restored_frame_id].try_id;
@@ -359,43 +358,38 @@ void ck_executer::restore_window_frame(int restored_frame_id) {
 	int pointer_v = window_stack[restored_frame_id].pointer;
 
 	// Restore window scopes
+	// id of scope attached to this window is window_stack[i].scope_id + 1
 	if (window_stack.size())
 		for (int i = window_stack.size() - 1; i > window_id; --i)
-			if (window_stack[i].scope_id >= 0 
-			&& window_stack[i].scope_id > scope_id 
-			&& window_stack[i].scope_id < scopes.size()
-			&& scopes[window_stack[i].scope_id] != nullptr) {
+			if (window_stack[i].scope_id + 1 > scope_id 
+			&& window_stack[i].scope_id + 1 < scopes.size()
+			&& scopes[window_stack[i].scope_id + 1] != nullptr) {
 				if (window_stack[i].own_scope)
-					scopes[window_stack[i].scope_id]->unroot();
+					scopes[window_stack[i].scope_id + 1]->unroot();
 				
-				scopes[window_stack[i].scope_id] = nullptr;
+				scopes[window_stack[i].scope_id + 1] = nullptr;
 			}
 	
 	// Restore call stack
+	// id of scope attached to this call is call_stack[i].scope_id + 1
 	if (call_stack.size())
-		for (int i = call_stack.size() - 1; i > call_id; --i)
-			if (call_stack[i].scope_id >= 0 
-			&& call_stack[i].scope_id > scope_id 
-			&& call_stack[i].scope_id < scopes.size()
-			&& scopes[call_stack[i].scope_id] != nullptr) {
+		for (int i = call_stack.size() - 1; i > call_id; --i) {
+			if (call_stack[i].scope_id + 1 > scope_id 
+			&& call_stack[i].scope_id + 1 < scopes.size()
+			&& scopes[call_stack[i].scope_id + 1] != nullptr) {
 				if (call_stack[i].own_scope)
-					scopes[call_stack[i].scope_id]->unroot();
+					scopes[call_stack[i].scope_id + 1]->unroot();
 				
-				scopes[call_stack[i].scope_id] = nullptr;
+				scopes[call_stack[i].scope_id + 1] = nullptr;
 			}
-	
-	// Restore try stack
-	if (try_stack.size())
-		for (int i = try_stack.size() - 1; i > try_id; --i)
-			if (try_stack[i].scope_id >= 0 
-			&& try_stack[i].scope_id > scope_id 
-			&& try_stack[i].scope_id < scopes.size()
-			&& scopes[try_stack[i].scope_id] != nullptr) {
-				if (try_stack[i].own_scope)
-					scopes[try_stack[i].scope_id]->unroot();
-				
-				scopes[try_stack[i].scope_id] = nullptr;
-			}
+		}
+			
+	// Clear all scopes untill scope_id value and .unroot() them.
+	// All resting scopes (except scope_id+1 is created by VSTATE_PUSH_SCOPE
+	//  and marked as root by default).
+	for (int i = scopes.size() - 1; i > scope_id + 1; --i)
+		if (scopes[i])
+			scopes[i]->unroot();
 	
 	// Restore stacks position
 	window_stack.resize(window_id + 1);
@@ -412,37 +406,32 @@ void ck_executer::restore_window_frame(int restored_frame_id) {
 
 void ck_executer::restore_all() {
 	// Restore window scopes
-	for (int i = window_stack.size() - 1; i >= 0; --i)
-		if (window_stack[i].scope_id >= 0 
-		&& window_stack[i].scope_id < scopes.size()
-		&& scopes[window_stack[i].scope_id] != nullptr) {
-			if (window_stack[i].own_scope)
-				scopes[window_stack[i].scope_id]->unroot();
-			
-			scopes[window_stack[i].scope_id] = nullptr;
-		}
+	// id of scope attached to this window is window_stack[i].scope_id + 1
+	if (window_stack.size())
+		for (int i = window_stack.size() - 1; i > 0; --i)
+			if (window_stack[i].scope_id + 1 < scopes.size() && scopes[window_stack[i].scope_id + 1] != nullptr) {
+				if (window_stack[i].own_scope)
+					scopes[window_stack[i].scope_id + 1]->unroot();
+				
+				scopes[window_stack[i].scope_id + 1] = nullptr;
+			}
 	
 	// Restore call stack
-	for (int i = call_stack.size() - 1; i >= 0; --i)
-		if (call_stack[i].scope_id >= 0 
-		&& call_stack[i].scope_id < scopes.size()
-		&& scopes[call_stack[i].scope_id] != nullptr) {
-			if (call_stack[i].own_scope)
-				scopes[call_stack[i].scope_id]->unroot();
-			
-			scopes[call_stack[i].scope_id] = nullptr;
+	// id of scope attached to this call is call_stack[i].scope_id + 1
+	if (call_stack.size())
+		for (int i = call_stack.size() - 1; i > 0; --i) {
+			if (call_stack[i].scope_id + 1 < scopes.size() && scopes[call_stack[i].scope_id + 1] != nullptr) {
+				if (call_stack[i].own_scope)
+					scopes[call_stack[i].scope_id + 1]->unroot();
+				
+				scopes[call_stack[i].scope_id + 1] = nullptr;
+			}
 		}
-	
-	// Restore try stack
-	for (int i = try_stack.size() - 1; i >= 0; --i)
-		if (try_stack[i].scope_id >= 0 
-		&& try_stack[i].scope_id < scopes.size()
-		&& scopes[try_stack[i].scope_id] != nullptr) {
-			if (try_stack[i].own_scope)
-				scopes[try_stack[i].scope_id]->unroot();
-			
-			scopes[try_stack[i].scope_id] = nullptr;
-		}
+		
+	// Erase all resting scope that are made by VSTATE_PUSH_SCOPE
+	for (int i = 0; i < scopes.size(); ++i)
+		if (scopes[i])
+			scopes[i]->unroot();
 	
 	// Erase all
 	window_stack.resize(0);
@@ -1443,7 +1432,7 @@ vobject* ck_executer::exec_bytecode() {
 #endif
 				}
 				
-				store_try_frame(handler_name, 0);
+				store_try_frame(handler_name);
 				try_stack.back().try_type   = type;
 				try_stack.back().catch_node = catch_node;
 				
@@ -1555,11 +1544,11 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 			scope->put((*argn)[i], (*argv)[i]);
 	}
 	
-	// Push scope
-	scopes.push_back(scope);
-	
 	// Push call frame and mark own scope
 	store_window_frame(L"", own_scope);
+	
+	// Push scope
+	scopes.push_back(scope);
 	
 	// Save expected call id
 	int window_id = window_stack.size() - 1;
@@ -1580,7 +1569,7 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 	return;
 };
 
-ck_vobject::vobject* ck_executer::call_object(ck_core::ck_script* scr, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>& args, const std::wstring& name, vscope* scope, bool use_scope_without_wrap, bool return_non_null) { 
+ck_vobject::vobject* ck_executer::call_bytecode(ck_core::ck_script* scr, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>& args, const std::wstring& name, vscope* scope, bool use_scope_without_wrap, bool return_non_null) { 
 
 	// Limit rest of stack by 4 Mb
 	if (ck_core::stack_locator::get_stack_remaining() < 4 * 1024 * 1024)
@@ -1614,11 +1603,11 @@ ck_vobject::vobject* ck_executer::call_object(ck_core::ck_script* scr, ck_vobjec
 	if (ref != nullptr)
 		scope->put(L"__this", ref);
 
-	// Push scope
-	scopes.push_back(scope);
-	
 	// Push call frame and mark own scope
 	store_call_frame(name, own_scope);
+	
+	// Push scope
+	scopes.push_back(scope);
 	
 	// Apply script
 	scripts.push_back(scr);
@@ -1640,7 +1629,7 @@ ck_vobject::vobject* ck_executer::call_object(ck_core::ck_script* scr, ck_vobjec
 	// Try to restore frame
 	restore_call_frame(call_id);
 	
-	scopes.pop_back();
+	// scopes.pop_back();
 	
 #ifdef DEBUG_OUTPUT
 	if (obj) 
@@ -1702,11 +1691,11 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 	if (ref != nullptr)
 		scope->put(L"__this", ref);
 
-	// Push scope
-	scopes.push_back(scope);
-	
 	// Push call frame and mark own scope
 	store_call_frame(name, own_scope);
+	
+	// Push scope
+	scopes.push_back(scope);
 	
 	// Apply script
 	if (obj->as_type<BytecodeFunction>())
@@ -1738,7 +1727,7 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 	// Try to restore frame
 	restore_call_frame(call_id);
 	
-	scopes.pop_back();
+	// scopes.pop_back();
 	
 #ifdef DEBUG_OUTPUT
 	if (obj) 
