@@ -2418,6 +2418,34 @@ ASTNode *parser::parse() {
 	return root;
 };
 
+ASTNode *parser::parse_single_statement() {
+	ASTNode *root = NULL;
+	
+	if (error_ || eof_)
+		return nullptr;
+	
+	if (!eof()) {
+		ASTNode *node = statement();
+		
+		// Info about error
+		if (error_) {
+			PARSER_ERROR_RETURN(L"parsing error", get(0)->lineno, get(0)->charno);
+			return nullptr;
+		}
+		
+		// Return value
+		if (node != nullptr) {
+			ASTNode* root = new ASTNode(0, ASTROOT);
+			root->addChild(node);
+			return root;
+		} else {
+			eof_ = 1;
+		}
+	}
+	
+	return nullptr;
+};
+
 int parser::lineno() {
 	return get(0)->lineno;
 };

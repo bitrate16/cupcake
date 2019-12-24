@@ -472,7 +472,13 @@ namespace ck_parser {
 		
 		ck_ast::ASTNode *statement_with_semicolons();
 		
+		// Persorms parsing of the entire input as a source.
 		ck_ast::ASTNode *parse();
+		
+		// Performs parsing of a single statement as an expression.
+		// Used in REPL console.
+		// Input is terminated when statement is completed.
+		ck_ast::ASTNode *parse_single_statement();
 		
 		int lineno();
 		

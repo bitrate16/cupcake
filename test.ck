@@ -74,7 +74,6 @@ while (1) {
 	} catch (e) {
 		print(e)
 	}
-	// eval(readln());
 }
 
 /*
