@@ -83,20 +83,29 @@ namespace ck_core {
 			descriptors.push_back(descriptor);
 			
 			// Swap ESP / RSP
-#if defined(X64)
+#if defined(X86) || defined(IA64) || defined(AMD32) || defined(AMD64)
+	#if defined(X64)
 			__asm__ (
 				  "mov %%rsp, %%rax\n"
 				  "mov %%rbx, %%rsp\n"
 				: "=a"(descriptors.back().old_esp)
 				: "b"(descriptors.back().new_esp)
 				);
-#elif defined(X32)
+	#elif defined(X32)
 			__asm__ (
-            	  "mov %%esp, %%eax\n"
-            	  "mov %%ebx, %%esp\n"
-            	: "=a"(descriptors.back().old_esp)
-            	: "b"(descriptors.back().new_esp)
-            	);
+				  "mov %%esp, %%eax\n"
+				  "mov %%ebx, %%esp\n"
+				: "=a"(descriptors.back().old_esp)
+				: "b"(descriptors.back().new_esp)
+				);
+	#endif
+#elif defined(ARM32) || defined(ARM64)
+			__asm__ (
+				  "mov sp, %0\n"
+				  "mov %1, sp\n"
+				: "=r"(descriptors.back().old_esp)
+				: "r"(descriptors.back().new_esp)
+				);
 #endif
 		
 			// Call & record exception
@@ -107,17 +116,25 @@ namespace ck_core {
 			}
 			
 			// Restore ESP / RSP
-#if defined(X64)
+#if defined(X86) || defined(IA64) || defined(AMD32) || defined(AMD64)
+	#if defined(X64)
 			__asm__(
 				  "mov %%rax, %%rsp"
 				: "=a"(descriptors.back().old_esp)
 				: "a"(descriptors.back().old_esp)
 				);
-#elif defined(X32)
+	#elif defined(X32)
 			__asm__(
             	  "mov %%eax, %%esp"
             	: "=a"(descriptors.back().old_esp)
             	: "a"(descriptors.back().old_esp)
+            	);
+	#endif
+#elif defined(ARM32) || defined(ARM64)
+			__asm__(
+            	  "mov %0, sp"
+            	: "=r"(descriptors.back().old_esp)
+            	: "r"(descriptors.back().old_esp)
             	);
 #endif
 			

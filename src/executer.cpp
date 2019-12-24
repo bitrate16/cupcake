@@ -1580,7 +1580,82 @@ void ck_executer::execute(ck_core::ck_script* scr, ck_vobject::vscope* scope, st
 	return;
 };
 
-ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>& args, const std::wstring& name, vscope* scope, bool use_scope_without_wrap) { 
+ck_vobject::vobject* ck_executer::call_object(ck_core::ck_script* scr, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>& args, const std::wstring& name, vscope* scope, bool use_scope_without_wrap, bool return_non_null) { 
+
+	// Limit rest of stack by 4 Mb
+	if (ck_core::stack_locator::get_stack_remaining() < 4 * 1024 * 1024)
+		throw StackOverflow(L"stack overflow");
+
+	if (scr == nullptr)
+		throw TypeError(L"undefined call to " + name);
+	
+	// Construct scope
+	// vscope* scope = nullptr;
+	bool own_scope = 0;
+	bool scope_is_root = scope && scope->gc_is_root();
+	
+	// Pass given scope as proxy to avoid overwritting of __this value.
+	if (!scope && !use_scope_without_wrap) {
+		if (scope)
+			scope = new xscope(scope);
+		else if (scopes.size() == 0)
+			throw StackCorruption(L"scopes stack corrupted");
+		else
+			scope = new iscope(scopes.back());
+	}
+	
+	// Apply root
+	if (!scope_is_root) {
+		scope->root();
+		own_scope = 1;
+	}
+	
+	// Apply __this bind
+	if (ref != nullptr)
+		scope->put(L"__this", ref);
+
+	// Push scope
+	scopes.push_back(scope);
+	
+	// Push call frame and mark own scope
+	store_call_frame(name, own_scope);
+	
+	// Apply script
+	scripts.push_back(scr);
+	
+	// Save expected call id
+	int call_id = call_stack.size() - 1;
+	
+	// Do some useless shit
+	
+	// Reset pointer to 0 and start
+	goto_address(0);
+	
+	// This long loop without any protection of the objects is thread-safe because 
+	//  other threads can not call GC
+	ck_vobject::vobject* obj = exec_bytecode();
+	
+	GIL::current_thread()->clear_blocks();
+	
+	// Try to restore frame
+	restore_call_frame(call_id);
+	
+	scopes.pop_back();
+	
+#ifdef DEBUG_OUTPUT
+	if (obj) 
+		wcout << "RETURNED: " << obj->string_value() << endl;
+	else
+		wcout << "RETURNED: " << "NULL" << endl;
+#endif
+
+	if (!obj && return_non_null)
+		return Undefined::instance();
+
+	return obj;
+};
+
+ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>& args, const std::wstring& name, vscope* scope, bool use_scope_without_wrap, bool return_non_null) { 
 
 	// Limit rest of stack by 4 Mb
 	if (ck_core::stack_locator::get_stack_remaining() < 4 * 1024 * 1024)
@@ -1672,7 +1747,7 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 		wcout << "RETURNED: " << "NULL" << endl;
 #endif
 
-	if (!obj)
+	if (!obj && return_non_null)
 		return Undefined::instance();
 
 	return obj;

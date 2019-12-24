@@ -29,7 +29,7 @@ namespace ck_core {
 		//  init_state is set to 0.
 		//  init_sync is unlocked.
 		//  init_sync_var is notified for parent thread to continue.
-		std::atomic<bool>       init_state = 1;
+		bool                    init_state = 1;
 		std::mutex              init_sync;
 		std::condition_variable init_sync_var;
 		

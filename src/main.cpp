@@ -131,15 +131,52 @@ cake message;
 // Signals setup for handling them during execution
 */
 static void signal_handler(int sig) {
+#if defined(LINUX)
 	// Set up ignore signals during signal processing
-	for (int i = 0; i < 64; ++i)
+	// $ kill -l
+	//  1) SIGHUP       2) SIGINT       3) SIGQUIT      4) SIGILL
+	//  5) SIGTRAP      6) SIGABRT      7) SIGBUS       8) SIGFPE
+	//  9) SIGKILL     10) SIGUSR1     11) SIGSEGV     12) SIGUSR2
+	// 13) SIGPIPE     14) SIGALRM     15) SIGTERM     17) SIGCHLD
+	// 18) SIGCONT     19) SIGSTOP     20) SIGTSTP     21) SIGTTIN
+	// 22) SIGTTOU     23) SIGURG      24) SIGXCPU     25) SIGXFSZ
+	// 26) SIGVTALRM   27) SIGPROF     28) SIGWINCH    29) SIGIO
+	// 30) SIGPWR      31) SIGSYS      34) SIGRTMIN    35) SIGRTMIN+1
+	// 36) SIGRTMIN+2  37) SIGRTMIN+3  38) SIGRTMIN+4  39) SIGRTMIN+5
+	// 40) SIGRTMIN+6  41) SIGRTMIN+7  42) SIGRTMIN+8  43) SIGRTMIN+9
+	// 44) SIGRTMIN+10 45) SIGRTMIN+11 46) SIGRTMIN+12 47) SIGRTMIN+13
+	// 48) SIGRTMIN+14 49) SIGRTMIN+15 50) SIGRTMAX-14 51) SIGRTMAX-13
+	// 52) SIGRTMAX-12 53) SIGRTMAX-11 54) SIGRTMAX-10 55) SIGRTMAX-9
+	// 56) SIGRTMAX-8  57) SIGRTMAX-7  58) SIGRTMAX-6  59) SIGRTMAX-5
+	// 60) SIGRTMAX-4  61) SIGRTMAX-3  62) SIGRTMAX-2  63) SIGRTMAX-1
+	// 64) SIGRTMAX
+	
+	// Critical
+	signal(SIGTERM, signal_handler);
+	signal(SIGSEGV, signal_handler);
+	signal(SIGILL,  signal_handler);
+	signal(SIGQUIT, signal_handler);
+	signal(SIGABRT, signal_handler);
+	signal(SIGSTOP, signal_handler);
+	signal(SIGKILL, signal_handler);
+	
+	// Handleable with care 
+	signal(SIGINT, signal_handler);
+	
+	// Just handleable
+	signal(SIGUSR1, signal_handler);
+	signal(SIGUSR2, signal_handler);
+	
+	for (int i = SIGRTMIN; i < SIGRTMAX; ++i)
 		signal(i,  signal_handler);
-	// signal(SIGKILL, signal_handler); // <-- kill signal
-	// signal(SIGTERM, signal_handler); // <-- Terminate request
-	// signal(SIGABRT, signal_handler); // <-- abortion is murder
 	
 	// Forcibly terminate the process
-	if (sig == SIGTERM || sig == SIGABRT || sig == SIGSTOP || sig == SIGKILL) {
+	if (   sig == SIGTERM 
+		|| sig == SIGQUIT
+		|| sig == SIGABRT
+		|| sig == SIGSTOP
+		|| sig == SIGKILL
+		|| sig == SIGILL) {
 		GIL::instance()->stop();
 		return;
 	}
@@ -149,6 +186,36 @@ static void signal_handler(int sig) {
 		std::wcerr << "Segmentation fault" << std::endl;
 		exit(1);
 	}
+#elif defined(WINDOWS)
+	// SIGABRT  Abnormal termination
+	// SIGFPE   Floating-point error
+	// SIGILL   Illegal instruction
+	// SIGINT   CTRL+C signal
+	// SIGSEGV  Illegal storage access
+	// SIGTERM  Termination request
+	
+	// Critical
+	signal(SIGTERM, signal_handler);
+	signal(SIGABRT, signal_handler);
+	signal(SIGILL, signal_handler);
+	signal(SIGSEGV, signal_handler);
+	
+	// Handleable with care
+	signal(SIGINT, signal_handler);
+	
+	if (   sig == SIGTERM 
+		|| sig == SIGABRT
+		|| sig == SIGILL) {
+		GIL::instance()->stop();
+		return;
+	}
+	
+	// Segmentation fault on program
+	if (sig == SIGSEGV) {
+		std::wcerr << "Segmentation fault" << std::endl;
+		exit(1);
+	}
+#endif
 	
 	// Warning: checking thread for alive state and then 
 	//  processing signal with late_call_object().
@@ -163,8 +230,17 @@ static void signal_handler(int sig) {
 		
 		vobject* __defsignalhandler = root_scope->get(L"__defsignalhandler");
 		if (__defsignalhandler == nullptr || __defsignalhandler->as_type<Undefined>() || __defsignalhandler->as_type<Null>()) {
-			// No handler is found. Default action is terminate.
-			GIL::instance()->stop();
+			// No handler is found. 
+			// Default action for SIGINT is terminate.
+			// Default action for [SIGRTMIN, SIGRTMAX], SIGUSR1, SIGUSR2 is nothing.
+#if defined(LINUX)
+			//  sig < SIGRTMIN && sig != SIGUSR1 && sig != SIGUSR2
+			if (sig == SIGINT)
+				GIL::instance()->stop();
+#elif defined(WINDOWS)
+			if (sig == SIGINT)
+				GIL::instance()->stop();
+#endif
 		} else if (GIL::executer_instance()->late_call_size() == 0)
 			// Function should be appended only if there is no other events to prevent corruption.
 			GIL::executer_instance()->late_call_object(__defsignalhandler, nullptr, { new Int(sig) }, L"__defsignalhandler", root_scope);
@@ -598,8 +674,61 @@ int main(int argc, const char** argv, const char** envp) {
 	root_scope->put(L"__env", __env);
 	
 	// Set up signals handling
-	for (int i = 0; i < 64; ++i)
-		signal(i, signal_handler); 
+#if defined(LINUX)
+	// Set up ignore signals during signal processing
+	// $ kill -l
+	//  1) SIGHUP       2) SIGINT       3) SIGQUIT      4) SIGILL
+	//  5) SIGTRAP      6) SIGABRT      7) SIGBUS       8) SIGFPE
+	//  9) SIGKILL     10) SIGUSR1     11) SIGSEGV     12) SIGUSR2
+	// 13) SIGPIPE     14) SIGALRM     15) SIGTERM     17) SIGCHLD
+	// 18) SIGCONT     19) SIGSTOP     20) SIGTSTP     21) SIGTTIN
+	// 22) SIGTTOU     23) SIGURG      24) SIGXCPU     25) SIGXFSZ
+	// 26) SIGVTALRM   27) SIGPROF     28) SIGWINCH    29) SIGIO
+	// 30) SIGPWR      31) SIGSYS      34) SIGRTMIN    35) SIGRTMIN+1
+	// 36) SIGRTMIN+2  37) SIGRTMIN+3  38) SIGRTMIN+4  39) SIGRTMIN+5
+	// 40) SIGRTMIN+6  41) SIGRTMIN+7  42) SIGRTMIN+8  43) SIGRTMIN+9
+	// 44) SIGRTMIN+10 45) SIGRTMIN+11 46) SIGRTMIN+12 47) SIGRTMIN+13
+	// 48) SIGRTMIN+14 49) SIGRTMIN+15 50) SIGRTMAX-14 51) SIGRTMAX-13
+	// 52) SIGRTMAX-12 53) SIGRTMAX-11 54) SIGRTMAX-10 55) SIGRTMAX-9
+	// 56) SIGRTMAX-8  57) SIGRTMAX-7  58) SIGRTMAX-6  59) SIGRTMAX-5
+	// 60) SIGRTMAX-4  61) SIGRTMAX-3  62) SIGRTMAX-2  63) SIGRTMAX-1
+	// 64) SIGRTMAX
+	
+	// Critical
+	signal(SIGTERM, signal_handler);
+	signal(SIGSEGV, signal_handler);
+	signal(SIGILL,  signal_handler);
+	signal(SIGQUIT, signal_handler);
+	signal(SIGABRT, signal_handler);
+	signal(SIGSTOP, signal_handler);
+	signal(SIGKILL, signal_handler);
+	
+	// Handleable with care 
+	signal(SIGINT, signal_handler);
+	
+	// Just handleable
+	signal(SIGUSR1, signal_handler);
+	signal(SIGUSR2, signal_handler);
+	
+	for (int i = SIGRTMIN; i < SIGRTMAX; ++i)
+		signal(i,  signal_handler);
+#elif defined(WINDOWS)
+	// SIGABRT  Abnormal termination
+	// SIGFPE   Floating-point error
+	// SIGILL   Illegal instruction
+	// SIGINT   CTRL+C signal
+	// SIGSEGV  Illegal storage access
+	// SIGTERM  Termination request
+	
+	// Critical
+	signal(SIGTERM, signal_handler);
+	signal(SIGABRT, signal_handler);
+	signal(SIGILL, signal_handler);
+	signal(SIGSEGV, signal_handler);
+	
+	// Handleable with care
+	signal(SIGINT, signal_handler);
+#endif
 	
 	// R U N _ C O D E
 	

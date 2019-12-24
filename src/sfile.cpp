@@ -2,6 +2,7 @@
 
 #ifdef WINDOWS
 	#include <windows.h>
+	#include <sys/stat.h>
 	#include <Fileapi.h>
 	#include <dirent.h>
 	#include <cstdio>
@@ -36,7 +37,7 @@ bool ck_sfile::sfile::mkdir() {
 	std::string multibyte = std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>>().to_bytes(to_string());
 	
 #if defined(WINDOWS)
-	return !_mkdir(multibyte.c_str());
+	return CreateDirectory(multibyte.c_str(), NULL);
 #else
 	return ::mkdir(multibyte.c_str(), 0777) != -1;
 #endif

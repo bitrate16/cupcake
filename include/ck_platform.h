@@ -14,15 +14,15 @@
 // X64
 
 // Define OS name
-#if defined(_WIN32) // Windows 32 bit
-	#define WINDOWS
-	#define X32
-#elif defined(_WIN64) // Windows 64 bit
-	#define WINDOWS
-	#define X64
-#elif defined(__CYGWIN__) && !defined(_WIN32) // Cygwin POSIX on Windows
+#if defined(__CYGWIN__) // && !defined(_WIN32) // Cygwin POSIX on Windows
 	#define LINUX
 	#define PLATFORM_NAME "linux"
+#elif defined(_WIN32) // Windows 32 bit
+	#define WINDOWS
+	#define PLATFORM_NAME "windows"
+#elif defined(_WIN64) // Windows 64 bit
+	#define WINDOWS
+	#define PLATFORM_NAME "windows"
 #elif defined(__ANDROID__)
 	#define LINUX
 	// Sub-os type, android is linux.
@@ -84,7 +84,7 @@
 	#pragma error "Could not determine platform"
 #endif
 
-// Defined cpu architecture
+// Define cpu architecture (32/64)
 #if defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER)
 	#if defined(__x86_64__) || defined(__powerpc64__) || defined(__aarch64__) || defined(__amd64__) || defined(__ia64__) // gcc 64bit
 		#define X64
@@ -108,11 +108,65 @@
 	#pragma error "Could not determine cpu architecture"
 #endif
 
+// Define cpu architecture (ARM/Intel/Amd)
+#if defined(__arm__)
+	#define ARM32
+	#define PLATFORM_CPU "arm32"
+#elif defined(__aarch64__)
+	#define ARM64
+	#define PLATFORM_CPU "arm64"
+#elif defined(__i386__)
+	#define X86
+	#define PLATFORM_CPU "x86"
+#elif defined(__ia64__)
+	#define IA64
+	#define PLATFORM_CPU "ia64"
+#elif defined(__amd64__) || defined(__x86_64__)
+	#if defined(_LP64)
+		#define AMD64
+		#define PLATFORM_CPU "amd64"
+	#elif defined(_ILP32)
+		#define AMD32
+		#define PLATFORM_CPU "amd32"
+	#endif
+#endif
+
 // Check definitions
 #if !defined(PLATFORM_NAME) || !defined(PLATFORM_ENV)
 	#pragma error "Could not determine platform"
 #endif
 
+// Print definitions
+#define ENABLE_PRINT_PLATFORM
+
+#if defined(ENABLE_PRINT_PLATFORM)
+	#if defined(WINDOWS)
+		#pragma message "Target platform: WINDOWS"
+	#elif defined(LINUX)
+		#pragma message "Target platform: LINUX"
+	#elif defined(APPLE)
+		#pragma message "Target platform: APPLE"
+	#endif
+
+	#if defined(X32)
+		#pragma message "Target architecture: x32"
+	#elif defined(X64)
+		#pragma message "Target architecture: x64"
+	#endif
+
+	#if defined(ARM)
+		#pragma message "Target architecture: ARM"
+	#elif defined(ARM64)
+		#pragma message "Target architecture: ARM64"
+	#elif defined(X86)
+		#pragma message "Target architecture: X86"
+	#elif defined(IA64)
+		#pragma message "Target architecture: IA64"
+	#elif defined(AMD64)
+		#pragma message "Target architecture: AMD64"
+	#endif
+#endif
+	
 // Newline for each of platforms
 #if defined(WINDOWS)
 	#define PLATFORM_NEWLINE "\r\n"
@@ -172,6 +226,16 @@ namespace ck_platform {
 	// Returns newline as std::wstring
 	inline static std::wstring newline_string() {
 		return std::wstring(PPCAT_EXP(L, PLATFORM_NEWLINE));
+	};
+	
+	// Returns cpu name on this platform
+	inline static const char* cpu_name() {
+		return PLATFORM_CPU;
+	};
+	
+	// Returns cpu name as std::wstring
+	inline static std::wstring cpu_name_string() {
+		return std::wstring(PPCAT_EXP(L, PLATFORM_CPU));
 	};
 	
 	// Returns path separator on this platform

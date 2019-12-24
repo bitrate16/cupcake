@@ -280,6 +280,19 @@ namespace ck_core {
 		// If scope is not null, it will be used as the main scope
 		void execute(ck_core::ck_script* scr, ck_vobject::vscope* scope = nullptr, std::vector<std::wstring>* argn = nullptr, std::vector<ck_vobject::vobject*>* argv = nullptr);
 		
+		// Allows executing bytecode as a function.
+		// Expected only two branches: 
+		// 1. obj is typeof native_function and supports direct call
+		// 2. obj is any other type and does not support direct call. Then obj.::vobject::call() is called.
+		// Ref will be assigned to scope::self
+		// Name is used in traceback (empty for none)
+		// use_scope_without_wrap. If set to 1, passed scope will be used as execution scope without proxy, wrapping and applying function arguments.
+		//  If 0, passed scope is used as regular.
+		//  Scope has to be non-null, or scope will be calculated as regular for call.
+		// return_non_null - If 1, if result is null, returns Undefined.
+		//  If 0, returns null.
+		ck_vobject::vobject* call_object(ck_core::ck_script* scr, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>&, const std::wstring& name, ck_vobject::vscope* scope = nullptr, bool use_scope_without_wrap = 0, bool return_non_null = 1);
+		
 		// Allows executing object as a function.
 		// Expected only two branches: 
 		// 1. obj is typeof native_function and supports direct call
@@ -289,7 +302,9 @@ namespace ck_core {
 		// use_scope_without_wrap. If set to 1, passed scope will be used as execution scope without proxy, wrapping and applying function arguments.
 		//  If 0, passed scope is used as regular.
 		//  Scope has to be non-null, or scope will be calculated as regular for call.
-		ck_vobject::vobject* call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>&, const std::wstring& name, ck_vobject::vscope* scope = nullptr, bool use_scope_without_wrap = 0);
+		// return_non_null - If 1, if result is null, returns Undefined.
+		//  If 0, returns null.
+		ck_vobject::vobject* call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>&, const std::wstring& name, ck_vobject::vscope* scope = nullptr, bool use_scope_without_wrap = 0, bool return_non_null = 1);
 		
 		// Performing late object call by execution passed function on the next executer step
 		void late_call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>&, const std::wstring& name, ck_vobject::vscope* scope = nullptr);

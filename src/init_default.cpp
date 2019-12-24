@@ -223,30 +223,6 @@ static vobject* f_eval(vscope* scope, const vector<vobject*>& args) {
 		return errors;
 	}
 	
-	// Iterate over all nodes of the root and put RETURN at the last expression.
-	ck_ast::ASTNode* expr_node = nullptr;
-	ck_ast::ASTNode* curr_node = n->left;
-	while (curr_node) {
-		if (curr_node->type == ck_token::EXPRESSION)
-			expr_node = curr_node;
-		curr_node = curr_node->next;
-	}
-	
-	// XXX: Split ASTRoot into set of ASTRoot childs, execute them one by one and return last non-null value as result
-	
-	// Change type to return value
-	if (expr_node)
-		expr_node->type = ck_token::RETURN;
-	
-	// Convert AST to bytecodes & initialize script instance
-	ck_core::ck_script* main_script = new ck_script();
-	main_script->directory = GIL::executer_instance()->get_script()->directory;
-	main_script->filename  = GIL::executer_instance()->get_script()->filename;
-	ck_translator::translate_function(main_script->bytecode.bytemap, main_script->bytecode.lineno_table, n);
-	
-	// Free up memory
-	delete n;
-	
 	// Make execution scope for call
 	ck_vobject::vscope* func_scope = scope;
 	if (args.size() > 1 && args[1])
@@ -255,32 +231,92 @@ static vobject* f_eval(vscope* scope, const vector<vobject*>& args) {
 		else
 			scope = new ck_vobject::xscope(args[1], scope);
 	
-	// Make function
-	BytecodeFunction* eval_function = new BytecodeFunction(scope, main_script, {});
-	eval_function->gc_make_root();
-	ck_vobject::vobject* ret = nullptr;
+	// Record if passed scope was the root scope
+	bool scope_was_root = func_scope->gc_is_root();
+	if (!scope_was_root)
+		func_scope->gc_make_root();
 	
-	// Execute function in safe context to prevent it staying root forever
-	try {
-		if (GIL::executer_instance())
-			ret = GIL::executer_instance()->call_object(eval_function, nullptr, {}, L"<eval>", scope, 1);
+	// Iterate over all child nodes & execute each node as function, return last non-null value
+	ck_ast::ASTNode* root_node = new ck_ast::ASTNode(0, ck_token::ASTROOT);
 	
-		if (!ret)
-			ret = Undefined::instance();
+	// Handle return and return last non-null
+	ck_vobject::vobject* ret_value = nullptr;
 		
-		eval_function->gc_make_unroot();
-	} catch(const ck_exceptions::cake& msg) {
-		eval_function->gc_make_unroot();
-		throw msg;
-	} catch (const std::exception& ex) {
-		eval_function->gc_make_unroot();
-		throw ck_exceptions::NativeException(ex);
-	} catch (...) {
-		eval_function->gc_make_unroot();
-		throw ck_exceptions::UnknownException();
-	} 
+	// Iterate over all nodes of the root and put RETURN at the last expression.
+	ck_ast::ASTNode* curr_node = n->left;
+	while (curr_node) {
+		// Eval current node
+		root_node->left = curr_node;
+		
+		// Change expression type to return value
+		if (curr_node && curr_node->type == ck_token::EXPRESSION)
+			curr_node->type = ck_token::RETURN;
+		
+		// Convert AST to bytecodes & initialize script instance
+		ck_core::ck_script* main_script = new ck_script();
+		main_script->directory = GIL::executer_instance()->get_script()->directory;
+		main_script->filename  = GIL::executer_instance()->get_script()->filename;
+		ck_translator::translate_function(main_script->bytecode.bytemap, main_script->bytecode.lineno_table, root_node);
+		
+		// Handle local return
+		ck_vobject::vobject* ret = nullptr;
+		
+		// Execute bytecode in safe context
+		try {
+			if (GIL::executer_instance())
+				ret = GIL::executer_instance()->call_object(main_script, nullptr, {}, L"<eval>", scope, 1, 0);
+			
+			if (ret)
+				ret_value = ret;
+
+			delete main_script;
+			
+		} catch(const ck_exceptions::cake& msg) {
+			// Dispose context
+			if (!scope_was_root)
+				func_scope->gc_make_unroot();
+			root_node->left = nullptr;
+			delete main_script;
+			delete root_node;
+			delete n;
+				
+			throw msg;
+		} catch (const std::exception& ex) {
+			// Dispose context
+			if (!scope_was_root)
+				func_scope->gc_make_unroot();
+			root_node->left = nullptr;
+			delete main_script;
+			delete root_node;
+			delete n;
+				
+			throw ck_exceptions::NativeException(ex);
+		} catch (...) {
+			// Dispose context
+			if (!scope_was_root)
+				func_scope->gc_make_unroot();
+			root_node->left = nullptr;
+			delete main_script;
+			delete root_node;
+			delete n;
+				
+			throw ck_exceptions::UnknownException();
+		}
+		
+		curr_node = curr_node->next;
+	}
 	
-	return ret;
+	// Dispose context
+	if (!scope_was_root)
+		func_scope->gc_make_unroot();
+	root_node->left = nullptr;
+	delete root_node;
+	delete n;
+	
+	if (!ret_value)
+		ret_value = Undefined::instance();
+	
+	return ret_value;
 };
 
 
@@ -308,8 +344,9 @@ static vobject* c_gc() {
 static vobject* c_platform() {
 	Object* gc_object = new Object();
 	gc_object->Object::put(L"Name",    new String(ck_platform::get_name()));
-	gc_object->Object::put(L"Cpu",     new String(ck_platform::get_cpu()));
+	gc_object->Object::put(L"CpuEnv",  new String(ck_platform::get_cpu()));
 	gc_object->Object::put(L"Newline", new String(ck_platform::newline_string()));
+	gc_object->Object::put(L"Cpu",     new String(ck_platform::cpu_name_string()));
 	
 	return gc_object;
 };
