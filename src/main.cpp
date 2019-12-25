@@ -167,8 +167,10 @@ static void signal_handler(int sig) {
 	signal(SIGUSR1, signal_handler);
 	signal(SIGUSR2, signal_handler);
 	
-	for (int i = SIGRTMIN; i < SIGRTMAX; ++i)
-		signal(i,  signal_handler);
+	// Deprecated: libc uses this signals to communicate between several threads.
+	//             POSIX ONLY.
+	// for (int i = SIGRTMIN; i < SIGRTMAX; ++i)
+	// 	signal(i,  signal_handler);
 	
 	// Forcibly terminate the process
 	if (   sig == SIGTERM 
