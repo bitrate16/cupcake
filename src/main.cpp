@@ -69,11 +69,17 @@ static ck_script* main_script;
 // Gil instance is stored inside global to be accessible 
 //  from signal handler and main both.
 static GIL* gil_instance;
+// Instance of executer of the main thread.
+// Uses direct access during handling signal
+static ck_executer* main_executer;
+// Instance of thread for main.
+// Uses direct access during handling signal
+static gil_thread* main_thread;
 
 // Signal state is stored in blobal to be accessible 
 //  from main and signal handler.
-static bool has_signaled;
-static int signaled_number;
+static bool has_signaled = 0;
+static int  signaled_number = 0;
 
 // Exception processing state of main function.
 bool exception_processing = 0;
@@ -221,44 +227,59 @@ static void signal_handler(int sig) {
 	
 	// In WIN32 there is other behaviour.
 	// Signal handler starts in the new thread and it is not recorded by the GIL.
-	if (!GIL::current_thread()) {
-		std::wcerr << "Handling signals in WIN32 is undefined now" << std::endl;
-		GIL::instance()->stop();
+#if defined(WIN32)
+	if (main_thread->is_running()) {		
+		vobject* __defsignalhandler = root_scope->get(L"__defsignalhandler");
+		if (__defsignalhandler == nullptr || __defsignalhandler->as_type<Undefined>() || __defsignalhandler->as_type<Null>()) {
+			if (sig == SIGINT)
+				GIL::instance()->stop();
+		} else if (main_executer->late_call_size() == 0) 
+			main_executer->late_call_object(__defsignalhandler, nullptr, { new Int(sig) }, L"__defsignalhandler", root_scope);
 	} else {
-		// Warning: checking thread for alive state and then 
-		//  processing signal with late_call_object().
-		// If executer was finishing it's work while signal received, 
-		//  no signal processing would be done.
-		if (GIL::current_thread()->is_running()) {
-			// Thread is alive.
-			// Using late_call_object() to execute __defsignalhandler() on the 
-			//  next step of execute_bytecode().
-			// If executer was finishing it's work and no more rutting execution loop, 
-			//  signal is ignored.
-			
-			vobject* __defsignalhandler = root_scope->get(L"__defsignalhandler");
-			if (__defsignalhandler == nullptr || __defsignalhandler->as_type<Undefined>() || __defsignalhandler->as_type<Null>()) {
-				// No handler is found. 
-				// Default action for SIGINT is terminate.
-				// Default action for [SIGRTMIN, SIGRTMAX], SIGUSR1, SIGUSR2 is nothing.
-#if defined(LINUX)
-				//  sig < SIGRTMIN && sig != SIGUSR1 && sig != SIGUSR2
-				if (sig == SIGINT)
-					GIL::instance()->stop();
-#elif defined(WINDOWS)
-				if (sig == SIGINT)
-					GIL::instance()->stop();
-#endif
-			} else if (GIL::executer_instance()->late_call_size() == 0) 
-				GIL::executer_instance()->late_call_object(__defsignalhandler, nullptr, { new Int(sig) }, L"__defsignalhandler", root_scope);
-		} else {
-			has_signaled = 1;
-			// Clear blocking and mark thread alive
-			GIL::current_thread()->clear_blocks();
-			GIL::current_thread()->restate();
-			signaled_number = sig;
-		}
+		// No handler to put into late call.
+		// Main thread may accidentally wake and say: 
+		//  "Look, there was a signal, let's process it"
+		// Then it will process the sgnal and wait for other threads 
+		//  to stop doing what they are doing.
+		has_signaled    = 1;
+		signaled_number = sig;
+		main_thread->clear_blocks();
+		main_thread->restate();
 	}
+#else
+	// Warning: checking thread for alive state and then 
+	//  processing signal with late_call_object().
+	// If executer was finishing it's work while signal received, 
+	//  no signal processing would be done.
+	if (main_thread->is_running()) {
+		// Thread is alive.
+		// Using late_call_object() to execute __defsignalhandler() on the 
+		//  next step of execute_bytecode().
+		// If executer was finishing it's work and no more rutting execution loop, 
+		//  signal is ignored.
+		
+		vobject* __defsignalhandler = root_scope->get(L"__defsignalhandler");
+		if (__defsignalhandler == nullptr || __defsignalhandler->as_type<Undefined>() || __defsignalhandler->as_type<Null>()) {
+			// No handler is found. 
+			// Default action for SIGINT is terminate.
+			// Default action for [SIGRTMIN, SIGRTMAX], SIGUSR1, SIGUSR2 is nothing.
+#if defined(LINUX)
+			if (sig == SIGINT)
+				GIL::instance()->stop();
+#elif defined(WINDOWS)
+			if (sig == SIGINT)
+				GIL::instance()->stop();
+#endif
+		} else if (main_executer->late_call_size() == 0) 
+			main_executer->late_call_object(__defsignalhandler, nullptr, { new Int(sig) }, L"__defsignalhandler", root_scope);
+	} else {
+		has_signaled    = 1;
+		signaled_number = sig;
+		// Clear blocking and mark thread alive
+		main_thread->clear_blocks();
+		main_thread->restate();
+	}
+#endif
 	
 	// GIL::instance()->notify();
 };
@@ -294,7 +315,7 @@ void wrap_main(int argc, void** argv) {
 				//      Check & update before print.
 				
 				vobject* __defcakehandler = root_scope->get(L"__defcakehandler");
-				if (__defcakehandler == nullptr || __defcakehandler->as_type<Undefined>() || __defcakehandler->as_type<Null>()) {
+				if (__defcakehandler == nullptr || __defcakehandler->as_type<Undefined>() || __defcakehandler->as_type<Null>() || !message.is_handleable()) {
 					if (message.get_type_id() == cake_type::CK_OBJECT && message.get_object() != nullptr)
 						if (message.get_object()->as_type<Cake>()) {
 							std::wcout << "Unhandled cake in Thread main: ";
@@ -413,6 +434,7 @@ void wrap_main(int argc, void** argv) {
 			try {
 				if (!exception_processing) {
 					// Run as regular function
+					// Clear executer state and remove all late call instances
 					GIL::executer_instance()->clear();
 					GIL::executer_instance()->call_object(__defsignalhandler, nullptr, { new Int(signaled_number) }, L"__defsignalhandler", root_scope);
 					GIL::current_thread()->clear_blocks();
@@ -431,7 +453,7 @@ void wrap_main(int argc, void** argv) {
 					// The default behaviour is calling thread cake handler and then finish thread work.
 					
 					vobject* __defcakehandler = root_scope->get(L"__defcakehandler");
-					if (__defcakehandler == nullptr || __defcakehandler->as_type<Undefined>() || __defcakehandler->as_type<Null>())
+					if (__defcakehandler == nullptr || __defcakehandler->as_type<Undefined>() || __defcakehandler->as_type<Null>() || !message.is_handleable())
 						if (message.get_type_id() == cake_type::CK_OBJECT && message.get_object() != nullptr)
 							if (message.get_object()->as_type<Cake>())
 								((Cake*) message.get_object())->print_backtrace();
@@ -685,6 +707,11 @@ int main(int argc, const char** argv, const char** envp) {
 	
 	root_scope->put(L"__env", __env);
 	
+	// Copy instance of executer
+	main_executer = GIL::executer_instance();
+	// Copy instance of thread
+	main_thread   = GIL::current_thread();
+	
 	// Set up signals handling
 #if defined(LINUX)
 	// Set up ignore signals during signal processing
@@ -722,8 +749,8 @@ int main(int argc, const char** argv, const char** envp) {
 	signal(SIGUSR1, signal_handler);
 	signal(SIGUSR2, signal_handler);
 	
-	for (int i = SIGRTMIN; i < SIGRTMAX; ++i)
-		signal(i,  signal_handler);
+	// for (int i = SIGRTMIN; i < SIGRTMAX; ++i)
+	// 	signal(i,  signal_handler);
 #elif defined(WINDOWS)
 	// SIGABRT  Abnormal termination
 	// SIGFPE   Floating-point error

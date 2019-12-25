@@ -53,11 +53,11 @@ void gc_object::gc_make_unlock() {
 
 void* gc_object::operator new(std::size_t count) {
 	if (GC::memory_usage + count > GC::MAX_HEAP_SIZE)
-		throw OutOfMemory(L"Out of memory");
+		throw OutOfMemory(L"Out of memory", 0);
 	
 	void* object = std::malloc(count);
 	if (!object)
-		throw OutOfMemory(L"Out of memory");
+		throw OutOfMemory(L"Out of memory", 0);
 	
 	static_cast<gc_object*>(object)->self_size = count;
 	GC::memory_usage += count;
@@ -134,7 +134,7 @@ void GC::attach(gc_object *o) {
 	
 	gc_list *c = new gc_list;
 	if (!c)
-		throw OutOfMemory(L"GC list allocation error");
+		throw OutOfMemory(L"GC list allocation error", 0);
 		
 	++created_interval;
 	
@@ -162,7 +162,7 @@ void GC::attach_root(gc_object *o) {
 	
 	gc_list *c = new gc_list;
 	if (!c)
-		throw OutOfMemory(L"GC list allocation error");
+		throw OutOfMemory(L"GC list allocation error", 0);
 	
 	o->gc_root       = 1;
 	o->gc_reachable  = 0;
@@ -204,7 +204,7 @@ void GC::lock(gc_object *o) {
 	
 	gc_list *c = new gc_list;
 	if (!c)
-		throw OutOfMemory(L"GC list allocation error");
+		throw OutOfMemory(L"GC list allocation error", 0);
 	
 	o->gc_lock       = 1;
 	o->gc_reachable  = 0;

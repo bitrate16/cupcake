@@ -65,6 +65,9 @@ namespace ck_exceptions {
 		// Marks that instance of cake contains backtrace
 		bool contains_backtrace = 0;
 		
+		// Indicates if message can be hander in __defcakehandler
+		bool handleable = 1;
+		
 		std::vector<BacktraceFrame> backtrace;
 		
 	public:		
@@ -73,7 +76,8 @@ namespace ck_exceptions {
 		cake() : type_id(CK_EMPTY) {};
 		
 		// Rehandling std::exception (unsafe) or catch(...)
-		cake(const std::exception& ex) : 
+		cake(const std::exception& ex, bool handleable = 1) : 
+										handleable(handleable),
 										type(L"NativeException"), 
 										type_id(CK_CAKE) {
 			
@@ -85,7 +89,8 @@ namespace ck_exceptions {
 		};
 		
 		// Used by RuntimeCake(type, message, type_id)
-		cake(const std::wstring& _type, const std::wstring& _message = L"", cake_type _type_id = CK_CAKE) : 
+		cake(const std::wstring& _type, const std::wstring& _message = L"", bool handleable = 1, cake_type _type_id = CK_CAKE) : 
+																										handleable(handleable), 
 																										type(_type), 
 																										message(_message), 
 																										type_id(_type_id) {
@@ -93,17 +98,19 @@ namespace ck_exceptions {
 		};
 		
 		// Typed message with object
-		cake(ck_vobject::vobject* object) : 
+		cake(ck_vobject::vobject* object, bool handleable = 1) : 
+										handleable(handleable), 
 										object(object), 
 										type_id(CK_OBJECT) {
 			// collect_backtrace();
 		};
 												
 		cake(const cake& c) {
-			type_id = c.type_id;
-			type    = c.type;
-			message = c.message;
-			object  = c.object;
+			type_id    = c.type_id;
+			type       = c.type;
+			message    = c.message;
+			object     = c.object;
+			handleable = c.handleable;
 			
 			contains_backtrace = c.contains_backtrace;
 			backtrace          = c.backtrace;
@@ -142,6 +149,14 @@ namespace ck_exceptions {
 			return object;
 		};
 		
+		inline bool is_handleable() {
+			return handleable;
+		}
+		
+		inline void set_handleable(bool h) {
+			handleable = h;
+		}
+		
 		friend std::wostream& operator<<(std::wostream& os, const cake& m);
 	};
 	
@@ -150,78 +165,78 @@ namespace ck_exceptions {
 	
 	// Decorators for different cake type_id's
 	
-	static inline cake ObjectCake(ck_vobject::vobject* o) {
-		return cake(o);
+	static inline cake ObjectCake(ck_vobject::vobject* o, bool handleable = 1) {
+		return cake(o, handleable);
 	};
 	
-	static inline cake UnknownException() {
-		return cake(L"", L"", CK_UNKNOWN_EXCEPTION);
+	static inline cake UnknownException(bool handleable = 1) {
+		return cake(L"", L"", handleable, CK_UNKNOWN_EXCEPTION);
 	};
 	
 	// Decorators for different exception types
 	
-	static inline cake RangeError(const std::wstring& message = L"") {
-		return cake(L"RangeError", message);
+	static inline cake RangeError(const std::wstring& message = L"", bool handleable = 1) {
+		return cake(L"RangeError", message, handleable);
 	};
 	
-	static inline cake Error(const std::wstring& message = L"") {
-		return cake(L"Error", message);
+	static inline cake Error(const std::wstring& message = L"", bool handleable = 1) {
+		return cake(L"Error", message, handleable);
 	};
 	
-	static inline cake IllegalStateError(const std::wstring& message = L"") {
-		return cake(L"StateError", message);
+	static inline cake IllegalStateError(const std::wstring& message = L"", bool handleable = 1) {
+		return cake(L"StateError", message, handleable);
 	};
 	
-	static inline cake IllegalArgumentError(const std::wstring& message = L"") {
-		return cake(L"IllegalArgumentError", message);
+	static inline cake IllegalArgumentError(const std::wstring& message = L"", bool handleable = 1) {
+		return cake(L"IllegalArgumentError", message, handleable);
 	};
 	
-	static inline cake NumberFormatError(const std::wstring& message = L"") {
-		return cake(L"NumberFormatError", message);
+	static inline cake NumberFormatError(const std::wstring& message = L"", bool handleable = 1) {
+		return cake(L"NumberFormatError", message, handleable);
 	};
 	
-	static inline cake UndefinedError(const std::wstring& message = L"") {
-		return cake(L"UndefinedError", message);
+	static inline cake UndefinedError(const std::wstring& message = L"", bool handleable = 1) {
+		return cake(L"UndefinedError", message, handleable);
 	};
 	
-	static inline cake NullPointerError(const std::wstring& message = L"") {
-		return cake(L"NullPointerError", message);
+	static inline cake NullPointerError(const std::wstring& message = L"", bool handleable = 1) {
+		return cake(L"NullPointerError", message, handleable);
 	};
 	
-	static inline cake IOError(const std::wstring& message = L"") {
-		return cake(L"IOError", message);
+	static inline cake IOError(const std::wstring& message = L"", bool handleable = 1) {
+		return cake(L"IOError", message, handleable);
 	};
 	
-	static inline cake RuntimeError(const std::wstring& message = L"") {
-		return cake(L"RuntimeError", message);
+	static inline cake RuntimeError(const std::wstring& message = L"", bool handleable = 1) {
+		return cake(L"RuntimeError", message, handleable);
 	};
 	
-	static inline cake TypeError(const std::wstring& message = L"") {
-		return cake(L"TypeError", message);
+	static inline cake TypeError(const std::wstring& message = L"", bool handleable = 1) {
+		return cake(L"TypeError", message, handleable);
 	};
 	
-	static inline cake StackOverflow(const std::wstring& message = L"") {
-		return cake(L"StackOverflow", message);
+	static inline cake StackOverflow(const std::wstring& message = L"", bool handleable = 1) {
+		return cake(L"StackOverflow", message, handleable);
 	};
 	
-	static inline cake StackCorruption(const std::wstring& message = L"") {
-		return cake(L"StackCorruption", message);
+	static inline cake StackCorruption(const std::wstring& message = L"", bool handleable = 1) {
+		return cake(L"StackCorruption", message, handleable);
 	};
 	
-	static inline cake UnsupportedOperation(const std::wstring& message = L"") {
-		return cake(L"UnsupportedOperation", message);
+	static inline cake UnsupportedOperation(const std::wstring& message = L"", bool handleable = 1) {
+		return cake(L"UnsupportedOperation", message, handleable);
 	};
 	
 	// Rethrow native exception
-	static inline cake NativeException(const std::exception& rethrow_exception) {
+	static inline cake NativeException(const std::exception& rethrow_exception, bool handleable = 1) {
 		std::string message_string(rethrow_exception.what());
 		std::wstring message_wstring(message_string.begin(), message_string.end());
-		return cake(L"NativeException", message_wstring);
+		return cake(L"NativeException", message_wstring, handleable);
 	};
 	
 	// i.e. Bad_Alloc
-	static inline cake OutOfMemory(const std::wstring& message = L"") {
-		return cake(L"OutOfMemory", message);
+	static inline cake OutOfMemory(const std::wstring& message = L"", bool handleable = 1) {
+		return cake(L"OutOfMemory", message, handleable);
 	};
 };
 
