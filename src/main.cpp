@@ -288,6 +288,7 @@ void wrap_main(int argc, void** argv) {
 				// Process cake by calling handler-function.
 				// __defcakehandler(exception)
 				// The default behaviour is calling thread cake handler and then finish thread work.
+				// XXX: Disable processing stack overflow and out of memory
 				
 				vobject* __defcakehandler = root_scope->get(L"__defcakehandler");
 				if (__defcakehandler == nullptr || __defcakehandler->as_type<Undefined>() || __defcakehandler->as_type<Null>()) {
