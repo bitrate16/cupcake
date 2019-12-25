@@ -528,11 +528,22 @@ vobject* ck_executer::exec_bytecode() {
 			
 			late_call_instance instance = late_call.back();
 			
+			// Restore root ownership
+			if (instance.own_obj)
+				instance.obj->gc_make_unroot();
+			
+			if (instance.own_ref)
+				instance.ref->gc_make_unroot();
+			
+			for (int i = 0; i < instance.args.size(); ++i)
+				if (instance.own_args[i]) 
+					instance.args[i]->gc_make_unroot();
+			
 			// Remove call from the list
 			late_call.pop_back();
 			
 			// Exceptions automatically rethrown up
-			call_object(instance.obj, instance.ref, instance.args, instance.name, instance.scope);
+			call_object(instance.obj, instance.ref, instance.args, instance.name, instance.scope, instance.use_scope_without_wrap);
 		}
 		
 #ifdef DEBUG_OUTPUT
@@ -1742,13 +1753,36 @@ ck_vobject::vobject* ck_executer::call_object(ck_vobject::vobject* obj, ck_vobje
 	return obj;
 };
 
-void ck_executer::late_call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>& args, const std::wstring& name, vscope* exec_scope) { 
+void ck_executer::late_call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>& args, const std::wstring& name, vscope* exec_scope, bool use_scope_without_wrap) { 
 	late_call_instance instance;
 	instance.obj = obj;
 	instance.ref = ref;
 	instance.name = name;
 	instance.args = args;
 	instance.scope = exec_scope;
+	instance.use_scope_without_wrap = use_scope_without_wrap;
+	
+	// Record root ownership
+	if (obj && !obj->gc_is_root()) {
+		obj->gc_make_root();
+		instance.own_obj = 1;
+	} else
+		instance.own_obj = 0;
+	
+	if (ref && !ref->gc_is_root()) {
+		ref->gc_make_root();
+		instance.own_ref = 1;
+	} else
+		instance.own_ref = 0;
+	
+	instance.own_args.resize(args.size());
+	for (int i = 0; i < args.size(); ++i) {	
+		if (args[i] && !args[i]->gc_is_root()) {
+			args[i]->gc_make_root();
+			instance.own_args[i] = 1;
+		} else
+			instance.own_args[i] = 0;
+	}
 	
 	late_call.push_back(instance);
 };

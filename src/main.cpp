@@ -217,79 +217,45 @@ static void signal_handler(int sig) {
 	}
 #endif
 	
-	// Warning: checking thread for alive state and then 
-	//  processing signal with late_call_object().
-	// If executer was finishing it's work while signal received, 
-	//  no signal processing would be done.
-	if (GIL::current_thread()->is_running()) {
-		// Thread is alive.
-		// Using late_call_object() to execute __defsignalhandler() on the 
-		//  next step of execute_bytecode().
-		// If executer was finishing it's work and no more rutting execution loop, 
-		//  signal is ignored.
-		
-		vobject* __defsignalhandler = root_scope->get(L"__defsignalhandler");
-		if (__defsignalhandler == nullptr || __defsignalhandler->as_type<Undefined>() || __defsignalhandler->as_type<Null>()) {
-			// No handler is found. 
-			// Default action for SIGINT is terminate.
-			// Default action for [SIGRTMIN, SIGRTMAX], SIGUSR1, SIGUSR2 is nothing.
-#if defined(LINUX)
-			//  sig < SIGRTMIN && sig != SIGUSR1 && sig != SIGUSR2
-			if (sig == SIGINT)
-				GIL::instance()->stop();
-#elif defined(WINDOWS)
-			if (sig == SIGINT)
-				GIL::instance()->stop();
-#endif
-		} else if (GIL::executer_instance()->late_call_size() == 0) {
-			/* 
-			
-			
-			
-			
-			XXX: Bad action, thread can be GC during critical section.
-			
-			
-			
-			
-			// Wait for GIL unlock before creating argument object
-			// var i = 0; while (i++ < 1000) println(i);
-			// var i = 0; while (i++ < 50) println(GC.getObjectCount(), ' ', GC.getRootsCount(), ' ', GC.getLocksCount()); exit();
-			// If this thread was not locked, it can safety create argument for the handler.
-			// Else - wait for GIL lock (not unique global lock, just lock the condition) and create reaction to the signal.
-			if (GIL::current_thread() && GIL::current_thread()->locked_state()) {
-				// Save thread state
-				bool is_running = GIL::current_thread()->is_running();
-				bool is_blocked = GIL::current_thread()->is_blocked();
-				bool is_locked  = GIL::current_thread()->is_locked();
-				
-				// Wait for lock
-				GIL::instance()->lock();
-				
-				// Function should be appended only if there is no other events to prevent corruption.
-				GIL::executer_instance()->late_call_object(__defsignalhandler, nullptr, { new Int(sig) }, L"__defsignalhandler", root_scope);
-				
-				GIL::instance()->unlock();
-				
-				// Restore thread state
-				GIL::current_thread()->set_running(is_running);
-				GIL::current_thread()->set_blocked(is_blocked);
-				GIL::current_thread()->set_locked(is_locked);
-			} else
-				GIL::executer_instance()->late_call_object(__defsignalhandler, nullptr, { new Int(sig) }, L"__defsignalhandler", root_scope);
-			*/
-			
-			#pragma message "XXX: Add passing constants in GIL context"
-			#pragma message "XXX: Make attempt to pass lambda-generator for aguments to prevent gc collection of the scopes"
-			
-			GIL::executer_instance()->late_call_object(__defsignalhandler, nullptr, { /* new Int(sig) */ }, L"__defsignalhandler", root_scope);
-		}
+	// In WIN32 there is other behaviour.
+	// Signal handler starts in the new thread and it is not recorded by the GIL.
+	if (!GIL::current_thread()) {
+		std::wcerr << "Handling signals in WIN32 is undefined now" << std::endl;
+		GIL::instance()->stop();
 	} else {
-		has_signaled = 1;
-		// Clear blocking and mark thread alive
-		GIL::current_thread()->clear_blocks();
-		GIL::current_thread()->restate();
-		signaled_number = sig;
+		// Warning: checking thread for alive state and then 
+		//  processing signal with late_call_object().
+		// If executer was finishing it's work while signal received, 
+		//  no signal processing would be done.
+		if (GIL::current_thread()->is_running()) {
+			// Thread is alive.
+			// Using late_call_object() to execute __defsignalhandler() on the 
+			//  next step of execute_bytecode().
+			// If executer was finishing it's work and no more rutting execution loop, 
+			//  signal is ignored.
+			
+			vobject* __defsignalhandler = root_scope->get(L"__defsignalhandler");
+			if (__defsignalhandler == nullptr || __defsignalhandler->as_type<Undefined>() || __defsignalhandler->as_type<Null>()) {
+				// No handler is found. 
+				// Default action for SIGINT is terminate.
+				// Default action for [SIGRTMIN, SIGRTMAX], SIGUSR1, SIGUSR2 is nothing.
+#if defined(LINUX)
+				//  sig < SIGRTMIN && sig != SIGUSR1 && sig != SIGUSR2
+				if (sig == SIGINT)
+					GIL::instance()->stop();
+#elif defined(WINDOWS)
+				if (sig == SIGINT)
+					GIL::instance()->stop();
+#endif
+			} else if (GIL::executer_instance()->late_call_size() == 0) 
+				GIL::executer_instance()->late_call_object(__defsignalhandler, nullptr, { new Int(sig) }, L"__defsignalhandler", root_scope);
+		} else {
+			has_signaled = 1;
+			// Clear blocking and mark thread alive
+			GIL::current_thread()->clear_blocks();
+			GIL::current_thread()->restate();
+			signaled_number = sig;
+		}
 	}
 	
 	// GIL::instance()->notify();

@@ -85,18 +85,53 @@ static vobject* f_println(vscope* scope, const vector<vobject*>& args) {
 
 // Read single line
 static vobject* f_readln(vscope* scope, const vector<vobject*>& args) {
+	// Mark thread as making IO
+	if (GIL::current_thread())
+		GIL::current_thread()->set_blocked(1);
+	
 	// Read input string
 	std::wstring input;
-	if (std::getline(std::wcin, input))
+	if (std::getline(std::wcin, input)) {
+		
+		// Mark thread as not making IO
+		if (GIL::current_thread())
+			GIL::current_thread()->set_blocked(0);
+		
+		// Acept lock
+		if (GIL::instance())
+			GIL::instance()->accept_lock();
+		
 		return new String(input);
+	}
+	
+	// Mark thread as not making IO
+	if (GIL::current_thread())
+		GIL::current_thread()->set_blocked(0);
+	
+	// Acept lock
+	if (GIL::instance())
+		GIL::instance()->accept_lock();
+	
 	return Undefined::instance();
 };
 
 // read single character
 static vobject* f_read(vscope* scope, const vector<vobject*>& args) {
+	// Mark thread as making IO
+	if (GIL::current_thread())
+		GIL::current_thread()->set_blocked(1);
+	
 	// Read single character
 	std::wstring s = L" ";
 	wcin >> s[0];
+	
+	// Mark thread as not making IO
+	if (GIL::current_thread())
+		GIL::current_thread()->set_blocked(0);
+	
+	// Acept lock
+	if (GIL::instance())
+		GIL::instance()->accept_lock();
 	
 	return new String(s);
 };

@@ -5,9 +5,6 @@ println('Pseudo-REPL console in cupcake')
 
 // Handle all system signals and print them out
 __defsignalhandler = function(signum) {
-	println('__defsignalhandler can not hangle signum now, goodbye');
-	exit();
-	
 	if (signum == 3)
 		println('Keyboard Interrupt');
 	else

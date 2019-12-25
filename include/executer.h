@@ -76,6 +76,15 @@ namespace ck_core {
 		
 		// Arguments list
 		std::vector<ck_vobject::vobject*> args;
+		
+		// Boolean flag for using scope
+		bool use_scope_without_wrap;
+		
+		// Boolean flags recording information about ownership for passed objects.
+		// Used to mark all of them as root to prevent deletion in unsafe area of execution.
+		bool own_obj;
+		bool own_ref;
+		std::vector<bool> own_args;
 	};
 	
 	// Performs marking all ck_executer objects in current thread on each GC step.
@@ -321,8 +330,9 @@ namespace ck_core {
 		//  If 0, returns null.
 		ck_vobject::vobject* call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>&, const std::wstring& name, ck_vobject::vscope* scope = nullptr, bool use_scope_without_wrap = 0, bool return_non_null = 1);
 		
-		// Performing late object call by execution passed function on the next executer step
-		void late_call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>&, const std::wstring& name, ck_vobject::vscope* scope = nullptr);
+		// Performing late object call by execution passed function on the next executer step.
+		// By default, all objects passed to this function will be marked as root objects to prevent their colleciton on GC.
+		void late_call_object(ck_vobject::vobject* obj, ck_vobject::vobject* ref, const std::vector<ck_vobject::vobject*>& args, const std::wstring& name, ck_vobject::vscope* scope = nullptr, bool use_scope_without_wrap = 0);
 		
 		// Jumps on the address of bytecode map
 		void goto_address(int bytecode_address);
