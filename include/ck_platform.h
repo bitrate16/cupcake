@@ -25,15 +25,18 @@
 	#define PLATFORM_NAME "windows"
 #elif defined(__ANDROID__)
 	#define LINUX
+	#define POSIX
 	// Sub-os type, android is linux.
 	#define ANDROID
 	#define PLATFORM_NAME "android"
 #elif defined(__linux__)
 	#define LINUX
+	#define POSIX
 	#define PLATFORM_NAME "linux"
 #elif defined(__unix__) || !defined(__APPLE__) && defined(__MACH__)
 	// Assume, using same building set for unix as for linux
 	#define LINUX
+	#define POSIX
 	#define UNIX
 	
 	#include <sys/param.h>
@@ -66,6 +69,7 @@
 		// Apple OSX
 		#define OSX
 		#define MAC
+		#define POSIX
         #define PLATFORM_NAME "osx" 
     #endif
 #elif defined(macintosh) || defined(Macintosh)
@@ -75,6 +79,7 @@
 	#define PLATFORM_NAME "os9" 
 #elif defined(__sun) && defiend(__SVR4)
 	#define SOLARIS
+	#define POSIX
 	#define PLATFORM_NAME "solaris"
 #elif defined(__SYMBIAN32__)
 	// Yes, you can try to compile this shit on symbian
