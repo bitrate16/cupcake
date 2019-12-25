@@ -290,6 +290,8 @@ void wrap_main(int argc, void** argv) {
 				// The default behaviour is calling thread cake handler and then finish thread work.
 				// XXX: Disable processing stack overflow and out of memory
 				// XXX: Add parameter to ck_cake to mark it as uncatchable.
+				// XXX: GIL::is_stopped atomic to prevent exception print twice.
+				//      Check & update before print.
 				
 				vobject* __defcakehandler = root_scope->get(L"__defcakehandler");
 				if (__defcakehandler == nullptr || __defcakehandler->as_type<Undefined>() || __defcakehandler->as_type<Null>()) {
